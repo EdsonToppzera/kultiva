@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, List, Optional, Tuple
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
@@ -12,11 +13,13 @@ from backend.schemas.simulacao import (
     SimulacaoResponse,
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/simulacoes", tags=["Simulador (M3)"])
 simular_rotacao_router = APIRouter(tags=["Simulador (M3)"])
 
 _ROTACOES_PADRAO = [
-    {"strategy": "Milho -> Soja (Atual)", "viability": 0.70, "water_risk": "high"},
+    {"strategy": "Milho -> Soja (Atual)", "viability": 0.60, "water_risk": "high"},
     {"strategy": "Sorgo -> Feijão-caupi", "viability": 0.88, "water_risk": "low"},
     {"strategy": "Milheto -> Amendoim", "viability": 0.82, "water_risk": "medium"},
 ]
@@ -25,7 +28,9 @@ _ROTACOES_PADRAO = [
 def get_nasa_processor() -> Optional[Any]:
     """Provedor de dependência para MockNASADataProvider/NasaDataProcessor."""
     try:
-        from backend.services import geospatial as geo_module
+        import importlib
+
+        geo_module = importlib.import_module("backend.services.geospatial")
 
         provider_cls = getattr(geo_module, "MockNASADataProvider", None) or getattr(
             geo_module, "NasaDataProcessor"
@@ -102,7 +107,7 @@ def _extrair_metricas_geoespaciais(
                     "origem": "nasa_geospatial_service",
                 }
         except Exception:
-            pass
+            logger.exception("Falha em servico externo da simulacao; usando fallback")
 
     return fallback
 
@@ -135,7 +140,7 @@ def _simular_estrategias_rotacao(
                     for item in estrategias
                 ]
         except Exception:
-            pass
+            logger.exception("Falha em servico externo da simulacao; usando fallback")
 
     return [EstrategiaRotacaoSugerida(**item) for item in _ROTACOES_PADRAO]
 
@@ -157,7 +162,7 @@ def _simular_viabilidade_ml(
                 risk = str(resultado.get("water_risk", "low"))
                 return score, risk
         except Exception:
-            pass
+            logger.exception("Falha em servico externo da simulacao; usando fallback")
 
     return 0.85, "low"
 
@@ -264,7 +269,7 @@ def _gerar_explicacao_ia(
             if conteudo and conteudo.strip():
                 return conteudo.strip()
         except Exception:
-            pass
+            logger.exception("Falha em servico externo da simulacao; usando fallback")
 
     return (
         f"A simulação para a cultura {nome_cultura} apresentou índice de viabilidade de "

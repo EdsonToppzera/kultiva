@@ -1,3 +1,4 @@
+import logging
 import os
 from abc import ABC, abstractmethod
 from typing import Any
@@ -8,6 +9,8 @@ import xarray as xr
 from shapely.geometry import LineString, Point, Polygon
 
 from backend.services.mock_nasa_data import generate_synthetic_netcdf
+
+logger = logging.getLogger(__name__)
 
 _DEFAULT_BRAZIL_POLYGON = [
     (-50.0, -15.0),
@@ -99,6 +102,7 @@ class MockNASADataProvider(INASADataProvider):
 
         avg_moisture = 0.0
         avg_temp = 0.0
+        data_quality = "no_data"
 
         if os.path.exists(smap_path) and os.path.exists(eco_path):
             with xr.open_dataset(smap_path) as ds_smap, xr.open_dataset(eco_path) as ds_eco:
@@ -118,14 +122,31 @@ class MockNASADataProvider(INASADataProvider):
 
                     avg_moisture = float(clipped_smap["soil_moisture"].mean().item())
                     avg_temp = float(clipped_eco["surface_temp"].mean().item())
+                    data_quality = "clip"
                 except Exception as exc:
-                    print(f"Aviso de Clip Espacial: {exc}")
+                    # Polígono menor que a célula da grade (ou fora dela): usa a
+                    # célula mais próxima do centroide em vez de devolver 0.0.
+                    logger.info("Clip vazio/falhou (%s); usando célula mais próxima.", exc)
+                    try:
+                        c = geom.centroid
+                        pt = {"lat": c.y, "lon": c.x}
+                        avg_moisture = float(
+                            ds_smap["soil_moisture"].sel(**pt, method="nearest").mean().item()
+                        )
+                        avg_temp = float(
+                            ds_eco["surface_temp"].sel(**pt, method="nearest").mean().item()
+                        )
+                        data_quality = "nearest_cell"
+                    except Exception as exc2:
+                        logger.warning("Falha ao extrair métricas NASA mock: %s", exc2)
+                        data_quality = "no_data"
 
         return {
             "coordinates": polygon_coords,
             "avg_soil_moisture_smap": avg_moisture,
             "avg_surface_temp_ecostress": avg_temp,
             "is_bare_field_period": False,
+            "data_quality": data_quality,
         }
 
 

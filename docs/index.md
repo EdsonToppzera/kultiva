@@ -47,7 +47,7 @@ Para atender à realidade do Brasil e manter a modularidade, o Kultiva adotou as
    - **ClimateAnomalyDetector:** Utiliza *IsolationForest* ou thresholds baseados no ECOSTRESS/GPM para disparar os alertas do [M5].
 
 3. **IA Generativa / LangChain (`llm_agent.py`):**
-   - **Modelo:** Google Gemini (`gemini-1.5-flash`) via `langchain-google-genai`.
+   - **Modelo:** Google Gemini (`gemini-2.5-flash`, configurável via `GEMINI_MODEL`) via `langchain-google-genai`.
    - **Função:** Traduzir os resultados matemáticos do ML para uma linguagem acessível e humana.
    - **Regra de Segurança Mandatória:** O prompt do LLM exige que toda explicação termine com um aviso claro de que *a ferramenta serve para apoiar a decisão, mas nunca substitui o julgamento do agricultor ou sua experiência local*.
 

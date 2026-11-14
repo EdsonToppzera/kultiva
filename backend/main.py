@@ -5,6 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from backend.api.router import api_router
 from backend.db import models
 from backend.db.database import SessionLocal, engine
+from backend.services.alert_tasks import lifespan_monitoramento_alertas
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,8 @@ async def lifespan(_app: FastAPI):
         seed_culturas()
     except SQLAlchemyError as exc:
         logger.warning("Banco indisponível no startup; pulando create_all/seed: %s", exc)
-    yield
+    async with lifespan_monitoramento_alertas(_app):
+        yield
 
 
 app = FastAPI(
