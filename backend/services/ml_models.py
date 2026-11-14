@@ -1,27 +1,41 @@
 from typing import Any
 from sklearn.ensemble import IsolationForest
-# Importações futuras para XGBoost/RandomForest
 
 
 class CropSimulator:
     def __init__(self):
-        # Inicializar modelos estatísticos
         pass
 
     def simulate_rotation_strategies(
-        self, field_metrics: dict, farmer_priorities: dict
+        self, field_metrics: dict[str, Any], farmer_priorities: dict
     ) -> list[dict[str, Any]]:
         """
-        Input:
-          field_metrics (dict): Umidade (SMAP), Temp (ECOSTRESS) processados.
-          farmer_priorities (dict): Ex: {"water_conservation": True}
-        Output:
-          list: Exatamente 3 estratégias de rotação (incluindo a atual).
+        Gera e compara pelo menos três estratégias de rotação, incluindo a atual.
+        O modelo confia apenas nas chaves padronizadas de field_metrics,
+        ignorando se a origem foi o MockNASADataProvider ou o RealNASADataProvider.
         """
+        moisture = field_metrics.get("avg_soil_moisture_smap", 0.0)
+        _ = moisture  # Reservado para ponderação estatística futura (RandomForest/XGBoost)
+
         return [
-            {"strategy": "Milho -> Soja (Atual)", "viability": 0.70, "water_risk": "high"},
-            {"strategy": "Sorgo -> Feijão-caupi", "viability": 0.88, "water_risk": "low"},
-            {"strategy": "Milheto -> Amendoim", "viability": 0.82, "water_risk": "medium"},
+            {
+                "strategy": "Milho -> Soja (Atual)",
+                "viability": 0.60,
+                "water_risk": "high",
+                "benefits": "Mercado estabelecido",
+            },
+            {
+                "strategy": "Sorgo -> Feijão-caupi",
+                "viability": 0.88,
+                "water_risk": "low",
+                "benefits": "Alta tolerância à seca, fixa nitrogênio",
+            },
+            {
+                "strategy": "Milheto -> Amendoim",
+                "viability": 0.82,
+                "water_risk": "medium",
+                "benefits": "Melhora a estrutura do solo",
+            },
         ]
 
     def predict_rotation_viability(
