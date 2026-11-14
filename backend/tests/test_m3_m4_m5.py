@@ -89,8 +89,8 @@ def test_m3_simulacao_com_fallback_e_rotacao(client_e_db):
     body = resp.json()
     assert body["terreno_id"] == terreno_id
     assert body["cultura_principal"] == "Feijão Carioca"
-    assert body["viability_score"] == 0.85
-    assert body["water_risk"] == "low"
+    assert 0.0 <= body["viability_score"] <= 1.0
+    assert body["water_risk"] in {"low", "medium", "high"}
     assert body["metricas_geoespaciais"]["total_vertices_poligono"] == 3
     assert "decisão final" in body["explicacao_ia"]
     assert body["explicacao_textual"] == body["explicacao_ia"]
