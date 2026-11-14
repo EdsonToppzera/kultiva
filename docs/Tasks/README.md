@@ -1,58 +1,87 @@
 # Tasks do Hackathon — Dados/ML/IA e Backend
 
-Base pronta (suíte `backend/tests` com 12 testes passando): `.env.example`, deps, mock NASA determinístico, `detect_extremes` com limiares, monitor de alertas ligado ao lifespan e fallback da simulação unificado.
-
 **Responsáveis:** **Dev A** = dados, ML e IA · **Dev B** = catálogo, relatórios e testes · **Dev C** = simulação, alertas e calendário.
+
+**Legenda:** ✅ feito (mergeado na `dev`) · 🔄 em andamento · ⬜ pendente
+
+## Estado atual (atualizado após o merge dos PRs #9 e #10 na `dev`)
+
+- Suíte `backend/tests`: **verde** (24 testes na entrega A1–A3; `test_c1_c5.py` foi adicionado pela Dev C).
+- **Feito:** A1, A2, A3 (Dev A) · C1, C5 (Dev C) · base de infra (`.env.example`, deps, healthcheck do Postgres, monitor de alertas ligado ao lifespan, disclaimer garantido no LLM).
+- **Próximos em paralelo:** B1, B3 (Dev B) · C2, C3 (Dev C, destravadas pela A3) · A4, A6 (Dev A).
+- **Por último:** A5, C4, B2, B4 e integração/demo.
+
+### O que a Dev A entregou (A1–A3)
+
+- **A1 — Mock e provider** (`mock_nasa_data.py`, `geospatial.py`): `gpm_mock.nc` (precipitação em mm/dia) com padrão espacial (mais chuva/umidade perto do equador, mais calor ao norte); seed fixa; `.nc` ausentes são regerados. `extract_field_metrics` devolve `avg_precipitation_gpm`, `time_series` diário e `is_bare_field_period` (heurística do mock: umidade < 0,12 e temperatura ≥ 33 °C). Polígono menor que a célula usa a célula mais próxima (`data_quality = nearest_cell`).
+- **A2 — `CropSimulator`** (`ml_models.py`): score ponderado por água, calor, solo e mercado (a água pesa mais com `agua: escassa` ou `water_conservation`). Devolve 3 estratégias, sempre incluindo a prática atual (`pratica_atual`, padrão "Milho -> Soja"), com `score_breakdown`. `predict_rotation_viability` usa `consumo_agua_mm` e `tempo_colheita_dias`. Aceita também as chaves de fallback da API (`umidade_solo_estimada`, etc.).
+- **A3 — `ClimateAnomalyDetector`** (`ml_models.py`): limiares absolutos + `IsolationForest` sobre a série, confirmado por z-score robusto (MAD) e só com ≥ 10 pontos, para não marcar ~5% de qualquer série como anomalia.
+- Testes em `backend/tests/test_data_ml.py` (12 novos, cobrem boa parte da A6).
+
+### O que a Dev C entregou (C1 e C5)
+
+- **C1** (`api/simulacao.py`, `schemas/simulacao.py`): `SimulacaoResponse` ganhou `origem` e `fallback_usado`; provider, simulator e agente LLM são instanciados uma vez (cache por módulo, respeitando a troca via `sys.modules` usada nos testes). Não remover o `importlib.import_module` de `get_nasa_processor`/`_get_cached_service`: o teste `test_m3_simulacao_integra_servicos_ia_geospatial_ml` depende dele.
+- **C5** (`db/models.py`, `api/calendario.py`, `schemas/`): `datetime.utcnow()` trocado por datetime com timezone e schemas Pydantic migrados para `ConfigDict`/`json_schema_extra`.
+- Testes em `backend/tests/test_c1_c5.py`.
+
+### Pontos de atenção que ficaram abertos
+
+- `EstrategiaRotacaoSugerida` (schema) **não expõe `score_breakdown`**: o simulador calcula, mas a API descarta. Decidir se entra na resposta (útil para o front explicar a nota) — toca `schemas/simulacao.py` e `api/simulacao.py` (Dev C) e o LLM (A4).
+- O fallback de `_simular_viabilidade_ml` ainda devolve `0.85/low` e o de estratégias usa `_ROTACOES_PADRAO`; agora vem sinalizado por `fallback_usado`, mas o front precisa tratar.
+- `alert_tasks.py` ainda coleta dado climático **global** (não por terreno) e não deduplica alertas → C2 e C3.
+- A heurística de `is_bare_field_period` é do mock; o provider real (A5) precisará de NDVI/cobertura para isso.
 
 ## Contratos (não quebrar sem avisar os outros)
 
 1. **`field_metrics`** (saída de `INASADataProvider.extract_field_metrics`):
-   `avg_soil_moisture_smap`, `avg_surface_temp_ecostress`, `avg_precipitation_gpm` *(Dev A, D1)*, `is_bare_field_period`, `data_quality` (`clip` | `nearest_cell` | `no_data`), `coordinates`.
+   `avg_soil_moisture_smap`, `avg_surface_temp_ecostress`, `avg_precipitation_gpm` (mm/dia), `is_bare_field_period`, `data_quality` (`clip` | `nearest_cell` | `no_data`), `time_series` (lista por dia com `data`, `soil_moisture`, `surface_temp_c`, `precipitation_mm`), `coordinates`.
 2. **`ClimateAnomalyDetector.detect_extremes(dict | list[dict])`** retorna
-   `{anomaly_detected: bool, tipo_evento: onda_de_calor|seca|chuva_intensa|nenhum, severidade, detalhes}`.
-3. **`CropSimulator.simulate_rotation_strategies`** retorna lista (≥ 3, incluindo a prática atual) de
-   `{strategy, viability (0–1), water_risk (low|medium|high), benefits}`.
-4. **Aviso do LLM:** toda explicação termina com o disclaimer (já garantido em `llm_agent.py`).
+   `{anomaly_detected: bool, tipo_evento: onda_de_calor|seca|chuva_intensa|nenhum, severidade, detalhes}`; `detalhes` inclui `metodo` (`limiar` | `isolation_forest`) e `indices_outliers`.
+3. **`CropSimulator.simulate_rotation_strategies`** retorna 3 itens (incluindo a prática atual, marcada com `(Atual)`) de
+   `{strategy, viability (0–1), water_risk (low|medium|high), benefits, score_breakdown}`.
+4. **`SimulacaoResponse`** inclui `origem` e `fallback_usado`.
+5. **Aviso do LLM:** toda explicação termina com o disclaimer (garantido em `llm_agent.py`).
 
 ## Dev A — Dados, ML e IA
 
-| # | Task | Arquivos | Pronto quando |
-|---|---|---|---|
-| A1 | Mock GPM/IMERG (`gpm_mock.nc`) com recorte e `avg_precipitation_gpm`; `is_bare_field_period` dinâmico | `mock_nasa_data.py`, `geospatial.py` | `extract_field_metrics` devolve precipitação e flag; teste unitário |
-| A2 | `CropSimulator` dinâmico: score ponderando umidade, temperatura, precipitação e `farmer_priorities`; `predict_rotation_viability` usa `crop_requirements` (consumo de água, ciclo) | `ml_models.py` | Estratégias mudam com o terreno/prioridades; **atualizar** os asserts `0.85` em `test_m3_m4_m5.py` |
-| A3 | `ClimateAnomalyDetector`: somar `IsolationForest` sobre a série aos limiares atuais, mantendo o contrato | `ml_models.py` | Série com outlier dispara; série normal não |
-| A4 | Agente LLM: explicar as 3 estratégias numa chamada, linguagem simples; cache/singleton do agente | `llm_agent.py` | Uma chamada → 3 explicações, todas com disclaimer |
-| A5 | `RealNASADataProvider` (`earthaccess` + `xr.open_mfdataset`) selecionado por `NASA_PROVIDER=mock\|real` | `geospatial.py` | Último: só se sobrar tempo; mock segue como padrão |
-| A6 | Testes unitários de `MockNASADataProvider`, `CropSimulator`, `ClimateAnomalyDetector` | `backend/tests/` | `pytest` verde |
+| # | Status | Task | Arquivos | Pronto quando |
+|---|---|---|---|---|
+| A1 | ✅ | Mock GPM/IMERG com recorte e `avg_precipitation_gpm`; `is_bare_field_period` dinâmico | `mock_nasa_data.py`, `geospatial.py` | Provider devolve precipitação e flag; teste unitário |
+| A2 | ✅ | `CropSimulator` dinâmico (clima + prioridades); `predict_rotation_viability` usa `crop_requirements` | `ml_models.py` | Estratégias mudam com terreno/prioridades |
+| A3 | ✅ | `ClimateAnomalyDetector` com `IsolationForest` + limiares | `ml_models.py` | Série com outlier dispara; normal não |
+| A4 | ⬜ | Agente LLM: explicar as 3 estratégias numa chamada, linguagem simples (o cache/singleton do agente já veio na C1) | `llm_agent.py` | Uma chamada → 3 explicações, todas com disclaimer |
+| A5 | ⬜ | `RealNASADataProvider` (`earthaccess` + `xr.open_mfdataset`) via `NASA_PROVIDER=mock\|real` | `geospatial.py` | Último: só se sobrar tempo; mock segue como padrão |
+| A6 | 🔄 | Testes unitários de `MockNASADataProvider`, `CropSimulator`, `ClimateAnomalyDetector` (parte feita em `test_data_ml.py`; falta o LLM e casos extremos) | `backend/tests/` | `pytest` verde |
 
 ## Dev B — Catálogo, relatórios e qualidade
 
-| # | Task | Pronto quando |
-|---|---|---|
-| B1 | **[M2]** CRUD completo de culturas/rotações do produtor (PUT/DELETE, validações); marcar customizadas vs seed e proteger as de seed; rotações preferenciais entram no simulador | Produtor cadastra/edita/remove; seed não removível |
-| B2 | **[M6]** Serviço e endpoints de relatório: histórico de umidade/temperatura, vigor, vulnerabilidade, adaptações (`ajustada_por_alerta`) | `GET` de relatório por terreno e período; usa `field_metrics` |
-| B3 | Persistir métricas históricas (tabela + migração/Alembic) para alimentar o M6 | Série por terreno consultável |
-| B4 | Testes de API para M2/M6 e CI rodando `pytest` | CI verde no PR |
+| # | Status | Task | Pronto quando |
+|---|---|---|---|
+| B1 | ⬜ | **[M2]** CRUD completo de culturas/rotações do produtor (PUT/DELETE, validações); marcar customizadas vs seed e proteger as de seed; rotações preferenciais entram no simulador | Produtor cadastra/edita/remove; seed não removível |
+| B2 | ⬜ | **[M6]** Serviço e endpoints de relatório: histórico de umidade/temperatura, vigor, vulnerabilidade, adaptações (`ajustada_por_alerta`) | `GET` de relatório por terreno e período; usa `field_metrics` |
+| B3 | ⬜ | Persistir métricas históricas (tabela + migração/Alembic) para alimentar o M6 | Série por terreno consultável |
+| B4 | ⬜ | Testes de API para M2/M6 e CI rodando `pytest` | CI verde no PR |
 
 ## Dev C — Simulação, alertas e calendário
 
-| # | Task | Arquivos | Pronto quando |
-|---|---|---|---|
-| C1 | Refatorar `api/simulacao.py`: devolver `origem`/`fallback_usado` na resposta, instanciar provider/simulator/agente uma vez (cuidar dos testes que trocam módulos via `sys.modules`) | `api/simulacao.py` | Resposta indica se houve fallback |
-| C2 | Monitor [M5]: coletar métricas **por terreno** via `INASADataProvider` (polígono) em vez do dado global; alerta só com `anomaly_detected` | `services/alert_tasks.py` | Terrenos diferentes → alertas diferentes |
-| C3 | Deduplicar alertas (mesmo terreno + tipo + data) e cooldown; intervalo por env | `alert_tasks.py`, `api/alertas.py` | Dois ciclos seguidos não duplicam |
-| C4 | Calendário gerado a partir da estratégia escolhida no M3 (`[M1]→[M3]→[M4]`); regras de ajuste pós-alerta testáveis | `api/calendario.py` | Fluxo ponta a ponta coberto por teste |
-| C5 | Trocar `datetime.utcnow()` por datetimes com timezone e migrar schemas Pydantic para `ConfigDict` (warnings atuais) | `api/calendario.py`, `schemas/` | `pytest` sem DeprecationWarning do projeto |
+| # | Status | Task | Arquivos | Pronto quando |
+|---|---|---|---|---|
+| C1 | ✅ | `origem`/`fallback_usado` na resposta; provider/simulator/agente instanciados uma vez | `api/simulacao.py` | Resposta indica se houve fallback |
+| C2 | ⬜ | Monitor [M5]: métricas **por terreno** via `INASADataProvider` (polígono); alerta só com `anomaly_detected` (A3 já pronta) | `services/alert_tasks.py` | Terrenos diferentes → alertas diferentes |
+| C3 | ⬜ | Deduplicar alertas (mesmo terreno + tipo + data), cooldown; intervalo por env | `alert_tasks.py`, `api/alertas.py` | Dois ciclos seguidos não duplicam |
+| C4 | ⬜ | Calendário gerado a partir da estratégia escolhida no M3 (`[M1]→[M3]→[M4]`); regras de ajuste pós-alerta testáveis | `api/calendario.py` | Fluxo ponta a ponta coberto por teste |
+| C5 | ✅ | Datetimes com timezone e schemas Pydantic em `ConfigDict` | `api/calendario.py`, `schemas/` | `pytest` sem DeprecationWarning do projeto |
 
 ## Ordem e dependências
 
-1. **Agora, em paralelo:** A1, A2, A3 · B1, B3 · C1, C5.
-2. **Depois:** C2/C3 (dependem do A3) · B2 (depende do B3) · A4, A6, B4.
-3. **Por último:** A5, C4, integração e demo.
+1. ✅ **Concluído:** A1, A2, A3 · C1, C5.
+2. **Agora, em paralelo:** B1, B3 · C2, C3 · A4, A6.
+3. **Depois:** B2 (depende do B3) · B4.
+4. **Por último:** A5, C4, integração e demo.
 
 ## Regras de trabalho
 
-- Branch por task (`feat/A2-crop-simulator`), PR pequeno, `pytest backend/tests` verde antes de abrir.
+- Branch por task a partir da `dev` atualizada (`feat/A4-llm-explainer`, `feat/A6-tests`, `feat/A5-real-provider`...), PR pequeno para a `dev`, `pytest backend/tests` verde antes de abrir.
 - Mudou um contrato acima → avise os outros dois antes do merge.
-- Sem `GOOGLE_API_KEY` o LLM usa resposta mockada; não commitar `.env`.
+- Sem `GOOGLE_API_KEY` o LLM usa resposta mockada; não commitar `.env` (usar `.env.example`).
 - Rodar local: `python -m venv venv`, `pip install -r backend/requirements.txt`, `pytest backend/tests`.
