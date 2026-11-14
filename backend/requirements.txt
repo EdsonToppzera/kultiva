@@ -6,6 +6,8 @@ xarray
 netCDF4
 rasterio
 geopandas
+rioxarray
+shapely
 pandas
 langchain
 langchain-google-genai
