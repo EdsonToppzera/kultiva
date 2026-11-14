@@ -43,3 +43,20 @@ class AtividadeCalendario(Base):
     ajustada_por_alerta = Column(Boolean, default=False, nullable=False)
     motivo_ajuste = Column(String, nullable=True)
     criado_em = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class AlertaClimatico(Base):
+    __tablename__ = "alertas_climaticos"
+    id = Column(Integer, primary_key=True, index=True)
+    terreno_id = Column(Integer, ForeignKey("terrenos.id"), nullable=False, index=True)
+    tipo_evento = Column(String, nullable=False, index=True)  # chuva_intensa, onda_de_calor, seca, geada, vendaval
+    severidade = Column(String, default="alta", nullable=False)  # baixa, media, alta, critica
+    titulo = Column(String, nullable=False)
+    mensagem = Column(Text, nullable=False)
+    data_evento = Column(Date, nullable=False, index=True)
+    origem_gatilho = Column(String, default="ml_anomaly_detector", nullable=False)
+    dados_gatilho = Column(JSON, nullable=True)
+    processado_background = Column(Boolean, default=False, nullable=False)
+    resumo_adaptacao = Column(Text, nullable=True)
+    lido = Column(Boolean, default=False, nullable=False)
+    criado_em = Column(DateTime, default=datetime.utcnow, nullable=False)
