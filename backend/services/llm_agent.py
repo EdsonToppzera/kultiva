@@ -6,6 +6,11 @@ from langchain_core.language_models.fake import FakeListLLM
 
 load_dotenv()
 
+DISCLAIMER = (
+    "Lembre-se: esta ferramenta serve para apoiar a decisão e identificar possibilidades, "
+    "mas não substitui a sua experiência local. A decisão final é sempre sua."
+)
+
 
 class RotationExplainerAgent:
     def __init__(self):
@@ -18,7 +23,7 @@ class RotationExplainerAgent:
             ])
         else:
             self.llm = ChatGoogleGenerativeAI(
-                model="gemini-2.5-flash",
+                model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
                 temperature=0.2,
                 google_api_key=api_key
             )
@@ -40,4 +45,9 @@ class RotationExplainerAgent:
 
     def generate_explanation(self, crop: str, benefits: str, risks: str) -> str:
         response = self.chain.invoke({"crop": crop, "benefits": benefits, "risks": risks})
-        return response.content if hasattr(response, "content") else response
+        text = response.content if hasattr(response, "content") else response
+        text = str(text).strip()
+        # Regra de segurança mandatória: garante o aviso mesmo se o LLM/mock omitir.
+        if "decisão final" not in text.lower():
+            text = f"{text}\n\n{DISCLAIMER}"
+        return text

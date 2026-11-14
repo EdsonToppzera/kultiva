@@ -176,19 +176,21 @@ def coletar_dados_climaticos_sinteticos(output_dir: str = "data") -> Dict[str, A
                 if "soil_moisture" in ds:
                     umidade_media = float(ds["soil_moisture"].mean().item())
 
+        precip = 82.0 if umidade_media > 0.3 else 12.0
+        temp = 24.5 if umidade_media > 0.3 else 36.8
         return {
             "origem": "mock_nasa_data_netcdf",
             "detalhe_geracao": mensagem_netcdf,
             "soil_moisture": round(umidade_media, 4),
-            "precipitation_mm": 82.0 if umidade_media > 0.3 else 12.0,
-            "surface_temp_c": 24.5 if umidade_media > 0.3 else 36.8,
-            "anomaly_detected": True,
+            "precipitation_mm": precip,
+            "surface_temp_c": temp,
+            "anomaly_detected": precip >= 60.0 or temp >= 35.0 or umidade_media <= 0.2,
         }
     except Exception:
         return {
             "origem": "fallback_sintetico",
             "soil_moisture": 0.14,
-            "precipitation_mm": 82.0,
+            "precipitation_mm": 12.0,
             "surface_temp_c": 36.8,
             "anomaly_detected": True,
         }
