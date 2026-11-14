@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import asynccontextmanager
 import os
 from datetime import date, timedelta
 from typing import Any, Dict, List, Optional
@@ -309,6 +310,7 @@ async def iniciar_monitoramento_periodico(
     max_ciclos: Optional[int] = 1,
     terreno_id: Optional[int] = None,
     session_factory=None,
+    aguardar_inicio: bool = False,
 ) -> List[int]:
     """
     Orquestra ciclos periódicos de verificação climática (ex: a cada 6 ou 12 horas).
@@ -316,13 +318,20 @@ async def iniciar_monitoramento_periodico(
     todos_alertas: List[int] = []
     ciclos_executados = 0
 
+    if aguardar_inicio:
+        await asyncio.sleep(max(0, intervalo_horas) * 3600)
+
     while max_ciclos is None or ciclos_executados < max_ciclos:
-        gerados = executar_ciclo_monitoramento_alertas(
-            terreno_id=terreno_id,
-            intervalo_horas=intervalo_horas,
-            session_factory=session_factory,
-        )
-        todos_alertas.extend(gerados)
+        try:
+            gerados = executar_ciclo_monitoramento_alertas(
+                terreno_id=terreno_id,
+                intervalo_horas=intervalo_horas,
+                session_factory=session_factory,
+            )
+            todos_alertas.extend(gerados)
+        except Exception:
+            if max_ciclos is not None:
+                raise
         ciclos_executados += 1
 
         if max_ciclos is not None and ciclos_executados >= max_ciclos:
@@ -331,3 +340,22 @@ async def iniciar_monitoramento_periodico(
         await asyncio.sleep(max(0, intervalo_horas) * 3600)
 
     return todos_alertas
+
+
+@asynccontextmanager
+async def lifespan_monitoramento_alertas(app):
+    """Inicia a rotina periódica de monitoramento climático no startup do FastAPI."""
+    intervalo_horas = int(os.getenv("ALERT_MONITOR_INTERVAL_HOURS", "6"))
+    task = asyncio.create_task(
+        iniciar_monitoramento_periodico(
+            intervalo_horas=intervalo_horas,
+            max_ciclos=None,
+            aguardar_inicio=True,
+        )
+    )
+    app.state.alert_monitor_task = task
+    try:
+        yield
+    finally:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)

@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from backend.api.router import api_router
+from backend.services.alert_tasks import lifespan_monitoramento_alertas
 
 app = FastAPI(
     title="Kultiva API",
     description="Sistema de apoio à decisão para pequenos produtores rurais.",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan_monitoramento_alertas,
 )
 
 app.include_router(api_router, prefix="/api/v1")
