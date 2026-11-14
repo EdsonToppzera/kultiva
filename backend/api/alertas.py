@@ -8,8 +8,13 @@ from backend.schemas.alerta import (
     AlertaClimaticoResponse,
     AlertaDisparoResponse,
     AlertaGatilhoRequest,
+    MonitoramentoClimaRequest,
+    MonitoramentoClimaResponse,
 )
-from backend.services.alert_tasks import processar_alerta_e_adaptar_calendario
+from backend.services.alert_tasks import (
+    executar_ciclo_monitoramento_alertas,
+    processar_alerta_e_adaptar_calendario,
+)
 
 router = APIRouter(prefix="/alertas", tags=["Alertas Climáticos (M5)"])
 
@@ -97,6 +102,49 @@ def disparar_alerta_climatico(
         status="accepted",
         mensagem="Alerta registrado e rotina de adaptação do calendário agendada em segundo plano.",
         alerta=db_alerta,
+    )
+
+
+@router.post(
+    "/monitorar",
+    response_model=MonitoramentoClimaResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def iniciar_monitoramento_clima(
+    payload: MonitoramentoClimaRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    Agenda em segundo plano a verificação climática via gerador sintético e
+    ClimateAnomalyDetector, persistindo novos alertas em banco se anomalias forem detectadas.
+    """
+    if payload.terreno_id is not None:
+        terreno = (
+            db.query(models.Terreno)
+            .filter(models.Terreno.id == payload.terreno_id)
+            .first()
+        )
+        if not terreno:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Terreno não encontrado",
+            )
+
+    background_tasks.add_task(
+        executar_ciclo_monitoramento_alertas,
+        payload.terreno_id,
+        payload.intervalo_horas,
+    )
+
+    return MonitoramentoClimaResponse(
+        status="accepted",
+        mensagem=(
+            "Monitoramento climático em segundo plano agendado "
+            f"(janela configurada de {payload.intervalo_horas}h)."
+        ),
+        intervalo_horas=payload.intervalo_horas,
+        terreno_id=payload.terreno_id,
     )
 
 
