@@ -1,0 +1,1122 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Sistema de apoio à decisão para pequenos produtores rurais (NASA Space Apps Challenge)">
+      
+      
+      
+      
+        <link rel="prev" href="../Design/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Tasks - Kultiva — Documentação Técnica</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="light-green">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#tasks-do-hackathon-dadosmlia-e-backend" class="md-skip">
+          Pular para conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href=".." title="Kultiva — Documentação Técnica" class="md-header__button md-logo" aria-label="Kultiva — Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Kultiva — Documentação Técnica
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Tasks
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="light-green"  aria-label="Alternar para modo escuro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Alternar para modo escuro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="green" data-md-color-accent="light-green"  aria-label="Alternar para modo claro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Alternar para modo claro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando busca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/eduardoviana11/kultiva" title="Ir para repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    eduardoviana11/kultiva
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Abas" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Início
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../Requisitos/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Requisitos
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../Arquitetura/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Arquitetura
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../Specs/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Especificações (API)
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../Design/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Design & UX
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Tasks
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Kultiva — Documentação Técnica" class="md-nav__button md-logo" aria-label="Kultiva — Documentação Técnica" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Kultiva — Documentação Técnica
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/eduardoviana11/kultiva" title="Ir para repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    eduardoviana11/kultiva
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Início
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Requisitos/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Requisitos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Arquitetura/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Specs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Especificações (API)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design & UX
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tasks
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tasks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#estado-atual-atualizado-apos-conclusao-de-b1b4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado atual (atualizado após conclusão de B1–B4)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Estado atual (atualizado após conclusão de B1–B4)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#o-que-a-dev-a-entregou-a1a3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O que a Dev A entregou (A1–A3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#o-que-a-dev-c-entregou-c1-e-c5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O que a Dev C entregou (C1 e C5)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pontos-de-atencao-que-ficaram-abertos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pontos de atenção que ficaram abertos
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contratos-nao-quebrar-sem-avisar-os-outros" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contratos (não quebrar sem avisar os outros)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dev-a-dados-ml-e-ia" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dev A — Dados, ML e IA
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dev-b-catalogo-relatorios-e-qualidade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dev B — Catálogo, relatórios e qualidade
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dev-c-simulacao-alertas-e-calendario" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dev C — Simulação, alertas e calendário
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ordem-e-dependencias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ordem e dependências
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#regras-de-trabalho" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regras de trabalho
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#estado-atual-atualizado-apos-conclusao-de-b1b4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Estado atual (atualizado após conclusão de B1–B4)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Estado atual (atualizado após conclusão de B1–B4)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#o-que-a-dev-a-entregou-a1a3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O que a Dev A entregou (A1–A3)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#o-que-a-dev-c-entregou-c1-e-c5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O que a Dev C entregou (C1 e C5)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pontos-de-atencao-que-ficaram-abertos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pontos de atenção que ficaram abertos
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contratos-nao-quebrar-sem-avisar-os-outros" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contratos (não quebrar sem avisar os outros)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dev-a-dados-ml-e-ia" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dev A — Dados, ML e IA
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dev-b-catalogo-relatorios-e-qualidade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dev B — Catálogo, relatórios e qualidade
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dev-c-simulacao-alertas-e-calendario" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dev C — Simulação, alertas e calendário
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ordem-e-dependencias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ordem e dependências
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#regras-de-trabalho" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regras de trabalho
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="tasks-do-hackathon-dadosmlia-e-backend">Tasks do Hackathon — Dados/ML/IA e Backend<a class="headerlink" href="#tasks-do-hackathon-dadosmlia-e-backend" title="Permanent link">&para;</a></h1>
+<p><strong>Responsáveis:</strong> <strong>Dev A</strong> = dados, ML e IA · <strong>Dev B</strong> = catálogo, relatórios e testes · <strong>Dev C</strong> = simulação, alertas e calendário.</p>
+<p><strong>Legenda:</strong> ✅ feito (mergeado na <code>dev</code>) · 🔄 em andamento · ⬜ pendente</p>
+<h2 id="estado-atual-atualizado-apos-conclusao-de-b1b4">Estado atual (atualizado após conclusão de B1–B4)<a class="headerlink" href="#estado-atual-atualizado-apos-conclusao-de-b1b4" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Suíte <code>backend/tests</code>: <strong>verde</strong> (cobrindo A1–A3, C1–C3, C5 e B1–B4).</li>
+<li><strong>Feito:</strong> A1, A2, A3 (Dev A) · B1, B2, B3, B4 (Dev B) · C1, C2, C3, C5 (Dev C) · base de infra (<code>.env.example</code>, deps, healthcheck do Postgres, Alembic inicial, monitor de alertas ligado ao lifespan, disclaimer garantido no LLM, CI no GitHub Actions).</li>
+<li><strong>Próximos:</strong> A4, A6 (Dev A) · A5, C4 e integração/demo.</li>
+</ul>
+<h3 id="o-que-a-dev-a-entregou-a1a3">O que a Dev A entregou (A1–A3)<a class="headerlink" href="#o-que-a-dev-a-entregou-a1a3" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>A1 — Mock e provider</strong> (<code>mock_nasa_data.py</code>, <code>geospatial.py</code>): <code>gpm_mock.nc</code> (precipitação em mm/dia) com padrão espacial (mais chuva/umidade perto do equador, mais calor ao norte); seed fixa; <code>.nc</code> ausentes são regerados. <code>extract_field_metrics</code> devolve <code>avg_precipitation_gpm</code>, <code>time_series</code> diário e <code>is_bare_field_period</code> (heurística do mock: umidade &lt; 0,12 e temperatura ≥ 33 °C). Polígono menor que a célula usa a célula mais próxima (<code>data_quality = nearest_cell</code>).</li>
+<li><strong>A2 — <code>CropSimulator</code></strong> (<code>ml_models.py</code>): score ponderado por água, calor, solo e mercado (a água pesa mais com <code>agua: escassa</code> ou <code>water_conservation</code>). Devolve 3 estratégias, sempre incluindo a prática atual (<code>pratica_atual</code>, padrão "Milho -&gt; Soja"), com <code>score_breakdown</code>. <code>predict_rotation_viability</code> usa <code>consumo_agua_mm</code> e <code>tempo_colheita_dias</code>. Aceita também as chaves de fallback da API (<code>umidade_solo_estimada</code>, etc.).</li>
+<li><strong>A3 — <code>ClimateAnomalyDetector</code></strong> (<code>ml_models.py</code>): limiares absolutos + <code>IsolationForest</code> sobre a série, confirmado por z-score robusto (MAD) e só com ≥ 10 pontos, para não marcar ~5% de qualquer série como anomalia.</li>
+<li>Testes em <code>backend/tests/test_data_ml.py</code> (12 novos, cobrem boa parte da A6).</li>
+</ul>
+<h3 id="o-que-a-dev-c-entregou-c1-e-c5">O que a Dev C entregou (C1 e C5)<a class="headerlink" href="#o-que-a-dev-c-entregou-c1-e-c5" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>C1</strong> (<code>api/simulacao.py</code>, <code>schemas/simulacao.py</code>): <code>SimulacaoResponse</code> ganhou <code>origem</code> e <code>fallback_usado</code>; provider, simulator e agente LLM são instanciados uma vez (cache por módulo, respeitando a troca via <code>sys.modules</code> usada nos testes). Não remover o <code>importlib.import_module</code> de <code>get_nasa_processor</code>/<code>_get_cached_service</code>: o teste <code>test_m3_simulacao_integra_servicos_ia_geospatial_ml</code> depende dele.</li>
+<li><strong>C5</strong> (<code>db/models.py</code>, <code>api/calendario.py</code>, <code>schemas/</code>): <code>datetime.utcnow()</code> trocado por datetime com timezone e schemas Pydantic migrados para <code>ConfigDict</code>/<code>json_schema_extra</code>.</li>
+<li>Testes em <code>backend/tests/test_c1_c5.py</code>.</li>
+</ul>
+<h3 id="pontos-de-atencao-que-ficaram-abertos">Pontos de atenção que ficaram abertos<a class="headerlink" href="#pontos-de-atencao-que-ficaram-abertos" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>EstrategiaRotacaoSugerida</code> (schema) <strong>não expõe <code>score_breakdown</code></strong>: o simulador calcula, mas a API descarta. Decidir se entra na resposta (útil para o front explicar a nota) — toca <code>schemas/simulacao.py</code> e <code>api/simulacao.py</code> (Dev C) e o LLM (A4).</li>
+<li>O fallback de <code>_simular_viabilidade_ml</code> ainda devolve <code>0.85/low</code> e o de estratégias usa <code>_ROTACOES_PADRAO</code>; agora vem sinalizado por <code>fallback_usado</code>, mas o front precisa tratar.</li>
+<li><code>alert_tasks.py</code> ainda coleta dado climático <strong>global</strong> (não por terreno) e não deduplica alertas → C2 e C3.</li>
+<li>A heurística de <code>is_bare_field_period</code> é do mock; o provider real (A5) precisará de NDVI/cobertura para isso.</li>
+</ul>
+<h2 id="contratos-nao-quebrar-sem-avisar-os-outros">Contratos (não quebrar sem avisar os outros)<a class="headerlink" href="#contratos-nao-quebrar-sem-avisar-os-outros" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong><code>field_metrics</code></strong> (saída de <code>INASADataProvider.extract_field_metrics</code>):
+   <code>avg_soil_moisture_smap</code>, <code>avg_surface_temp_ecostress</code>, <code>avg_precipitation_gpm</code> (mm/dia), <code>is_bare_field_period</code>, <code>data_quality</code> (<code>clip</code> | <code>nearest_cell</code> | <code>no_data</code>), <code>time_series</code> (lista por dia com <code>data</code>, <code>soil_moisture</code>, <code>surface_temp_c</code>, <code>precipitation_mm</code>), <code>coordinates</code>.</li>
+<li><strong><code>ClimateAnomalyDetector.detect_extremes(dict | list[dict])</code></strong> retorna
+   <code>{anomaly_detected: bool, tipo_evento: onda_de_calor|seca|chuva_intensa|nenhum, severidade, detalhes}</code>; <code>detalhes</code> inclui <code>metodo</code> (<code>limiar</code> | <code>isolation_forest</code>) e <code>indices_outliers</code>.</li>
+<li><strong><code>CropSimulator.simulate_rotation_strategies</code></strong> retorna 3 itens (incluindo a prática atual, marcada com <code>(Atual)</code>) de
+   <code>{strategy, viability (0–1), water_risk (low|medium|high), benefits, score_breakdown}</code>.</li>
+<li><strong><code>SimulacaoResponse</code></strong> inclui <code>origem</code> e <code>fallback_usado</code>.</li>
+<li><strong>Aviso do LLM:</strong> toda explicação termina com o disclaimer (garantido em <code>llm_agent.py</code>).</li>
+</ol>
+<h2 id="dev-a-dados-ml-e-ia">Dev A — Dados, ML e IA<a class="headerlink" href="#dev-a-dados-ml-e-ia" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Status</th>
+<th>Task</th>
+<th>Arquivos</th>
+<th>Pronto quando</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A1</td>
+<td>✅</td>
+<td>Mock GPM/IMERG com recorte e <code>avg_precipitation_gpm</code>; <code>is_bare_field_period</code> dinâmico</td>
+<td><code>mock_nasa_data.py</code>, <code>geospatial.py</code></td>
+<td>Provider devolve precipitação e flag; teste unitário</td>
+</tr>
+<tr>
+<td>A2</td>
+<td>✅</td>
+<td><code>CropSimulator</code> dinâmico (clima + prioridades); <code>predict_rotation_viability</code> usa <code>crop_requirements</code></td>
+<td><code>ml_models.py</code></td>
+<td>Estratégias mudam com terreno/prioridades</td>
+</tr>
+<tr>
+<td>A3</td>
+<td>✅</td>
+<td><code>ClimateAnomalyDetector</code> com <code>IsolationForest</code> + limiares</td>
+<td><code>ml_models.py</code></td>
+<td>Série com outlier dispara; normal não</td>
+</tr>
+<tr>
+<td>A4</td>
+<td>⬜</td>
+<td>Agente LLM: explicar as 3 estratégias numa chamada, linguagem simples (o cache/singleton do agente já veio na C1)</td>
+<td><code>llm_agent.py</code></td>
+<td>Uma chamada → 3 explicações, todas com disclaimer</td>
+</tr>
+<tr>
+<td>A5</td>
+<td>⬜</td>
+<td><code>RealNASADataProvider</code> (<code>earthaccess</code> + <code>xr.open_mfdataset</code>) via <code>NASA_PROVIDER=mock\|real</code></td>
+<td><code>geospatial.py</code></td>
+<td>Último: só se sobrar tempo; mock segue como padrão</td>
+</tr>
+<tr>
+<td>A6</td>
+<td>🔄</td>
+<td>Testes unitários de <code>MockNASADataProvider</code>, <code>CropSimulator</code>, <code>ClimateAnomalyDetector</code> (parte feita em <code>test_data_ml.py</code>; falta o LLM e casos extremos)</td>
+<td><code>backend/tests/</code></td>
+<td><code>pytest</code> verde</td>
+</tr>
+</tbody>
+</table>
+<h2 id="dev-b-catalogo-relatorios-e-qualidade">Dev B — Catálogo, relatórios e qualidade<a class="headerlink" href="#dev-b-catalogo-relatorios-e-qualidade" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Status</th>
+<th>Task</th>
+<th>Pronto quando</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B1</td>
+<td>✅</td>
+<td><strong>[M2]</strong> CRUD completo de culturas/rotações do produtor (PUT/DELETE, validações); marcar customizadas vs seed e proteger as de seed; rotações preferenciais entram no simulador</td>
+<td>Produtor cadastra/edita/remove; seed não removível</td>
+</tr>
+<tr>
+<td>B2</td>
+<td>✅</td>
+<td><strong>[M6]</strong> Serviço e endpoints de relatório: histórico de umidade/temperatura, vigor, vulnerabilidade, adaptações (<code>ajustada_por_alerta</code>)</td>
+<td><code>GET</code> de relatório por terreno e período; usa <code>field_metrics</code></td>
+</tr>
+<tr>
+<td>B3</td>
+<td>✅</td>
+<td>Persistir métricas históricas (tabela + migração/Alembic) para alimentar o M6</td>
+<td>Série por terreno consultável</td>
+</tr>
+<tr>
+<td>B4</td>
+<td>✅</td>
+<td>Testes de API para M2/M6 e CI rodando <code>pytest</code></td>
+<td>CI verde no PR</td>
+</tr>
+</tbody>
+</table>
+<h2 id="dev-c-simulacao-alertas-e-calendario">Dev C — Simulação, alertas e calendário<a class="headerlink" href="#dev-c-simulacao-alertas-e-calendario" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Status</th>
+<th>Task</th>
+<th>Arquivos</th>
+<th>Pronto quando</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C1</td>
+<td>✅</td>
+<td><code>origem</code>/<code>fallback_usado</code> na resposta; provider/simulator/agente instanciados uma vez</td>
+<td><code>api/simulacao.py</code></td>
+<td>Resposta indica se houve fallback</td>
+</tr>
+<tr>
+<td>C2</td>
+<td>✅</td>
+<td>Monitor [M5]: métricas <strong>por terreno</strong> via <code>INASADataProvider</code> (polígono); alerta só com <code>anomaly_detected</code> (A3 já pronta)</td>
+<td><code>services/alert_tasks.py</code></td>
+<td>Terrenos diferentes → alertas diferentes</td>
+</tr>
+<tr>
+<td>C3</td>
+<td>✅</td>
+<td>Deduplicar alertas (mesmo terreno + tipo + data), cooldown; intervalo por env</td>
+<td><code>alert_tasks.py</code>, <code>api/alertas.py</code></td>
+<td>Dois ciclos seguidos não duplicam</td>
+</tr>
+<tr>
+<td>C4</td>
+<td>⬜</td>
+<td>Calendário gerado a partir da estratégia escolhida no M3 (<code>[M1]→[M3]→[M4]</code>); regras de ajuste pós-alerta testáveis</td>
+<td><code>api/calendario.py</code></td>
+<td>Fluxo ponta a ponta coberto por teste</td>
+</tr>
+<tr>
+<td>C5</td>
+<td>✅</td>
+<td>Datetimes com timezone e schemas Pydantic em <code>ConfigDict</code></td>
+<td><code>api/calendario.py</code>, <code>schemas/</code></td>
+<td><code>pytest</code> sem DeprecationWarning do projeto</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ordem-e-dependencias">Ordem e dependências<a class="headerlink" href="#ordem-e-dependencias" title="Permanent link">&para;</a></h2>
+<ol>
+<li>✅ <strong>Concluído:</strong> A1, A2, A3 · B1, B2, B3, B4 · C1, C2, C3, C5.</li>
+<li><strong>Em andamento / Próximos:</strong> A4, A6 · A5, C4, integração e demo.</li>
+</ol>
+<h2 id="regras-de-trabalho">Regras de trabalho<a class="headerlink" href="#regras-de-trabalho" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Branch por task a partir da <code>dev</code> atualizada (<code>feat/A4-llm-explainer</code>, <code>feat/A6-tests</code>, <code>feat/A5-real-provider</code>...), PR pequeno para a <code>dev</code>, <code>pytest backend/tests</code> verde antes de abrir.</li>
+<li>Mudou um contrato acima → avise os outros dois antes do merge.</li>
+<li>Sem <code>GOOGLE_API_KEY</code> o LLM usa resposta mockada; não commitar <code>.env</code> (usar <code>.env.example</code>).</li>
+<li>Rodar local: <code>python -m venv venv</code>, <code>pip install -r backend/requirements.txt</code>, <code>pytest backend/tests</code>.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar para o topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "mais 1 nesta p\u00e1gina", "search.result.more.other": "# mais nesta p\u00e1gina", "search.result.none": "Nenhum documento encontrado", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
