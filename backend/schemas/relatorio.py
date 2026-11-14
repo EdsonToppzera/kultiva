@@ -83,6 +83,23 @@ class AlertaResumoRelatorio(BaseModel):
     resumo_adaptacao: Optional[str] = None
 
 
+class ComparativoPeriodoRelatorio(BaseModel):
+    data_inicial: Optional[date] = None
+    data_final: Optional[date] = None
+    umidade_inicial: float = 0.0
+    umidade_final: float = 0.0
+    variacao_umidade: float = 0.0
+    variacao_umidade_percentual: float = 0.0
+    temperatura_inicial_c: float = 0.0
+    temperatura_final_c: float = 0.0
+    variacao_temperatura_c: float = 0.0
+    precipitacao_inicial_mm: float = 0.0
+    precipitacao_final_mm: float = 0.0
+    variacao_precipitacao_mm: float = 0.0
+    tendencia_geral: str
+    resumo_comparativo: str
+
+
 class RelatorioAdaptacaoResponse(BaseModel):
     terreno_id: int
     nome_propriedade: str
@@ -96,3 +113,6 @@ class RelatorioAdaptacaoResponse(BaseModel):
     alertas_periodo: List[AlertaResumoRelatorio]
     serie_historica: List[MetricaHistoricaResponse]
     recomendacoes_manejo: List[str]
+    comparativo_periodo: ComparativoPeriodoRelatorio
+    resumo_ia: str
+    explicacao_ia: str
