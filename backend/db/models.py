@@ -30,6 +30,42 @@ class Cultura(Base):
     consumo_agua_mm = Column(Float)
     tempo_colheita_dias = Column(Integer)
     resistencia_pragas = Column(String, nullable=True)
+    is_seed = Column(Boolean, default=False, nullable=False, index=True)
+    customizada = Column(Boolean, default=True, nullable=False, index=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True, index=True)
+
+
+class RotacaoProdutor(Base):
+    __tablename__ = "rotacoes_produtor"
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String, nullable=False, index=True)
+    culturas = Column(JSON, nullable=False)  # Lista ordenada de culturas da rotação
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True, index=True)
+    terreno_id = Column(Integer, ForeignKey("terrenos.id"), nullable=True, index=True)
+    preferencial = Column(Boolean, default=True, nullable=False, index=True)
+    is_seed = Column(Boolean, default=False, nullable=False, index=True)
+    beneficios = Column(String, nullable=True)
+    criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+RotacaoPreferencial = RotacaoProdutor
+
+
+class MetricaHistoricaTerreno(Base):
+    __tablename__ = "metricas_historicas_terreno"
+    id = Column(Integer, primary_key=True, index=True)
+    terreno_id = Column(Integer, ForeignKey("terrenos.id"), nullable=False, index=True)
+    data_medicao = Column(Date, nullable=False, index=True)
+    soil_moisture = Column(Float, nullable=False)
+    surface_temp_c = Column(Float, nullable=False)
+    precipitation_mm = Column(Float, nullable=False, default=0.0)
+    is_bare_field_period = Column(Boolean, default=False, nullable=False)
+    data_quality = Column(String, default="clip", nullable=False)
+    origem = Column(String, default="nasa_geospatial_service", nullable=False)
+    criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+FieldMetricHistory = MetricaHistoricaTerreno
 
 
 class Activity(Base):

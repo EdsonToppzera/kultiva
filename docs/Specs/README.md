@@ -31,6 +31,24 @@ Cria um novo terreno com o polígono geográfico e prioridades do produtor.
 
 ---
 
+## [M2] Catálogo de Culturas e Rotações (`backend/api/cultura.py`)
+
+### Culturas (`/api/v1/culturas`)
+- `GET /api/v1/culturas/`: lista culturas com filtros opcionais (`is_seed`, `customizada`, `usuario_id`).
+- `GET /api/v1/culturas/{cultura_id}`: obtém detalhes de uma cultura.
+- `POST /api/v1/culturas/` (`200 OK`): cadastra cultura customizada (`is_seed=false`, `customizada=true`), validando nome único e valores positivos (`consumo_agua_mm > 0`, `tempo_colheita_dias > 0`).
+- `PUT /api/v1/culturas/{cultura_id}` (`200 OK`): edita cultura customizada (retorna `403 Forbidden` para culturas `is_seed=true`).
+- `DELETE /api/v1/culturas/{cultura_id}` (`204 No Content`): remove cultura customizada (retorna `403 Forbidden` para `is_seed=true`).
+
+### Rotações do Produtor (`/api/v1/rotacoes`)
+- `GET /api/v1/rotacoes/`: lista rotações com filtros (`usuario_id`, `terreno_id`, `preferencial`, `is_seed`).
+- `GET /api/v1/rotacoes/{rotacao_id}`: obtém detalhes de uma rotação.
+- `POST /api/v1/rotacoes/` (`201 Created`): cadastra rotação preferencial (`culturas` com pelo menos 2 culturas). Rotações com `preferencial=true` entram automaticamente no ranking do simulador `[M3]`.
+- `PUT /api/v1/rotacoes/{rotacao_id}` (`200 OK`): atualiza rotação customizada (`403` se `is_seed=true`).
+- `DELETE /api/v1/rotacoes/{rotacao_id}` (`204 No Content`): remove rotação customizada (`403` se `is_seed=true`).
+
+---
+
 ## [M3] Simulador de Culturas e Rotações (`backend/api/simulacao.py`)
 
 ### `POST /api/v1/simular-rotacao`
@@ -233,3 +251,21 @@ Obtém os detalhes do alerta e o campo `resumo_adaptacao`.
 
 ### `PATCH /api/v1/alertas/{alerta_id}/ler` (`200 OK`)
 Marca o alerta como lido (`"lido": true`).
+
+---
+
+## [M6] Relatórios Periódicos e Histórico de Métricas (`backend/api/relatorios.py`)
+
+### `GET /api/v1/relatorios/terreno/{terreno_id}` (`200 OK`)
+*(Também acessível em `GET /api/v1/relatorios/?terreno_id=...`)*
+
+Consolida o relatório periódico de adaptação para o terreno (`data_inicio` e `data_fim` opcionais, padrão últimos 30 dias):
+- Série histórica de umidade, temperatura, precipitação e indicador de solo exposto (`metricas_historicas_terreno`). Se não houver snapshots gravados no período, consulta `INASADataProvider.extract_field_metrics()` sob demanda e persiste a série.
+- Índices calculados de **vigor** (`indice`, `classificacao`, `tendencia`) e **vulnerabilidade** (`indice`, `nivel`, `fatores_risco`).
+- Contabilização de **adaptações** no calendário (`ajustada_por_alerta == true`) e alertas climáticos do período.
+
+### `GET /api/v1/relatorios/terreno/{terreno_id}/metricas` (`200 OK`)
+Lista os snapshots diários persistidos para o terreno com filtro opcional por `data_inicio` e `data_fim`.
+
+### `POST /api/v1/relatorios/terreno/{terreno_id}/metricas` (`201 Created`)
+Permite registrar manualmente uma medição climática ou acionar a sincronização via `INASADataProvider` quando o corpo JSON é omitido.

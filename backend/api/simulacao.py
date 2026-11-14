@@ -2,7 +2,7 @@ import importlib
 import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from backend.db import models
@@ -13,6 +13,7 @@ from backend.schemas.simulacao import (
     SimulacaoRequest,
     SimulacaoResponse,
 )
+from backend.services.metrics_service import persistir_metricas_terreno
 
 logger = logging.getLogger(__name__)
 
@@ -302,6 +303,69 @@ def _gerar_explicacao_ia(
     )
 
 
+def _buscar_rotacoes_preferenciais(
+    db: Session,
+    terreno_id: Optional[int],
+    usuario_id: Optional[int],
+) -> List[Dict[str, Any]]:
+    """Busca rotações preferenciais customizadas aplicáveis ao terreno/produtor."""
+    query = db.query(models.RotacaoProdutor).filter(
+        models.RotacaoProdutor.preferencial.is_(True),
+        models.RotacaoProdutor.is_seed.is_(False),
+    )
+    if terreno_id is not None:
+        filtros = [models.RotacaoProdutor.terreno_id == terreno_id]
+        if usuario_id is not None:
+            filtros.append(
+                (models.RotacaoProdutor.terreno_id.is_(None))
+                & (models.RotacaoProdutor.usuario_id == usuario_id)
+            )
+        filtros.append(
+            (models.RotacaoProdutor.terreno_id.is_(None))
+            & (models.RotacaoProdutor.usuario_id.is_(None))
+        )
+        query = query.filter(or_(*filtros))
+    else:
+        query = query.filter(
+            models.RotacaoProdutor.terreno_id.is_(None),
+            models.RotacaoProdutor.usuario_id.is_(None),
+        )
+
+    rotacoes = query.order_by(models.RotacaoProdutor.id.desc()).all()
+    if not rotacoes:
+        return []
+
+    culturas_db = db.query(models.Cultura).all()
+    por_nome = {c.nome.strip().lower(): c for c in culturas_db if c.nome}
+
+    preferenciais: List[Dict[str, Any]] = []
+    for rotacao in rotacoes:
+        lista_culturas = rotacao.culturas if isinstance(rotacao.culturas, list) else []
+        consumos: List[float] = []
+        ciclos: List[int] = []
+        for nome_cult in lista_culturas:
+            c_obj = por_nome.get(str(nome_cult).strip().lower())
+            if c_obj is not None:
+                consumos.append(float(c_obj.consumo_agua_mm))
+                ciclos.append(int(c_obj.tempo_colheita_dias))
+
+        media_consumo = sum(consumos) / len(consumos) if consumos else 385.0
+        media_ciclo = sum(ciclos) / len(ciclos) if ciclos else 90.0
+        preferenciais.append(
+            {
+                "strategy": rotacao.nome,
+                "culturas": lista_culturas,
+                "water_demand": round(max(0.1, min(1.0, media_consumo / 700.0)), 3),
+                "heat_tolerance": round(max(0.2, min(0.95, 0.8 - (media_ciclo / 365.0) * 0.3)), 3),
+                "soil_benefit": 0.75,
+                "market": 0.70,
+                "benefits": rotacao.beneficios or "Rotação preferencial cadastrada pelo produtor",
+            }
+        )
+
+    return preferenciais
+
+
 def _processar_simulacao(
     payload: SimulacaoRequest,
     db: Session,
@@ -310,6 +374,7 @@ def _processar_simulacao(
     rotation_explainer: Optional[Any],
 ) -> SimulacaoResponse:
     terreno_id_resp: Optional[int] = None
+    usuario_id_terreno: Optional[int] = None
     nome_propriedade = payload.nome_propriedade or "Terreno Simulado"
     coordenadas_poligono: Any = payload.coordenadas_poligono or []
     prioridades_terreno: Dict[str, Any] = {}
@@ -326,6 +391,7 @@ def _processar_simulacao(
                 detail="Terreno não encontrado",
             )
         terreno_id_resp = terreno.id
+        usuario_id_terreno = terreno.usuario_id
         nome_propriedade = payload.nome_propriedade or terreno.nome_propriedade
         if payload.coordenadas_poligono is None:
             coordenadas_poligono = terreno.coordenadas_poligono
@@ -334,11 +400,25 @@ def _processar_simulacao(
 
     dados_climaticos_req = payload.dados_climaticos or {}
     prioridades_finais = {**prioridades_terreno, **(payload.prioridades or {})}
+    if "rotacoes_preferenciais" not in prioridades_finais:
+        rotacoes_pref = _buscar_rotacoes_preferenciais(
+            db, terreno_id=terreno_id_resp, usuario_id=usuario_id_terreno
+        )
+        if rotacoes_pref:
+            prioridades_finais["rotacoes_preferenciais"] = rotacoes_pref
+
     dados_solo = payload.dados_solo or {"prioridades_terreno": prioridades_finais}
 
     metricas_geoespaciais, geo_fallback = _extrair_metricas_geoespaciais(
         coordenadas_poligono, dados_climaticos_req, nasa_processor
     )
+    if terreno_id_resp is not None:
+        persistir_metricas_terreno(
+            db=db,
+            terreno_id=terreno_id_resp,
+            field_metrics=metricas_geoespaciais,
+            origem=str(metricas_geoespaciais.get("origem") or "nasa_geospatial_service"),
+        )
     rotacoes_sugeridas, estrategias_fallback = _simular_estrategias_rotacao(
         metricas_geoespaciais, prioridades_finais, crop_simulator
     )
