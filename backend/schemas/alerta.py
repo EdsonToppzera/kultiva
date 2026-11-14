@@ -39,6 +39,7 @@ class AlertaClimaticoResponse(BaseModel):
     dados_gatilho: Optional[Dict[str, Any]] = None
     processado_background: bool
     resumo_adaptacao: Optional[str] = None
+    orientacao_pratica: Optional[str] = None
     lido: bool
     criado_em: datetime
 
@@ -69,3 +70,17 @@ class MonitoramentoClimaResponse(BaseModel):
     mensagem: str
     intervalo_horas: int
     terreno_id: Optional[int] = None
+
+
+class ResumoAlertasTerrenoItem(BaseModel):
+    terreno_id: int
+    nome_propriedade: Optional[str] = None
+    nao_lidos: int
+    criticos_nao_lidos: int
+    ultimo_evento: Optional[str] = None
+    ultima_data_evento: Optional[date] = None
+
+
+class ResumoAlertasNaoLidosResponse(BaseModel):
+    total_nao_lidos: int
+    por_terreno: List[ResumoAlertasTerrenoItem]
