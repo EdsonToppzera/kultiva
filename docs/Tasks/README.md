@@ -89,7 +89,7 @@
 ## Ordem e dependências
 
 1. ✅ **Rodada 1 concluída:** `A1–A6` · `B1–B4` · `C1–C5`.
-2. **Rodada 2 — Agora, em paralelo:** `A7` ✅, `A8` ✅ · `B5` · `C6`.
+2. **Rodada 2 — Agora, em paralelo:** `A7` ✅, `A8` ✅ · `B5` · `C6` ✅.
 3. **Rodada 2 — Em seguida:** `A9` · `B6` (depende de `A8`) · `B7` (depende de `B5`) · `C7` (depende de `A7`) · `C8` (depende de `A8`).
 4. **Por último:** Integração completa com o `frontend/` e ensaio da demo do Hackathon.
 
