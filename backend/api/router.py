@@ -4,6 +4,7 @@ from backend.api import alertas, calendario, simulacao, terreno
 api_router = APIRouter()
 api_router.include_router(terreno.router)
 api_router.include_router(simulacao.router)
+api_router.include_router(simulacao.simular_rotacao_router)
 api_router.include_router(calendario.router)
 api_router.include_router(alertas.router)
 # Importar e adicionar rotas modulares futuras aqui

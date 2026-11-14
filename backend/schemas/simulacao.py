@@ -14,6 +14,10 @@ class SimulacaoRequest(BaseModel):
         default=None,
         description="Lista opcional de culturas subsequentes para simular rotação",
     )
+    prioridades: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Prioridades adicionais do produtor (ex: {'water_conservation': True})",
+    )
     dados_solo: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Parâmetros opcionais de solo (ex: pH, textura, matéria orgânica)",
@@ -33,6 +37,12 @@ class EtapaRotacaoSimulada(BaseModel):
     risco_hidrico: str
 
 
+class EstrategiaRotacaoSugerida(BaseModel):
+    strategy: str
+    viability: float
+    water_risk: str
+
+
 class SimulacaoResponse(BaseModel):
     terreno_id: int
     nome_propriedade: str
@@ -45,4 +55,6 @@ class SimulacaoResponse(BaseModel):
     beneficios_esperados: List[str]
     riscos_identificados: List[str]
     explicacao_ia: str
+    explicacao_textual: str
+    rotacoes_sugeridas: List[EstrategiaRotacaoSugerida]
     plano_rotacao: List[EtapaRotacaoSimulada]
