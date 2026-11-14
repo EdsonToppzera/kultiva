@@ -10,36 +10,50 @@ _LATS = np.linspace(-34.0, 6.0, 161)
 _LONS = np.linspace(-74.0, -34.0, 161)
 _SEED = 42
 
+SMAP_FILE = "smap_mock.nc"
+ECOSTRESS_FILE = "ecostress_mock.nc"
+GPM_FILE = "gpm_mock.nc"
+_ALL_FILES = (SMAP_FILE, ECOSTRESS_FILE, GPM_FILE)
+
 
 def generate_synthetic_netcdf(output_dir: str = "data", force: bool = False) -> str:
     """
-    Gera arquivos NetCDF mockados simulando dados da NASA (determinísticos, seed fixa).
-    Não sobrescreve arquivos existentes, a menos que force=True.
+    Gera NetCDFs mockados (SMAP, ECOSTRESS e GPM/IMERG), determinísticos (seed fixa).
+    Com padrão espacial grosseiro (mais chuva/umidade na faixa amazônica, mais calor
+    ao norte) para que terrenos diferentes produzam métricas diferentes.
+    Não sobrescreve arquivos existentes, a menos que force=True; se faltar algum
+    dos arquivos (ex.: gpm_mock.nc em instalações antigas), regera todos.
     """
     os.makedirs(output_dir, exist_ok=True)
-    smap_path = os.path.join(output_dir, "smap_mock.nc")
-    eco_path = os.path.join(output_dir, "ecostress_mock.nc")
+    paths = [os.path.join(output_dir, name) for name in _ALL_FILES]
 
-    if not force and os.path.exists(smap_path) and os.path.exists(eco_path):
+    if not force and all(os.path.exists(p) for p in paths):
         return "Dados sintéticos (NetCDF) já existentes em data/."
 
     rng = np.random.default_rng(_SEED)
     times = pd.date_range("2026-01-01", periods=5)
     shape = (len(times), len(_LATS), len(_LONS))
+    lat2d, _lon2d = np.meshgrid(_LATS, _LONS, indexing="ij")
 
-    # SMAP mock (umidade do solo, m³/m³)
-    ds_smap = xr.Dataset(
-        {"soil_moisture": (["time", "lat", "lon"], rng.random(shape) * 0.5)},
-        coords={"time": times, "lat": _LATS, "lon": _LONS},
-    )
-    ds_smap.to_netcdf(smap_path)
+    # Precipitação média diária (mm/dia): maior perto de -2° de latitude.
+    precip_mean = 2.0 + 5.0 * np.exp(-(((lat2d + 2.0) / 10.0) ** 2))
+    precip = rng.gamma(0.7, 1.0, shape) * (precip_mean / 0.7)[None, :, :]
 
-    # ECOSTRESS mock (temperatura de superfície, °C, faixa realista 15–45)
-    ds_eco = xr.Dataset(
-        {"surface_temp": (["time", "lat", "lon"], 15.0 + rng.random(shape) * 30.0)},
-        coords={"time": times, "lat": _LATS, "lon": _LONS},
-    )
-    ds_eco.to_netcdf(eco_path)
+    # SMAP (umidade do solo, m³/m³) correlacionada com a chuva média.
+    moisture = 0.12 + 0.03 * precip_mean[None, :, :] + rng.normal(0.0, 0.04, shape)
+    moisture = np.clip(moisture, 0.02, 0.5)
+
+    # ECOSTRESS (temperatura de superfície, °C), mais quente ao norte.
+    temp = 33.0 - 0.25 * np.abs(lat2d + 5.0)[None, :, :] + rng.normal(0.0, 2.5, shape)
+    temp = np.clip(temp, 15.0, 45.0)
+
+    coords = {"time": times, "lat": _LATS, "lon": _LONS}
+    dims = ["time", "lat", "lon"]
+    xr.Dataset({"soil_moisture": (dims, moisture)}, coords=coords).to_netcdf(paths[0])
+    xr.Dataset({"surface_temp": (dims, temp)}, coords=coords).to_netcdf(paths[1])
+    xr.Dataset(
+        {"precipitation": (dims, precip)}, coords=coords
+    ).to_netcdf(paths[2])
 
     return "Dados sintéticos (NetCDF) gerados com sucesso na pasta data/."
 
