@@ -4,19 +4,20 @@
 
 **Legenda:** ✅ feito (mergeado na `dev`) · 🔄 em andamento · ⬜ pendente
 
-## Estado atual (atualizado após o merge dos PRs #9 e #10 na `dev`)
+## Estado atual (atualizado após A4 e A6)
 
-- Suíte `backend/tests`: **verde** (24 testes na entrega A1–A3; `test_c1_c5.py` foi adicionado pela Dev C).
-- **Feito:** A1, A2, A3 (Dev A) · C1, C5 (Dev C) · base de infra (`.env.example`, deps, healthcheck do Postgres, monitor de alertas ligado ao lifespan, disclaimer garantido no LLM).
-- **Próximos em paralelo:** B1, B3 (Dev B) · C2, C3 (Dev C, destravadas pela A3) · A4, A6 (Dev A).
+- Suíte `backend/tests`: **verde** (34 testes no total, sendo 20 em `test_data_ml.py`).
+- **Feito:** A1, A2, A3, A4, A6 (Dev A) · C1, C5 (Dev C) · base de infra (`.env.example`, deps, healthcheck do Postgres, monitor de alertas ligado ao lifespan, disclaimer garantido no LLM).
+- **Próximos em paralelo:** B1, B3 (Dev B) · C2, C3 (Dev C, destravadas pela A3).
 - **Por último:** A5, C4, B2, B4 e integração/demo.
 
-### O que a Dev A entregou (A1–A3)
+### O que a Dev A entregou (A1–A4 e A6)
 
 - **A1 — Mock e provider** (`mock_nasa_data.py`, `geospatial.py`): `gpm_mock.nc` (precipitação em mm/dia) com padrão espacial (mais chuva/umidade perto do equador, mais calor ao norte); seed fixa; `.nc` ausentes são regerados. `extract_field_metrics` devolve `avg_precipitation_gpm`, `time_series` diário e `is_bare_field_period` (heurística do mock: umidade < 0,12 e temperatura ≥ 33 °C). Polígono menor que a célula usa a célula mais próxima (`data_quality = nearest_cell`).
 - **A2 — `CropSimulator`** (`ml_models.py`): score ponderado por água, calor, solo e mercado (a água pesa mais com `agua: escassa` ou `water_conservation`). Devolve 3 estratégias, sempre incluindo a prática atual (`pratica_atual`, padrão "Milho -> Soja"), com `score_breakdown`. `predict_rotation_viability` usa `consumo_agua_mm` e `tempo_colheita_dias`. Aceita também as chaves de fallback da API (`umidade_solo_estimada`, etc.).
 - **A3 — `ClimateAnomalyDetector`** (`ml_models.py`): limiares absolutos + `IsolationForest` sobre a série, confirmado por z-score robusto (MAD) e só com ≥ 10 pontos, para não marcar ~5% de qualquer série como anomalia.
-- Testes em `backend/tests/test_data_ml.py` (12 novos, cobrem boa parte da A6).
+- **A4 — `RotationExplainerAgent`** (`llm_agent.py`): adicionado `explain_strategies` (alias `generate_strategies_explanations`), que explica as 3 estratégias em uma única chamada ao LLM em linguagem simples para o pequeno produtor (com parse por `---ESTRATEGIA---`, fallback individualizado para mocks/respostas não delimitadas e disclaimer mandatório em todas as explicações), mantendo `generate_explanation` compatível.
+- **A6 — Testes unitários** (`backend/tests/test_data_ml.py`): 20 testes cobrindo `MockNASADataProvider`/`generate_synthetic_netcdf`, `CropSimulator`, `ClimateAnomalyDetector` e `RotationExplainerAgent` (incluindo casos extremos).
 
 ### O que a Dev C entregou (C1 e C5)
 
@@ -49,9 +50,9 @@
 | A1 | ✅ | Mock GPM/IMERG com recorte e `avg_precipitation_gpm`; `is_bare_field_period` dinâmico | `mock_nasa_data.py`, `geospatial.py` | Provider devolve precipitação e flag; teste unitário |
 | A2 | ✅ | `CropSimulator` dinâmico (clima + prioridades); `predict_rotation_viability` usa `crop_requirements` | `ml_models.py` | Estratégias mudam com terreno/prioridades |
 | A3 | ✅ | `ClimateAnomalyDetector` com `IsolationForest` + limiares | `ml_models.py` | Série com outlier dispara; normal não |
-| A4 | ⬜ | Agente LLM: explicar as 3 estratégias numa chamada, linguagem simples (o cache/singleton do agente já veio na C1) | `llm_agent.py` | Uma chamada → 3 explicações, todas com disclaimer |
+| A4 | ✅ | Agente LLM: explicar as 3 estratégias numa chamada, linguagem simples (o cache/singleton do agente já veio na C1) | `llm_agent.py` | Uma chamada → 3 explicações, todas com disclaimer |
 | A5 | ⬜ | `RealNASADataProvider` (`earthaccess` + `xr.open_mfdataset`) via `NASA_PROVIDER=mock\|real` | `geospatial.py` | Último: só se sobrar tempo; mock segue como padrão |
-| A6 | 🔄 | Testes unitários de `MockNASADataProvider`, `CropSimulator`, `ClimateAnomalyDetector` (parte feita em `test_data_ml.py`; falta o LLM e casos extremos) | `backend/tests/` | `pytest` verde |
+| A6 | ✅ | Testes unitários de `MockNASADataProvider`, `CropSimulator`, `ClimateAnomalyDetector` e `RotationExplainerAgent` | `backend/tests/` | `pytest` verde |
 
 ## Dev B — Catálogo, relatórios e qualidade
 
@@ -74,8 +75,8 @@
 
 ## Ordem e dependências
 
-1. ✅ **Concluído:** A1, A2, A3 · C1, C5.
-2. **Agora, em paralelo:** B1, B3 · C2, C3 · A4, A6.
+1. ✅ **Concluído:** A1, A2, A3, A4, A6 · C1, C2, C3, C5.
+2. **Agora, em paralelo:** B1, B3.
 3. **Depois:** B2 (depende do B3) · B4.
 4. **Por último:** A5, C4, integração e demo.
 
