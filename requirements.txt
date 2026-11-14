@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2
+xarray
+netCDF4
+rasterio
+geopandas
+pandas
+langchain
+langchain-openai
+scikit-learn
