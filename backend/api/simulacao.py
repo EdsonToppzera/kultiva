@@ -1,5 +1,6 @@
+import importlib
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -25,39 +26,52 @@ _ROTACOES_PADRAO = [
 ]
 
 
+_SERVICE_CACHE: Dict[str, Tuple[Any, Any]] = {}
+
+
+def _get_cached_service(
+    cache_key: str,
+    module_name: str,
+    factory: Callable[[Any], Any],
+) -> Optional[Any]:
+    """Instancia o serviço uma única vez por objeto de módulo (respeita troca via sys.modules)."""
+    try:
+        mod = importlib.import_module(module_name)
+        cached = _SERVICE_CACHE.get(cache_key)
+        if cached is not None and cached[0] is mod:
+            return cached[1]
+        instance = factory(mod)
+        _SERVICE_CACHE[cache_key] = (mod, instance)
+        return instance
+    except Exception:
+        return None
+
+
 def get_nasa_processor() -> Optional[Any]:
     """Provedor de dependência para MockNASADataProvider/NasaDataProcessor."""
-    try:
-        import importlib
-
-        geo_module = importlib.import_module("backend.services.geospatial")
-
+    def _build(geo_module: Any) -> Any:
         provider_cls = getattr(geo_module, "MockNASADataProvider", None) or getattr(
             geo_module, "NasaDataProcessor"
         )
         return provider_cls(data_path="data")
-    except Exception:
-        return None
+
+    return _get_cached_service("nasa", "backend.services.geospatial", _build)
 
 
 def get_crop_simulator() -> Optional[Any]:
     """Provedor de dependência para CropSimulator."""
-    try:
-        from backend.services.ml_models import CropSimulator
-
-        return CropSimulator()
-    except Exception:
-        return None
+    return _get_cached_service(
+        "simulator", "backend.services.ml_models", lambda mod: mod.CropSimulator()
+    )
 
 
 def get_rotation_explainer() -> Optional[Any]:
     """Provedor de dependência para RotationExplainerAgent."""
-    try:
-        from backend.services.llm_agent import RotationExplainerAgent
-
-        return RotationExplainerAgent()
-    except Exception:
-        return None
+    return _get_cached_service(
+        "explainer",
+        "backend.services.llm_agent",
+        lambda mod: mod.RotationExplainerAgent(),
+    )
 
 
 def _calcular_metricas_fallback(
@@ -92,7 +106,7 @@ def _extrair_metricas_geoespaciais(
     coordenadas_poligono: Any,
     dados_climaticos: Dict[str, Any],
     nasa_processor: Optional[Any],
-) -> Dict[str, Any]:
+) -> Tuple[Dict[str, Any], bool]:
     """Consulta o serviço geoespacial da NASA injetado com fallback seguro."""
     fallback = _calcular_metricas_fallback(coordenadas_poligono, dados_climaticos)
     if nasa_processor is not None:
@@ -101,22 +115,25 @@ def _extrair_metricas_geoespaciais(
                 coordenadas_poligono, dataset=None
             )
             if isinstance(metricas, dict) and metricas:
-                return {
-                    **fallback,
-                    **{k: v for k, v in metricas.items() if v is not None},
-                    "origem": "nasa_geospatial_service",
-                }
+                return (
+                    {
+                        **fallback,
+                        **{k: v for k, v in metricas.items() if v is not None},
+                        "origem": "nasa_geospatial_service",
+                    },
+                    False,
+                )
         except Exception:
             logger.exception("Falha em servico externo da simulacao; usando fallback")
 
-    return fallback
+    return fallback, True
 
 
 def _simular_estrategias_rotacao(
     metricas_geoespaciais: Dict[str, Any],
     prioridades: Dict[str, Any],
     crop_simulator: Optional[Any],
-) -> List[EstrategiaRotacaoSugerida]:
+) -> Tuple[List[EstrategiaRotacaoSugerida], bool]:
     """Obtém as estratégias de rotação sugeridas via CropSimulator."""
     if crop_simulator is not None:
         try:
@@ -126,23 +143,26 @@ def _simular_estrategias_rotacao(
             if isinstance(estrategias, list) and estrategias and all(
                 isinstance(item, dict) and "strategy" in item for item in estrategias
             ):
-                return [
-                    EstrategiaRotacaoSugerida(
-                        strategy=str(item["strategy"]),
-                        viability=float(item.get("viability", 0.85)),
-                        water_risk=str(item.get("water_risk", "low")),
-                        benefits=(
-                            str(item["benefits"])
-                            if item.get("benefits") is not None
-                            else None
-                        ),
-                    )
-                    for item in estrategias
-                ]
+                return (
+                    [
+                        EstrategiaRotacaoSugerida(
+                            strategy=str(item["strategy"]),
+                            viability=float(item.get("viability", 0.85)),
+                            water_risk=str(item.get("water_risk", "low")),
+                            benefits=(
+                                str(item["benefits"])
+                                if item.get("benefits") is not None
+                                else None
+                            ),
+                        )
+                        for item in estrategias
+                    ],
+                    False,
+                )
         except Exception:
             logger.exception("Falha em servico externo da simulacao; usando fallback")
 
-    return [EstrategiaRotacaoSugerida(**item) for item in _ROTACOES_PADRAO]
+    return [EstrategiaRotacaoSugerida(**item) for item in _ROTACOES_PADRAO], True
 
 
 def _simular_viabilidade_ml(
@@ -150,7 +170,7 @@ def _simular_viabilidade_ml(
     climate_data: Dict[str, Any],
     crop_requirements: Dict[str, Any],
     crop_simulator: Optional[Any],
-) -> Tuple[float, str]:
+) -> Tuple[float, str, bool]:
     """Executa predição de viabilidade no CropSimulator injetado com fallback seguro."""
     if crop_simulator is not None:
         try:
@@ -160,11 +180,11 @@ def _simular_viabilidade_ml(
             if isinstance(resultado, dict):
                 score = float(resultado.get("viability_score", 0.85))
                 risk = str(resultado.get("water_risk", "low"))
-                return score, risk
+                return score, risk, False
         except Exception:
             logger.exception("Falha em servico externo da simulacao; usando fallback")
 
-    return 0.85, "low"
+    return 0.85, "low", True
 
 
 def _resolver_cultura_principal(
@@ -251,7 +271,7 @@ def _gerar_explicacao_ia(
     viability_score: float,
     water_risk: str,
     rotation_explainer: Optional[Any],
-) -> str:
+) -> Tuple[str, bool]:
     """Chama RotationExplainerAgent injetado com fallback determinístico em português."""
     beneficios_txt = "; ".join(beneficios)
     riscos_txt = "; ".join(riscos)
@@ -267,7 +287,7 @@ def _gerar_explicacao_ia(
                 resposta.content if hasattr(resposta, "content") else str(resposta)
             )
             if conteudo and conteudo.strip():
-                return conteudo.strip()
+                return conteudo.strip(), False
         except Exception:
             logger.exception("Falha em servico externo da simulacao; usando fallback")
 
@@ -277,7 +297,8 @@ def _gerar_explicacao_ia(
         f"Principais benefícios observados: {beneficios_txt}. "
         f"Pontos de atenção e riscos: {riscos_txt}. "
         "Estes indicadores servem como apoio técnico baseado em dados, mas a decisão final "
-        "sobre o plantio e o manejo da lavoura é sempre sua."
+        "sobre o plantio e o manejo da lavoura é sempre sua.",
+        True,
     )
 
 
@@ -315,10 +336,10 @@ def _processar_simulacao(
     prioridades_finais = {**prioridades_terreno, **(payload.prioridades or {})}
     dados_solo = payload.dados_solo or {"prioridades_terreno": prioridades_finais}
 
-    metricas_geoespaciais = _extrair_metricas_geoespaciais(
+    metricas_geoespaciais, geo_fallback = _extrair_metricas_geoespaciais(
         coordenadas_poligono, dados_climaticos_req, nasa_processor
     )
-    rotacoes_sugeridas = _simular_estrategias_rotacao(
+    rotacoes_sugeridas, estrategias_fallback = _simular_estrategias_rotacao(
         metricas_geoespaciais, prioridades_finais, crop_simulator
     )
 
@@ -332,7 +353,7 @@ def _processar_simulacao(
         "consumo_agua_mm": consumo_agua_mm,
         "tempo_colheita_dias": tempo_colheita_dias,
     }
-    viability_score, water_risk = _simular_viabilidade_ml(
+    viability_score, water_risk, viabilidade_fallback = _simular_viabilidade_ml(
         dados_solo, climate_data, crop_requirements, crop_simulator
     )
 
@@ -346,7 +367,7 @@ def _processar_simulacao(
         prioridades=prioridades_finais,
         culturas_rotacao=culturas_rotacao,
     )
-    explicacao = _gerar_explicacao_ia(
+    explicacao, ia_fallback = _gerar_explicacao_ia(
         nome_cultura=nome_cultura,
         beneficios=beneficios,
         riscos=riscos,
@@ -366,6 +387,7 @@ def _processar_simulacao(
         )
     ]
 
+    etapas_fallback = False
     for idx, cultura_nome in enumerate(culturas_rotacao, start=2):
         cultura_db = (
             db.query(models.Cultura)
@@ -374,7 +396,7 @@ def _processar_simulacao(
         )
         etapa_consumo = float(cultura_db.consumo_agua_mm) if cultura_db else 380.0
         etapa_duracao = int(cultura_db.tempo_colheita_dias) if cultura_db else 75
-        etapa_score, etapa_risco = _simular_viabilidade_ml(
+        etapa_score, etapa_risco, etapa_fb = _simular_viabilidade_ml(
             dados_solo,
             climate_data,
             {
@@ -384,6 +406,7 @@ def _processar_simulacao(
             },
             crop_simulator,
         )
+        etapas_fallback = etapas_fallback or etapa_fb
         plano_rotacao.append(
             EtapaRotacaoSimulada(
                 ordem=idx,
@@ -394,6 +417,20 @@ def _processar_simulacao(
                 risco_hidrico=etapa_risco,
             )
         )
+
+    flags_fallback = [
+        geo_fallback,
+        estrategias_fallback,
+        viabilidade_fallback,
+        ia_fallback,
+    ]
+    fallback_usado = any(flags_fallback) or etapas_fallback
+    if not fallback_usado:
+        origem = "servicos_ia_nasa"
+    elif all(flags_fallback):
+        origem = "fallback"
+    else:
+        origem = "misto_com_fallback"
 
     return SimulacaoResponse(
         terreno_id=terreno_id_resp,
@@ -408,6 +445,8 @@ def _processar_simulacao(
         riscos_identificados=riscos,
         explicacao_ia=explicacao,
         explicacao_textual=explicacao,
+        origem=origem,
+        fallback_usado=fallback_usado,
         rotacoes_sugeridas=rotacoes_sugeridas,
         plano_rotacao=plano_rotacao,
     )
