@@ -26,9 +26,14 @@ class RotationExplainerAgent:
         self.prompt = PromptTemplate(
             input_variables=["crop", "benefits", "risks"],
             template="""
-            Você é um assistente agronômico. O sistema sugeriu a cultura {crop}.
-            Benefícios esperados: {benefits}. Riscos: {risks}.
-            Explique para um pequeno produtor por que esta rotação foi sugerida com base nos dados climáticos, reforçando que a decisão final é dele.
+            Você é um assistente agronômico. O sistema avaliou a estratégia: {crop}.
+            Benefícios esperados: {benefits}.
+            Riscos hídricos/climáticos: {risks}.
+            
+            Explique para um pequeno produtor rural por que esta rotação foi sugerida.
+            
+            MANDATÓRIO: Conclua a resposta lembrando que esta ferramenta serve para identificar possibilidades,
+            mas não substitui a experiência local nem o julgamento do agricultor.
             """
         )
         self.chain = self.prompt | self.llm

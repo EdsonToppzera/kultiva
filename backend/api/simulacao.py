@@ -23,11 +23,14 @@ _ROTACOES_PADRAO = [
 
 
 def get_nasa_processor() -> Optional[Any]:
-    """Provedor de dependência para NasaDataProcessor."""
+    """Provedor de dependência para MockNASADataProvider/NasaDataProcessor."""
     try:
-        from backend.services.geospatial import NasaDataProcessor
+        from backend.services import geospatial as geo_module
 
-        return NasaDataProcessor(data_path="data")
+        provider_cls = getattr(geo_module, "MockNASADataProvider", None) or getattr(
+            geo_module, "NasaDataProcessor"
+        )
+        return provider_cls(data_path="data")
     except Exception:
         return None
 
@@ -123,6 +126,11 @@ def _simular_estrategias_rotacao(
                         strategy=str(item["strategy"]),
                         viability=float(item.get("viability", 0.85)),
                         water_risk=str(item.get("water_risk", "low")),
+                        benefits=(
+                            str(item["benefits"])
+                            if item.get("benefits") is not None
+                            else None
+                        ),
                     )
                     for item in estrategias
                 ]
