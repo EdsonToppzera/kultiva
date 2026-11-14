@@ -10,13 +10,14 @@ TIPOS_CALOR_SECA = {"onda_de_calor", "seca", "heatwave", "drought"}
 def processar_alerta_e_adaptar_calendario(
     alerta_id: int,
     dias_adiamento: int = 2,
-    session_factory=SessionLocal,
+    session_factory=None,
 ) -> None:
     """
     Rotina assíncrona executada em segundo plano para adaptar o calendário [M4]
     quando um alerta climático [M5] é disparado pelo modelo de ML ou sensor.
     """
-    db = session_factory()
+    factory = session_factory or SessionLocal
+    db = factory()
     try:
         alerta = (
             db.query(models.AlertaClimatico)
