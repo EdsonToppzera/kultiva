@@ -7,6 +7,7 @@ Este documento descreve a modelagem relacional do banco de dados (PostgreSQL/SQL
 ```mermaid
 erDiagram
     usuarios ||--o{ terrenos : possui
+    usuarios ||--o{ atividades_calendario : acompanha
     terrenos ||--o{ atividades_calendario : agenda
     culturas ||--o{ atividades_calendario : referencia
     terrenos ||--o{ alertas_climaticos : recebe
@@ -35,12 +36,14 @@ erDiagram
     atividades_calendario {
         int id PK
         int terreno_id FK
+        int usuario_id FK
         int cultura_id FK
         string titulo
         text descricao
         string tipo_atividade
         date data_programada
         string prioridade
+        string status
         boolean concluida
         datetime data_conclusao
         boolean ajustada_por_alerta
@@ -65,21 +68,23 @@ erDiagram
     }
 ```
 
+> **Nota de modelagem:** A tabela `atividades_calendario` é mapeada pela classe `Activity` (`backend/db/models.py`, com alias `AtividadeCalendario`) permitindo vínculo direto a um `Terreno` ou `Usuario`, além do campo textual `status` (`pendente` / `concluida`) sincronizado com `concluida` e `data_conclusao`.
+
 ## 2. Orquestração do Simulador de Culturas e Rotações (M3)
 
-O controlador `backend/api/simulacao.py` atua como camada de orquestração síncrona para a requisição do frontend:
+O controlador `backend/api/simulacao.py` atua como camada de orquestração síncrona via injeção de dependências (`Depends`) para o endpoint `POST /api/v1/simular-rotacao` (também exposto em `/api/v1/simulacoes/`):
 
 ```mermaid
 flowchart LR
-    FE["Frontend (PWA)"] -->|"POST /api/v1/simulacoes/"| M3["Controlador M3 (backend/api/simulacao.py)"]
+    FE["Frontend (PWA)"] -->|"POST /api/v1/simular-rotacao"| M3["Controlador M3 (backend/api/simulacao.py)"]
     M3 -->|"Consulta Terreno e Cultura"| DB[("PostgreSQL (SQLAlchemy)")]
     M3 -->|"extract_field_metrics()"| GEO["NasaDataProcessor (services/geospatial.py)"]
-    M3 -->|"predict_rotation_viability()"| ML["CropSimulator (services/ml_models.py)"]
-    M3 -->|"generate_explanation()"| LLM["RotationExplainerAgent (services/llm_agent.py)"]
+    M3 -->|"simulate_rotation_strategies() e predict_rotation_viability()"| ML["CropSimulator (services/ml_models.py)"]
+    M3 -->|"generate_explanation() (Gemini / FakeListLLM)"| LLM["RotationExplainerAgent (services/llm_agent.py)"]
     M3 -->|"JSON SimulacaoResponse"| FE
 ```
 
-- **Resiliência (Graceful Fallback):** Caso os dados geoespaciais NetCDF ou a chave de API do provedor LLM ainda não estejam disponíveis no ambiente de execução, o controlador aplica fallbacks determinísticos para manter o contrato JSON estável para o frontend.
+- **Resiliência (Graceful Fallback):** Caso os dados geoespaciais NetCDF ou pacotes científicos opcionais não estejam presentes no ambiente de execução, o controlador aplica fallbacks determinísticos para manter o contrato JSON estável para o frontend.
 
 ## 3. Fluxo Assíncrono de Alertas Climáticos e Calendário Maleável (M4 e M5)
 
@@ -87,13 +92,15 @@ Para manter o ambiente containerizado enxuto (sem necessidade de broker externo 
 
 ```mermaid
 flowchart TD
+    MON["Rotina Periódica (6h / 12h) ou POST /api/v1/alertas/monitorar"] -->|"Coleta dados climáticos"| MOCK["generate_synthetic_netcdf() (services/mock_nasa_data.py)"]
+    MOCK -->|"Série / métricas"| DET["ClimateAnomalyDetector (services/ml_models.py)"]
     ML["Gatilho ML / NASA / Sensor"] -->|"POST /api/v1/alertas/gatilho"| API["Endpoint Alertas M5 (backend/api/alertas.py)"]
-    API -->|"detect_extremes() opcional"| DET["ClimateAnomalyDetector (services/ml_models.py)"]
-    API -->|"1. Persiste AlertaClimatico"| DB[("PostgreSQL")]
-    API -->|"2. Retorna HTTP 202 Accepted"| ML
-    API -->|"3. Agenda BackgroundTask"| TASK["processar_alerta_e_adaptar_calendario()"]
-    TASK -->|"Abre sessão própria (SessionLocal)"| DB
-    TASK -->|"Adia/Ajusta/Cria AtividadeCalendario (M4)"| DB
+    API -->|"detect_extremes()"| DET
+    DET -->|"Anomalia detectada"| PERSIST["Persiste AlertaClimatico no PostgreSQL"]
+    API -->|"Retorna HTTP 202 Accepted"| ML
+    PERSIST -->|"Agenda / Executa BackgroundTask"| TASK["processar_alerta_e_adaptar_calendario()"]
+    TASK -->|"Abre sessão própria (SessionLocal)"| DB[("PostgreSQL")]
+    TASK -->|"Adia/Ajusta/Cria Activity (M4)"| DB
 ```
 
 ### Regras de Adaptação Dinâmica do Calendário
