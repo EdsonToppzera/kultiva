@@ -547,10 +547,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#post-apiv1simulacoes" class="md-nav__link">
+  <a href="#post-apiv1simular-rotacao" class="md-nav__link">
     <span class="md-ellipsis">
       
-        POST /api/v1/simulacoes/
+        POST /api/v1/simular-rotacao
       
     </span>
   </a>
@@ -619,10 +619,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#patch-apiv1calendarioatividadesatividade_idconcluir-200-ok" class="md-nav__link">
+  <a href="#patch-apiv1calendarioatividadesatividade_idstatus-200-ok" class="md-nav__link">
     <span class="md-ellipsis">
       
-        PATCH /api/v1/calendario/atividades/{atividade_id}/concluir (200 OK)
+        PATCH /api/v1/calendario/atividades/{atividade_id}/status (200 OK)
       
     </span>
   </a>
@@ -667,6 +667,17 @@
   
     <nav class="md-nav" aria-label="[M5] Alertas Climáticos e Background Tasks (backend/api/alertas.py)">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#post-apiv1alertasmonitorar-202-accepted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        POST /api/v1/alertas/monitorar (202 Accepted)
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#post-apiv1alertasgatilho-202-accepted" class="md-nav__link">
@@ -819,10 +830,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#post-apiv1simulacoes" class="md-nav__link">
+  <a href="#post-apiv1simular-rotacao" class="md-nav__link">
     <span class="md-ellipsis">
       
-        POST /api/v1/simulacoes/
+        POST /api/v1/simular-rotacao
       
     </span>
   </a>
@@ -891,10 +902,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#patch-apiv1calendarioatividadesatividade_idconcluir-200-ok" class="md-nav__link">
+  <a href="#patch-apiv1calendarioatividadesatividade_idstatus-200-ok" class="md-nav__link">
     <span class="md-ellipsis">
       
-        PATCH /api/v1/calendario/atividades/{atividade_id}/concluir (200 OK)
+        PATCH /api/v1/calendario/atividades/{atividade_id}/status (200 OK)
       
     </span>
   </a>
@@ -939,6 +950,17 @@
   
     <nav class="md-nav" aria-label="[M5] Alertas Climáticos e Background Tasks (backend/api/alertas.py)">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#post-apiv1alertasmonitorar-202-accepted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        POST /api/v1/alertas/monitorar (202 Accepted)
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#post-apiv1alertasgatilho-202-accepted" class="md-nav__link">
@@ -1034,26 +1056,30 @@ Documentação interativa automática (Swagger UI): <code>GET /docs</code></p>
 <p><strong>Response (<code>200 OK</code>):</strong> Retorna os dados do terreno criado acrescidos de <code>"id"</code>.</p>
 <hr />
 <h2 id="m3-simulador-de-culturas-e-rotacoes-backendapisimulacaopy">[M3] Simulador de Culturas e Rotações (<code>backend/api/simulacao.py</code>)<a class="headerlink" href="#m3-simulador-de-culturas-e-rotacoes-backendapisimulacaopy" title="Permanent link">&para;</a></h2>
-<h3 id="post-apiv1simulacoes"><code>POST /api/v1/simulacoes/</code><a class="headerlink" href="#post-apiv1simulacoes" title="Permanent link">&para;</a></h3>
-<p>Recebe a requisição do frontend, consulta o terreno/cultura no banco, aciona <code>NasaDataProcessor</code> (<code>services/geospatial.py</code>), <code>CropSimulator</code> (<code>services/ml_models.py</code>) e <code>RotationExplainerAgent</code> (<code>services/llm_agent.py</code>), devolvendo o JSON estruturado da simulação.</p>
-<p><strong>Request Body:</strong>
+<h3 id="post-apiv1simular-rotacao"><code>POST /api/v1/simular-rotacao</code><a class="headerlink" href="#post-apiv1simular-rotacao" title="Permanent link">&para;</a></h3>
+<p><em>(Também disponível em <code>POST /api/v1/simulacoes/</code> e <code>POST /api/v1/simulacoes/simular-rotacao</code>)</em></p>
+<p>Recebe a requisição do frontend, consulta o terreno no banco e injeta as dependências <code>NasaDataProcessor</code> (<code>services/geospatial.py</code>), <code>CropSimulator</code> (<code>services/ml_models.py</code>) e <code>RotationExplainerAgent</code> (<code>services/llm_agent.py</code>), retornando as estratégias de rotação sugeridas e a explicação textual gerada pela IA.</p>
+<p><strong>Request Body (completo ou mínimo apenas com <code>terreno_id</code>):</strong>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;terreno_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">&quot;cultura_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">&quot;nome_cultura&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Feijão Carioca&quot;</span><span class="p">,</span>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">&quot;culturas_rotacao&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;Milho&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Crotalária&quot;</span><span class="p">],</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">&quot;dados_solo&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nt">&quot;ph&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">6.2</span><span class="p">,</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="nt">&quot;textura&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;argilosa&quot;</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">&quot;dados_climaticos&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="nt">&quot;precipitacao_mm&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">480.0</span><span class="p">,</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="nt">&quot;temperatura_media_c&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">26.0</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="p">}</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">&quot;prioridades&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nt">&quot;water_conservation&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">&quot;dados_solo&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="nt">&quot;ph&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">6.2</span><span class="p">,</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="nt">&quot;textura&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;argilosa&quot;</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">  </span><span class="nt">&quot;dados_climaticos&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span><span class="nt">&quot;precipitacao_mm&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">480.0</span><span class="p">,</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">    </span><span class="nt">&quot;temperatura_media_c&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">26.0</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="p">}</span>
 </code></pre></div></p>
 <blockquote>
-<p><strong>Observação:</strong> Deve ser informado <code>cultura_id</code> ou <code>nome_cultura</code> (caso contrário retorna <code>400 Bad Request</code>).</p>
+<p><strong>Observação:</strong> Caso <code>cultura_id</code> e <code>nome_cultura</code> sejam omitidos, o controlador seleciona automaticamente a estratégia de maior viabilidade retornada por <code>CropSimulator.simulate_rotation_strategies()</code>.</p>
 </blockquote>
 <p><strong>Response (<code>200 OK</code>):</strong>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
@@ -1065,7 +1091,7 @@ Documentação interativa automática (Swagger UI): <code>GET /docs</code></p>
 <a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="nt">&quot;tempo_colheita_dias&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">90</span><span class="p">,</span>
 <a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span><span class="nt">&quot;consumo_agua_mm&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">450.0</span><span class="p">,</span>
 <a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">  </span><span class="nt">&quot;metricas_geoespaciais&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="nt">&quot;origem&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fallback_geoespacial&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="nt">&quot;origem&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nasa_geospatial_service&quot;</span><span class="p">,</span>
 <a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span><span class="nt">&quot;total_vertices_poligono&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
 <a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">    </span><span class="nt">&quot;centroide&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;lat&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">-23.5515</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;lng&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">-46.6333</span><span class="p">},</span>
 <a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">    </span><span class="nt">&quot;precipitacao_estimada_mm&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">480.0</span><span class="p">,</span>
@@ -1074,42 +1100,51 @@ Documentação interativa automática (Swagger UI): <code>GET /docs</code></p>
 <a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">  </span><span class="p">},</span>
 <a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">  </span><span class="nt">&quot;beneficios_esperados&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">    </span><span class="s2">&quot;Adequação do ciclo de Feijão Carioca ao planejamento da propriedade&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">    </span><span class="s2">&quot;Aproveitamento dos dados ambientais para manejo preventivo de recursos&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">    </span><span class="s2">&quot;Diversificação produtiva com rotação envolvendo Milho, Crotalária&quot;</span>
-<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="w">  </span><span class="p">],</span>
-<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="w">  </span><span class="nt">&quot;riscos_identificados&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">    </span><span class="s2">&quot;Terreno com prioridade hídrica &#39;escassa&#39; frente ao consumo estimado de 450 mm&quot;</span>
-<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">  </span><span class="p">],</span>
-<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="w">  </span><span class="nt">&quot;explicacao_ia&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="w">  </span><span class="nt">&quot;plano_rotacao&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="w">    </span><span class="p">{</span>
-<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="w">      </span><span class="nt">&quot;ordem&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="w">      </span><span class="nt">&quot;cultura&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Feijão Carioca&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="w">      </span><span class="nt">&quot;duracao_dias&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">90</span><span class="p">,</span>
-<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a><span class="w">      </span><span class="nt">&quot;consumo_agua_estimado_mm&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">450.0</span><span class="p">,</span>
-<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a><span class="w">      </span><span class="nt">&quot;viabilidade_score&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.85</span><span class="p">,</span>
-<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a><span class="w">      </span><span class="nt">&quot;risco_hidrico&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;low&quot;</span>
-<a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a><span class="w">  </span><span class="p">]</span>
-<a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a><span class="p">}</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">    </span><span class="s2">&quot;Aproveitamento dos dados ambientais para manejo preventivo de recursos&quot;</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="w">  </span><span class="nt">&quot;riscos_identificados&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="w">    </span><span class="s2">&quot;Terreno com prioridade hídrica &#39;escassa&#39; frente ao consumo estimado de 450 mm&quot;</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">  </span><span class="nt">&quot;explicacao_ia&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="w">  </span><span class="nt">&quot;explicacao_textual&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="w">  </span><span class="nt">&quot;rotacoes_sugeridas&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;strategy&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Milho -&gt; Soja (Atual)&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;viability&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.70</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;water_risk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;high&quot;</span><span class="p">},</span>
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;strategy&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Sorgo -&gt; Feijão-caupi&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;viability&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.88</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;water_risk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;low&quot;</span><span class="p">},</span>
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;strategy&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Milheto -&gt; Amendoim&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;viability&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.82</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;water_risk&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;medium&quot;</span><span class="p">}</span>
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a><span class="w">  </span><span class="nt">&quot;plano_rotacao&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a><span class="w">      </span><span class="nt">&quot;ordem&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a><span class="w">      </span><span class="nt">&quot;cultura&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Feijão Carioca&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a><span class="w">      </span><span class="nt">&quot;duracao_dias&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">90</span><span class="p">,</span>
+<a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a><span class="w">      </span><span class="nt">&quot;consumo_agua_estimado_mm&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">450.0</span><span class="p">,</span>
+<a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a><span class="w">      </span><span class="nt">&quot;viabilidade_score&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.85</span><span class="p">,</span>
+<a id="__codelineno-2-38" name="__codelineno-2-38" href="#__codelineno-2-38"></a><span class="w">      </span><span class="nt">&quot;risco_hidrico&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;low&quot;</span>
+<a id="__codelineno-2-39" name="__codelineno-2-39" href="#__codelineno-2-39"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-2-40" name="__codelineno-2-40" href="#__codelineno-2-40"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-2-41" name="__codelineno-2-41" href="#__codelineno-2-41"></a><span class="p">}</span>
 </code></pre></div></p>
 <hr />
 <h2 id="m4-calendario-de-atividades-do-cultivo-backendapicalendariopy">[M4] Calendário de Atividades do Cultivo (<code>backend/api/calendario.py</code>)<a class="headerlink" href="#m4-calendario-de-atividades-do-cultivo-backendapicalendariopy" title="Permanent link">&para;</a></h2>
+<p>O módulo utiliza o modelo <code>Activity</code> (<code>atividades_calendario</code>), que pode ser vinculado a um <code>terreno_id</code>, a um <code>usuario_id</code> ou a ambos, mantendo <code>status</code> (<code>pendente</code> / <code>concluida</code>) sincronizado com <code>concluida</code> (<code>bool</code>).</p>
 <h3 id="post-apiv1calendarioatividades-201-created"><code>POST /api/v1/calendario/atividades</code> (<code>201 Created</code>)<a class="headerlink" href="#post-apiv1calendarioatividades-201-created" title="Permanent link">&para;</a></h3>
-<p>Cria uma atividade diária programada no calendário do terreno.</p>
+<p>Cria uma atividade diária programada no calendário (requer <code>terreno_id</code> ou <code>usuario_id</code>).</p>
 <p><strong>Request Body:</strong>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;terreno_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">&quot;cultura_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">&quot;titulo&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Irrigação matinal dos canteiros&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">&quot;descricao&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Aplicar lâmina leve de água antes das 9h&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nt">&quot;tipo_atividade&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;irrigacao&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span><span class="nt">&quot;data_programada&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-11-20&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="nt">&quot;prioridade&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;alta&quot;</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">}</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">&quot;usuario_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">&quot;cultura_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">&quot;titulo&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Irrigação matinal dos canteiros&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nt">&quot;descricao&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Aplicar lâmina leve de água antes das 9h&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span><span class="nt">&quot;tipo_atividade&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;irrigacao&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="nt">&quot;data_programada&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-11-20&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">  </span><span class="nt">&quot;prioridade&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;alta&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pendente&quot;</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="p">}</span>
 </code></pre></div>
-Tipos suportados: <code>plantio</code>, <code>irrigacao</code>, <code>adubacao</code>, <code>manejo</code>, <code>colheita</code>, <code>inspecao</code> (e quaisquer categorias operacionais adicionais).<br />
-Prioridades: <code>baixa</code>, <code>media</code>, <code>alta</code>, <code>critica</code>.</p>
+Tipos suportados: <code>plantio</code>, <code>irrigacao</code>, <code>adubacao</code>, <code>manejo</code>, <code>colheita</code>, <code>inspecao</code>.<br />
+Prioridades: <code>baixa</code>, <code>media</code>, <code>alta</code>, <code>critica</code>.<br />
+Status válidos: <code>pendente</code>, <code>concluida</code>.</p>
 <h3 id="post-apiv1calendariogerar-cronograma-201-created"><code>POST /api/v1/calendario/gerar-cronograma</code> (<code>201 Created</code>)<a class="headerlink" href="#post-apiv1calendariogerar-cronograma-201-created" title="Permanent link">&para;</a></h3>
 <p>Gera automaticamente o cronograma inicial de um ciclo (plantio, irrigação inicial, inspeção fitossanitária, adubação de cobertura e colheita).</p>
 <p><strong>Request Body:</strong>
@@ -1122,67 +1157,61 @@ Prioridades: <code>baixa</code>, <code>media</code>, <code>alta</code>, <code>cr
 <a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="p">}</span>
 </code></pre></div></p>
 <h3 id="get-apiv1calendarioatividades-200-ok"><code>GET /api/v1/calendario/atividades</code> (<code>200 OK</code>)<a class="headerlink" href="#get-apiv1calendarioatividades-200-ok" title="Permanent link">&para;</a></h3>
-<p>Lista atividades ordenadas por <code>data_programada</code> e <code>id</code>.<br />
-<strong>Query Params opcionais:</strong> <code>terreno_id</code>, <code>concluida</code>, <code>tipo_atividade</code>, <code>data_inicio</code>, <code>data_fim</code>.</p>
+<p>Lista atividades ordenadas por <code>data_programada</code> e <code>id</code>, com ênfase na consulta por período.<br />
+<strong>Query Params opcionais:</strong> <code>terreno_id</code>, <code>usuario_id</code>, <code>status</code> (<code>pendente</code> / <code>concluida</code>), <code>concluida</code>, <code>tipo_atividade</code>, <code>data_inicio</code>, <code>data_fim</code>.</p>
 <h3 id="get-apiv1calendarioatividadesatividade_id-200-ok"><code>GET /api/v1/calendario/atividades/{atividade_id}</code> (<code>200 OK</code>)<a class="headerlink" href="#get-apiv1calendarioatividadesatividade_id-200-ok" title="Permanent link">&para;</a></h3>
 <p>Retorna os detalhes de uma atividade específica.</p>
-<h3 id="patch-apiv1calendarioatividadesatividade_idconcluir-200-ok"><code>PATCH /api/v1/calendario/atividades/{atividade_id}/concluir</code> (<code>200 OK</code>)<a class="headerlink" href="#patch-apiv1calendarioatividadesatividade_idconcluir-200-ok" title="Permanent link">&para;</a></h3>
-<p>Marca ou desmarca uma atividade como <code>"concluída"</code> pelo agricultor (preenche <code>data_conclusao</code> automaticamente).</p>
+<h3 id="patch-apiv1calendarioatividadesatividade_idstatus-200-ok"><code>PATCH /api/v1/calendario/atividades/{atividade_id}/status</code> (<code>200 OK</code>)<a class="headerlink" href="#patch-apiv1calendarioatividadesatividade_idstatus-200-ok" title="Permanent link">&para;</a></h3>
+<p><em>(Também disponível em <code>PATCH /api/v1/calendario/atividades/{atividade_id}/concluir</code>)</em></p>
+<p>Atualiza o status da atividade entre <code>pendente</code> e <code>concluida</code>, atualizando automaticamente <code>concluida</code> e <code>data_conclusao</code>.</p>
 <p><strong>Request Body:</strong>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">&quot;concluida&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;concluida&quot;</span>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="p">}</span>
-</code></pre></div></p>
+</code></pre></div>
+<em>(Aceita alternativamente <code>{"concluida": true}</code> ou <code>{"concluida": false}</code>).</em></p>
 <h3 id="put-apiv1calendarioatividadesatividade_id-200-ok"><code>PUT /api/v1/calendario/atividades/{atividade_id}</code> (<code>200 OK</code>)<a class="headerlink" href="#put-apiv1calendarioatividadesatividade_id-200-ok" title="Permanent link">&para;</a></h3>
 <p>Atualiza parcialmente ou integralmente uma atividade programada.</p>
 <h3 id="delete-apiv1calendarioatividadesatividade_id-204-no-content"><code>DELETE /api/v1/calendario/atividades/{atividade_id}</code> (<code>204 No Content</code>)<a class="headerlink" href="#delete-apiv1calendarioatividadesatividade_id-204-no-content" title="Permanent link">&para;</a></h3>
 <p>Remove uma atividade do calendário.</p>
 <hr />
 <h2 id="m5-alertas-climaticos-e-background-tasks-backendapialertaspy">[M5] Alertas Climáticos e Background Tasks (<code>backend/api/alertas.py</code>)<a class="headerlink" href="#m5-alertas-climaticos-e-background-tasks-backendapialertaspy" title="Permanent link">&para;</a></h2>
-<h3 id="post-apiv1alertasgatilho-202-accepted"><code>POST /api/v1/alertas/gatilho</code> (<code>202 Accepted</code>)<a class="headerlink" href="#post-apiv1alertasgatilho-202-accepted" title="Permanent link">&para;</a></h3>
-<p>Recebe gatilhos de algoritmos de ML (ou dados NASA/manuais), aciona opcionalmente <code>ClimateAnomalyDetector.detect_extremes()</code>, grava o alerta e agenda em segundo plano (<code>BackgroundTasks</code>) a função <code>processar_alerta_e_adaptar_calendario()</code> para adaptar as tarefas pendentes na janela <code>[data_evento, data_evento + 3 dias]</code>.</p>
+<h3 id="post-apiv1alertasmonitorar-202-accepted"><code>POST /api/v1/alertas/monitorar</code> (<code>202 Accepted</code>)<a class="headerlink" href="#post-apiv1alertasmonitorar-202-accepted" title="Permanent link">&para;</a></h3>
+<p>Agenda em segundo plano (<code>FastAPI BackgroundTasks</code>) um ciclo da rotina <code>executar_ciclo_monitoramento_alertas()</code> (<code>backend/services/alert_tasks.py</code>), que consulta dados climáticos sintéticos (<code>services/mock_nasa_data.py</code>), executa <code>ClimateAnomalyDetector.detect_extremes()</code> e, caso anomalias sejam detectadas, persiste automaticamente um <code>AlertaClimatico</code> no banco e adapta o calendário <code>[M4]</code>. Também suporta agendamento periódico em loop (<code>iniciar_monitoramento_periodico</code> com intervalo de <code>6</code> ou <code>12</code> horas).</p>
 <p><strong>Request Body:</strong>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">&quot;terreno_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">&quot;tipo_evento&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;chuva_intensa&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="nt">&quot;severidade&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;alta&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="nt">&quot;data_evento&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-11-20&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="nt">&quot;titulo&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Alerta de precipitação intensa&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span><span class="nt">&quot;mensagem&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Previsão de chuva acima de 70 mm nas próximas 48 horas.&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">  </span><span class="nt">&quot;origem_gatilho&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ml_anomaly_detector&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">  </span><span class="nt">&quot;serie_temporal_clima&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-11-19&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;precipitacao_mm&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">12.0</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;temp_max_c&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">29.0</span><span class="p">},</span>
-<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-11-20&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;precipitacao_mm&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">78.5</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;temp_max_c&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">23.0</span><span class="p">}</span>
-<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="w">  </span><span class="p">],</span>
-<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">  </span><span class="nt">&quot;dias_adiamento&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span>
-<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="p">}</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">&quot;intervalo_horas&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="p">}</span>
 </code></pre></div></p>
 <p><strong>Response (<code>202 Accepted</code>):</strong>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span>
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;accepted&quot;</span><span class="p">,</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nt">&quot;mensagem&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Alerta registrado e rotina de adaptação do calendário agendada em segundo plano.&quot;</span><span class="p">,</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nt">&quot;alerta&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">    </span><span class="nt">&quot;terreno_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">    </span><span class="nt">&quot;tipo_evento&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;chuva_intensa&quot;</span><span class="p">,</span>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="nt">&quot;severidade&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;alta&quot;</span><span class="p">,</span>
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">    </span><span class="nt">&quot;titulo&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Alerta de precipitação intensa&quot;</span><span class="p">,</span>
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">    </span><span class="nt">&quot;mensagem&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Previsão de chuva acima de 70 mm nas próximas 48 horas.&quot;</span><span class="p">,</span>
-<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">    </span><span class="nt">&quot;data_evento&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-11-20&quot;</span><span class="p">,</span>
-<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">    </span><span class="nt">&quot;origem_gatilho&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ml_anomaly_detector&quot;</span><span class="p">,</span>
-<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">    </span><span class="nt">&quot;dados_gatilho&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;...&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">    </span><span class="nt">&quot;processado_background&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">    </span><span class="nt">&quot;resumo_adaptacao&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
-<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">    </span><span class="nt">&quot;lido&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">    </span><span class="nt">&quot;criado_em&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-11-14T11:05:00&quot;</span>
-<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="p">}</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nt">&quot;mensagem&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Monitoramento climático em segundo plano agendado (janela configurada de 6h).&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nt">&quot;intervalo_horas&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span><span class="nt">&quot;terreno_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="p">}</span>
 </code></pre></div></p>
-<blockquote>
-<p>Após a conclusão da <code>BackgroundTask</code>, <code>processado_background</code> passa para <code>true</code> e <code>resumo_adaptacao</code> detalha as atividades ajustadas e criadas no módulo <code>[M4]</code>.</p>
-</blockquote>
+<h3 id="post-apiv1alertasgatilho-202-accepted"><code>POST /api/v1/alertas/gatilho</code> (<code>202 Accepted</code>)<a class="headerlink" href="#post-apiv1alertasgatilho-202-accepted" title="Permanent link">&para;</a></h3>
+<p>Recebe gatilhos explícitos de algoritmos de ML (ou dados NASA/manuais), aciona opcionalmente <code>ClimateAnomalyDetector.detect_extremes()</code>, grava o alerta e agenda em segundo plano a função <code>processar_alerta_e_adaptar_calendario()</code> para adaptar as tarefas pendentes na janela <code>[data_evento, data_evento + 3 dias]</code>.</p>
+<p><strong>Request Body:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">&quot;terreno_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nt">&quot;tipo_evento&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;chuva_intensa&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span><span class="nt">&quot;severidade&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;alta&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span><span class="nt">&quot;data_evento&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-11-20&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">  </span><span class="nt">&quot;titulo&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Alerta de precipitação intensa&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">  </span><span class="nt">&quot;mensagem&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Previsão de chuva acima de 70 mm nas próximas 48 horas.&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">  </span><span class="nt">&quot;origem_gatilho&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ml_anomaly_detector&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">  </span><span class="nt">&quot;serie_temporal_clima&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-11-19&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;precipitacao_mm&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">12.0</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;temp_max_c&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">29.0</span><span class="p">},</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-11-20&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;precipitacao_mm&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">78.5</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;temp_max_c&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">23.0</span><span class="p">}</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="w">  </span><span class="nt">&quot;dias_adiamento&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="p">}</span>
+</code></pre></div></p>
 <h3 id="get-apiv1alertas-200-ok"><code>GET /api/v1/alertas/</code> (<code>200 OK</code>)<a class="headerlink" href="#get-apiv1alertas-200-ok" title="Permanent link">&para;</a></h3>
-<p>Lista alertas climáticos ordenados por <code>data_evento</code> descrescente.<br />
+<p>Lista alertas climáticos ordenados por <code>data_evento</code> decrescente.<br />
 <strong>Query Params opcionais:</strong> <code>terreno_id</code>, <code>lido</code>, <code>severidade</code>, <code>tipo_evento</code>.</p>
 <h3 id="get-apiv1alertasalerta_id-200-ok"><code>GET /api/v1/alertas/{alerta_id}</code> (<code>200 OK</code>)<a class="headerlink" href="#get-apiv1alertasalerta_id-200-ok" title="Permanent link">&para;</a></h3>
 <p>Obtém os detalhes do alerta e o campo <code>resumo_adaptacao</code>.</p>
