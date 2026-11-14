@@ -5,10 +5,14 @@ Documentação interativa automática (Swagger UI): `GET /docs`
 
 ---
 
-## [M1] Terrenos (`backend/api/terreno.py`)
+## [M1] Terrenos e Configuração Inicial (`backend/api/terreno.py`, `backend/main.py`)
+
+### Configuração de Startup e CORS
+- `CORSMiddleware` habilitado no FastAPI para origens locais do frontend (`http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:3000`, `http://localhost:8000`) e origens adicionais via `CORS_ALLOWED_ORIGINS`.
+- Seed automático de `Usuario` padrão (`seed_usuario_padrao` / `produtor@kultiva.agro`) e do catálogo base no startup (`lifespan`).
 
 ### `POST /api/v1/terrenos/`
-Cria um novo terreno com o polígono geográfico e prioridades do produtor.
+Cria um novo terreno com o polígono geográfico e prioridades do produtor. Quando `area_hectares` ou `localizacao_central` forem omitidos, são calculados automaticamente a partir de `coordenadas_poligono` via `calcular_geometria_terreno`.
 
 **Request Body:**
 ```json
@@ -27,7 +31,16 @@ Cria um novo terreno com o polígono geográfico e prioridades do produtor.
 }
 ```
 
-**Response (`200 OK`):** Retorna os dados do terreno criado acrescidos de `"id"`.
+**Response (`200 OK`):** Retorna os dados do terreno criado acrescidos de `"id"`, `"area_hectares"` e `"localizacao_central"`.
+
+### `GET /api/v1/terrenos/` (`200 OK`) e `GET /api/v1/terrenos/{terreno_id}` (`200 OK`)
+Lista terrenos (com filtro opcional `usuario_id`) ou busca um terreno específico (`404` se inexistente).
+
+### `PUT /api/v1/terrenos/{terreno_id}` (`200 OK`)
+Atualiza parcialmente ou integralmente um terreno. Ao alterar `coordenadas_poligono`, recalcula automaticamente `area_hectares` e `localizacao_central` quando não enviados no payload.
+
+### `DELETE /api/v1/terrenos/{terreno_id}` (`204 No Content`)
+Remove o terreno e limpa os registros dependentes associados (`metricas_historicas_terreno`, `alertas_climaticos`, `atividades_calendario` e rotações customizadas do terreno).
 
 ---
 
@@ -263,9 +276,22 @@ Consolida o relatório periódico de adaptação para o terreno (`data_inicio` e
 - Série histórica de umidade, temperatura, precipitação e indicador de solo exposto (`metricas_historicas_terreno`). Se não houver snapshots gravados no período, consulta `INASADataProvider.extract_field_metrics()` sob demanda e persiste a série.
 - Índices calculados de **vigor** (`indice`, `classificacao`, `tendencia`) e **vulnerabilidade** (`indice`, `nivel`, `fatores_risco`).
 - Contabilização de **adaptações** no calendário (`ajustada_por_alerta == true`) e alertas climáticos do período.
+- **Comparativo do período** (`comparativo_periodo`): variações entre a primeira e a última medição da série histórica (`umidade_inicial`/`umidade_final`, `variacao_umidade`, `variacao_umidade_percentual`, temperatura, precipitação e `tendencia_geral`).
+- **Resumo interpretativo da IA** (`resumo_ia` e `explicacao_ia`): síntese em linguagem simples gerada via `RotationExplainerAgent.explain_report()` (com fallback determinístico offline), sempre concluída com o aviso legal (`DISCLAIMER`).
 
 ### `GET /api/v1/relatorios/terreno/{terreno_id}/metricas` (`200 OK`)
 Lista os snapshots diários persistidos para o terreno com filtro opcional por `data_inicio` e `data_fim`.
 
 ### `POST /api/v1/relatorios/terreno/{terreno_id}/metricas` (`201 Created`)
 Permite registrar manualmente uma medição climática ou acionar a sincronização via `INASADataProvider` quando o corpo JSON é omitido.
+
+---
+
+## [Demo] Seed de Demonstração (`backend/api/demo.py`)
+
+### `POST /api/v1/demo/seed` (`200 OK`)
+*(Query param opcional: `reset=false|true`)*
+
+Popula o ambiente de demonstração completo em uma única chamada (usuário padrão, culturas/rotações seed e customizada, dois terrenos com perfis climáticos distintos, 10 dias de métricas históricas por terreno, atividades no calendário com registros `ajustada_por_alerta=true` e alertas climáticos com explicação prática):
+- `reset=false` *(padrão)*: operação **idempotente** que cria apenas o que ainda não existir, preservando IDs e contagens entre chamadas consecutivas.
+- `reset=true`: remove e recria do zero os dados associados aos terrenos de demonstração.

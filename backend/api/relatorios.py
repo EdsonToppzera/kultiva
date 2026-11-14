@@ -4,7 +4,7 @@ from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from backend.api.simulacao import get_nasa_processor
+from backend.api.simulacao import get_nasa_processor, get_rotation_explainer
 from backend.db import models
 from backend.db.database import get_db
 from backend.schemas.relatorio import (
@@ -43,6 +43,7 @@ def obter_relatorio_terreno(
     data_fim: Optional[date] = Query(default=None),
     db: Session = Depends(get_db),
     nasa_processor: Optional[Any] = Depends(get_nasa_processor),
+    explainer_agent: Optional[Any] = Depends(get_rotation_explainer),
 ):
     """Gera relatório periódico [M6] de umidade, temperatura, vigor, vulnerabilidade e adaptações."""
     terreno = _obter_terreno_ou_404(terreno_id, db)
@@ -54,12 +55,20 @@ def obter_relatorio_terreno(
             detail=str(exc),
         ) from exc
 
+    from backend.services.relatorio_service import _EXPLAINER_UNSET
+
+    agente_valido = (
+        _EXPLAINER_UNSET
+        if getattr(type(explainer_agent), "__name__", "") == "Depends"
+        else explainer_agent
+    )
     return gerar_relatorio_terreno(
         db=db,
         terreno=terreno,
         data_inicio=data_inicio,
         data_fim=data_fim,
         nasa_processor=nasa_processor,
+        explainer_agent=agente_valido,
     )
 
 
@@ -70,6 +79,7 @@ def obter_relatorio_por_query(
     data_fim: Optional[date] = Query(default=None),
     db: Session = Depends(get_db),
     nasa_processor: Optional[Any] = Depends(get_nasa_processor),
+    explainer_agent: Optional[Any] = Depends(get_rotation_explainer),
 ):
     """Atalho GET /api/v1/relatorios/?terreno_id=... para consulta de relatório por período."""
     return obter_relatorio_terreno(
@@ -78,6 +88,7 @@ def obter_relatorio_por_query(
         data_fim=data_fim,
         db=db,
         nasa_processor=nasa_processor,
+        explainer_agent=explainer_agent,
     )
 
 

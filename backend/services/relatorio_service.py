@@ -9,18 +9,21 @@ from backend.schemas.relatorio import (
     AdaptacaoAtividadeItem,
     AdaptacoesTerrenoResumo,
     AlertaResumoRelatorio,
+    ComparativoPeriodoRelatorio,
     MetricaHistoricaResponse,
     RelatorioAdaptacaoResponse,
     ResumoClimaticoRelatorio,
     VigorTerrenoResumo,
     VulnerabilidadeTerrenoResumo,
 )
+from backend.services.llm_agent import DISCLAIMER, RotationExplainerAgent
 from backend.services.metrics_service import (
     consultar_serie_historica_terreno,
     persistir_metricas_terreno,
 )
 
 logger = logging.getLogger(__name__)
+_EXPLAINER_UNSET = object()
 
 
 def resolver_periodo_relatorio(
@@ -176,12 +179,164 @@ def _calcular_vulnerabilidade(
     )
 
 
+def _calcular_comparativo_periodo(
+    serie: List[models.MetricaHistoricaTerreno],
+) -> ComparativoPeriodoRelatorio:
+    """Compara as medições iniciais e finais da série histórica no período."""
+    if not serie:
+        return ComparativoPeriodoRelatorio(
+            tendencia_geral="estavel",
+            resumo_comparativo="Sem medições suficientes no período para comparação.",
+        )
+
+    primeiro = serie[0]
+    ultimo = serie[-1]
+
+    umidade_ini = round(float(primeiro.soil_moisture), 4)
+    umidade_fim = round(float(ultimo.soil_moisture), 4)
+    variacao_umidade = round(umidade_fim - umidade_ini, 4)
+    variacao_umidade_pct = (
+        round((variacao_umidade / umidade_ini) * 100.0, 2) if umidade_ini > 0 else 0.0
+    )
+
+    temp_ini = round(float(primeiro.surface_temp_c), 2)
+    temp_fim = round(float(ultimo.surface_temp_c), 2)
+    variacao_temp = round(temp_fim - temp_ini, 2)
+
+    precip_ini = round(float(primeiro.precipitation_mm), 2)
+    precip_fim = round(float(ultimo.precipitation_mm), 2)
+    variacao_precip = round(precip_fim - precip_ini, 2)
+
+    if variacao_umidade > 0.03 or (
+        variacao_umidade >= -0.01 and variacao_temp < -1.5
+    ):
+        tendencia_geral = "melhora"
+    elif variacao_umidade < -0.03 or (
+        variacao_umidade <= 0.01 and variacao_temp > 2.0
+    ):
+        tendencia_geral = "queda"
+    else:
+        tendencia_geral = "estavel"
+
+    resumo_comparativo = (
+        f"Entre {primeiro.data_medicao.isoformat()} e {ultimo.data_medicao.isoformat()}, "
+        f"a umidade do solo variou {variacao_umidade:+.4f} ({variacao_umidade_pct:+.1f}%) "
+        f"e a temperatura média variou {variacao_temp:+.1f} °C, indicando tendência {tendencia_geral}."
+    )
+
+    return ComparativoPeriodoRelatorio(
+        data_inicial=primeiro.data_medicao,
+        data_final=ultimo.data_medicao,
+        umidade_inicial=umidade_ini,
+        umidade_final=umidade_fim,
+        variacao_umidade=variacao_umidade,
+        variacao_umidade_percentual=variacao_umidade_pct,
+        temperatura_inicial_c=temp_ini,
+        temperatura_final_c=temp_fim,
+        variacao_temperatura_c=variacao_temp,
+        precipitacao_inicial_mm=precip_ini,
+        precipitacao_final_mm=precip_fim,
+        variacao_precipitacao_mm=variacao_precip,
+        tendencia_geral=tendencia_geral,
+        resumo_comparativo=resumo_comparativo,
+    )
+
+
+def _garantir_disclaimer(texto: str) -> str:
+    limpo = str(texto or "").strip()
+    if "decisão final" not in limpo.lower():
+        return f"{limpo} {DISCLAIMER}".strip()
+    return limpo
+
+
+def _gerar_resumo_ia_fallback(
+    nome_propriedade: str,
+    resumo_climatico: ResumoClimaticoRelatorio,
+    vigor: VigorTerrenoResumo,
+    vulnerabilidade: VulnerabilidadeTerrenoResumo,
+    adaptacoes: AdaptacoesTerrenoResumo,
+    comparativo: ComparativoPeriodoRelatorio,
+) -> str:
+    umidade_pct = round(resumo_climatico.umidade_media_solo * 100)
+    partes = [
+        (
+            f"Resumo do acompanhamento da propriedade {nome_propriedade}: "
+            f"a umidade média do solo ficou em {umidade_pct}%, com temperatura média "
+            f"de {resumo_climatico.temperatura_media_c:.1f} °C e chuva acumulada "
+            f"de {resumo_climatico.precipitacao_total_mm:.1f} mm."
+        ),
+        (
+            f"O vigor da lavoura está {vigor.classificacao} (índice {vigor.indice:.2f}) "
+            f"e a vulnerabilidade climática no período é {vulnerabilidade.nivel}."
+        ),
+        comparativo.resumo_comparativo,
+    ]
+    if adaptacoes.total_ajustadas_por_alerta > 0:
+        partes.append(
+            f"Foram adaptadas {adaptacoes.total_ajustadas_por_alerta} de "
+            f"{adaptacoes.total_atividades_periodo} atividade(s) no calendário devido a alertas."
+        )
+    return _garantir_disclaimer(" ".join(partes))
+
+
+def _gerar_resumo_ia_relatorio(
+    nome_propriedade: str,
+    resumo_climatico: ResumoClimaticoRelatorio,
+    vigor: VigorTerrenoResumo,
+    vulnerabilidade: VulnerabilidadeTerrenoResumo,
+    adaptacoes: AdaptacoesTerrenoResumo,
+    comparativo: ComparativoPeriodoRelatorio,
+    alertas_periodo: List[models.AlertaClimatico],
+    recomendacoes: List[str],
+    explainer_agent: Any = _EXPLAINER_UNSET,
+) -> str:
+    adaptacoes_payload = adaptacoes.model_dump()
+    if alertas_periodo and alertas_periodo[0].resumo_adaptacao:
+        adaptacoes_payload["ultimo_resumo_adaptacao"] = alertas_periodo[0].resumo_adaptacao
+    elif recomendacoes:
+        adaptacoes_payload["acao_recomendada"] = recomendacoes[0]
+
+    if explainer_agent is not None:
+        try:
+            agent = (
+                RotationExplainerAgent()
+                if explainer_agent is _EXPLAINER_UNSET
+                else explainer_agent
+            )
+            if hasattr(agent, "explain_report"):
+                texto = agent.explain_report(
+                    resumo_climatico=resumo_climatico,
+                    vigor=vigor,
+                    vulnerabilidade=vulnerabilidade,
+                    adaptacoes=adaptacoes_payload,
+                    nome_propriedade=nome_propriedade,
+                )
+                if isinstance(texto, str) and texto.strip():
+                    return _garantir_disclaimer(texto)
+        except Exception as exc:
+            logger.warning(
+                "Falha ao gerar resumo IA do relatório para %s; usando fallback: %s",
+                nome_propriedade,
+                exc,
+            )
+
+    return _gerar_resumo_ia_fallback(
+        nome_propriedade=nome_propriedade,
+        resumo_climatico=resumo_climatico,
+        vigor=vigor,
+        vulnerabilidade=vulnerabilidade,
+        adaptacoes=adaptacoes,
+        comparativo=comparativo,
+    )
+
+
 def gerar_relatorio_terreno(
     db: Session,
     terreno: models.Terreno,
     data_inicio: Optional[date] = None,
     data_fim: Optional[date] = None,
     nasa_processor: Optional[Any] = None,
+    explainer_agent: Any = _EXPLAINER_UNSET,
 ) -> RelatorioAdaptacaoResponse:
     periodo_inicio, periodo_fim = resolver_periodo_relatorio(data_inicio, data_fim)
 
@@ -308,42 +463,57 @@ def gerar_relatorio_terreno(
             "Manter o planejamento de rotação atual com monitoramento semanal do calendário."
         )
 
+    resumo_climatico = ResumoClimaticoRelatorio(
+        umidade_media_solo=umidade_media,
+        umidade_min_solo=umidade_min,
+        umidade_max_solo=umidade_max,
+        temperatura_media_c=temp_media,
+        temperatura_max_c=temp_max,
+        precipitacao_total_mm=precip_total,
+        precipitacao_media_mm=precip_media,
+        dias_solo_exposto=dias_solo_exposto,
+        total_medicoes=total_medicoes,
+    )
+    adaptacoes = AdaptacoesTerrenoResumo(
+        total_atividades_periodo=total_ativ,
+        total_ajustadas_por_alerta=total_ajust,
+        taxa_adaptacao=taxa_adaptacao,
+        atividades_ajustadas=[
+            AdaptacaoAtividadeItem(
+                atividade_id=a.id,
+                titulo=a.titulo,
+                tipo_atividade=a.tipo_atividade,
+                data_programada=a.data_programada,
+                prioridade=a.prioridade,
+                status=a.status,
+                motivo_ajuste=a.motivo_ajuste,
+            )
+            for a in ajustadas
+        ],
+    )
+    comparativo_periodo = _calcular_comparativo_periodo(serie)
+    resumo_ia = _gerar_resumo_ia_relatorio(
+        nome_propriedade=terreno.nome_propriedade,
+        resumo_climatico=resumo_climatico,
+        vigor=vigor,
+        vulnerabilidade=vulnerabilidade,
+        adaptacoes=adaptacoes,
+        comparativo=comparativo_periodo,
+        alertas_periodo=alertas_periodo,
+        recomendacoes=recomendacoes,
+        explainer_agent=explainer_agent,
+    )
+
     return RelatorioAdaptacaoResponse(
         terreno_id=terreno.id,
         nome_propriedade=terreno.nome_propriedade,
         periodo_inicio=periodo_inicio,
         periodo_fim=periodo_fim,
         origem_dados=origem_dados,
-        resumo_climatico=ResumoClimaticoRelatorio(
-            umidade_media_solo=umidade_media,
-            umidade_min_solo=umidade_min,
-            umidade_max_solo=umidade_max,
-            temperatura_media_c=temp_media,
-            temperatura_max_c=temp_max,
-            precipitacao_total_mm=precip_total,
-            precipitacao_media_mm=precip_media,
-            dias_solo_exposto=dias_solo_exposto,
-            total_medicoes=total_medicoes,
-        ),
+        resumo_climatico=resumo_climatico,
         vigor=vigor,
         vulnerabilidade=vulnerabilidade,
-        adaptacoes=AdaptacoesTerrenoResumo(
-            total_atividades_periodo=total_ativ,
-            total_ajustadas_por_alerta=total_ajust,
-            taxa_adaptacao=taxa_adaptacao,
-            atividades_ajustadas=[
-                AdaptacaoAtividadeItem(
-                    atividade_id=a.id,
-                    titulo=a.titulo,
-                    tipo_atividade=a.tipo_atividade,
-                    data_programada=a.data_programada,
-                    prioridade=a.prioridade,
-                    status=a.status,
-                    motivo_ajuste=a.motivo_ajuste,
-                )
-                for a in ajustadas
-            ],
-        ),
+        adaptacoes=adaptacoes,
         alertas_periodo=[
             AlertaResumoRelatorio(
                 id=al.id,
@@ -360,4 +530,7 @@ def gerar_relatorio_terreno(
             MetricaHistoricaResponse.model_validate(item) for item in serie
         ],
         recomendacoes_manejo=recomendacoes,
+        comparativo_periodo=comparativo_periodo,
+        resumo_ia=resumo_ia,
+        explicacao_ia=resumo_ia,
     )
