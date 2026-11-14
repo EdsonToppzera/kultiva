@@ -1,9 +1,12 @@
+import importlib
 import logging
 import os
 from abc import ABC, abstractmethod
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import rioxarray  # noqa: F401 - registra o accessor .rio no xarray
 import xarray as xr
@@ -201,21 +204,325 @@ class MockNASADataProvider(INASADataProvider):
 
 class RealNASADataProvider(INASADataProvider):
     """
-    FUTURA IMPLEMENTAÇÃO REAL.
-    Aqui entrará o earthaccess, download via API e xr.open_mfdataset.
+    Provedor real de dados da NASA via NASA Earthdata (`earthaccess`) e `xarray.open_mfdataset`.
+    Mantém o mesmo contrato `field_metrics` do `MockNASADataProvider`.
     """
 
-    def __init__(self, credentials: dict):
+    COLLECTIONS: dict[str, tuple[str, tuple[str, ...]]] = {
+        "soil_moisture": (
+            "SPL3SMP_E",
+            ("soil_moisture", "Soil_Moisture_Retrieval_Data_AM_soil_moisture"),
+        ),
+        "surface_temp": ("ECO2LSTE", ("surface_temp", "LST", "SDS_LST")),
+        "precipitation": (
+            "GPM_3IMERGDF",
+            ("precipitation", "precipitationCal", "HQprecipitation"),
+        ),
+        "ndvi": ("MOD13Q1", ("ndvi", "NDVI", "250m_16_days_NDVI")),
+    }
+    _PRIMARY_KEYS = ("soil_moisture", "surface_temp", "precipitation")
+    BARE_NDVI_MAX = 0.25
+    BARE_MOISTURE_MAX = MockNASADataProvider.BARE_MOISTURE_MAX
+    BARE_TEMP_MIN_C = MockNASADataProvider.BARE_TEMP_MIN_C
+
+    def __init__(
+        self,
+        credentials: dict[str, Any] | None = None,
+        data_path: str = "data",
+        days_back: int = 5,
+    ):
+        if credentials is None:
+            credentials = {
+                "username": os.getenv("EARTHDATA_USERNAME"),
+                "password": os.getenv("EARTHDATA_PASSWORD"),
+                "token": os.getenv("EARTHDATA_TOKEN"),
+            }
         self.credentials = credentials
+        self.data_path = data_path
+        self.days_back = max(1, int(days_back))
+
+    @staticmethod
+    def _load_earthaccess() -> Any | None:
+        try:
+            return importlib.import_module("earthaccess")
+        except ImportError:
+            logger.warning(
+                "Pacote earthaccess não instalado; RealNASADataProvider sem acesso remoto."
+            )
+            return None
+
+    def _authenticate(self, ea: Any) -> bool:
+        try:
+            if self.credentials.get("username"):
+                os.environ["EARTHDATA_USERNAME"] = str(self.credentials["username"])
+            if self.credentials.get("password"):
+                os.environ["EARTHDATA_PASSWORD"] = str(self.credentials["password"])
+            if self.credentials.get("token"):
+                os.environ["EARTHDATA_TOKEN"] = str(self.credentials["token"])
+
+            try:
+                auth = ea.login(strategy="environment")
+            except Exception:
+                auth = ea.login()
+
+            if auth is None:
+                return True
+            return bool(getattr(auth, "authenticated", auth))
+        except Exception as exc:
+            logger.warning("Falha ao autenticar no NASA Earthdata: %s", exc)
+            return False
+
+    @staticmethod
+    def _open_mfdataset(files: list[Any]) -> xr.Dataset:
+        try:
+            return xr.open_mfdataset(files, combine="by_coords")
+        except ImportError as exc:
+            logger.info(
+                "xr.open_mfdataset indisponível (%s); usando open_dataset + combine.",
+                exc,
+            )
+            opened = [xr.open_dataset(f).load() for f in files]
+            try:
+                if len(opened) == 1:
+                    return opened[0]
+                try:
+                    combined = xr.combine_by_coords(opened, combine_attrs="override")
+                except Exception:
+                    combined = xr.concat(opened, dim="time")
+                return combined.load()
+            finally:
+                for ds in opened:
+                    ds.close()
+
+    def _open_collection_dataset(
+        self,
+        key: str,
+        short_name: str,
+        bbox: tuple[float, float, float, float],
+        temporal: tuple[str, str],
+        dataset: Any,
+        ea: Any,
+        authenticated: bool,
+    ) -> tuple[xr.Dataset | None, bool]:
+        if isinstance(dataset, xr.Dataset):
+            return dataset, False
+
+        if isinstance(dataset, dict):
+            source = dataset.get(key) or dataset.get(short_name)
+            if source is not None:
+                return self._open_source(source)
+
+        if isinstance(dataset, (list, tuple)) and dataset:
+            return self._open_source(dataset)
+
+        if isinstance(dataset, (str, os.PathLike)):
+            return xr.open_dataset(dataset).load(), True
+
+        if ea is None or not authenticated:
+            return None, False
+
+        try:
+            granules = ea.search_data(
+                short_name=short_name,
+                bounding_box=bbox,
+                temporal=temporal,
+            )
+            if not granules:
+                return None, False
+            files = ea.open(granules)
+            if not files:
+                return None, False
+            return self._open_mfdataset(list(files)), True
+        except Exception as exc:
+            logger.warning("Falha ao consultar coleção NASA %s: %s", short_name, exc)
+            return None, False
+
+    def _open_source(self, source: Any) -> tuple[xr.Dataset | None, bool]:
+        if isinstance(source, xr.Dataset):
+            return source, False
+        if isinstance(source, (str, os.PathLike)):
+            return xr.open_dataset(source).load(), True
+        if isinstance(source, (list, tuple)) and source:
+            if all(isinstance(item, xr.Dataset) for item in source):
+                try:
+                    return xr.combine_by_coords(list(source), combine_attrs="override"), False
+                except Exception:
+                    return xr.concat(list(source), dim="time"), False
+            return self._open_mfdataset(list(source)), True
+        return None, False
+
+    @staticmethod
+    def _prepare_dataset(
+        ds: xr.Dataset, candidates: tuple[str, ...]
+    ) -> tuple[xr.Dataset | None, str | None]:
+        var_name = next((name for name in candidates if name in ds.data_vars), None)
+        if var_name is None:
+            return None, None
+
+        rename_map: dict[str, str] = {}
+        if "lat" not in ds.coords and "lat" not in ds.dims:
+            for alt in ("latitude", "y"):
+                if alt in ds.coords or alt in ds.dims:
+                    rename_map[alt] = "lat"
+                    break
+        if "lon" not in ds.coords and "lon" not in ds.dims:
+            for alt in ("longitude", "x"):
+                if alt in ds.coords or alt in ds.dims:
+                    rename_map[alt] = "lon"
+                    break
+
+        prepared = ds.rename(rename_map) if rename_map else ds
+        prepared.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
+        prepared.rio.write_crs("EPSG:4326", inplace=True)
+        return prepared, var_name
+
+    @staticmethod
+    def _series_by_date(serie: xr.DataArray, fallback_date: str) -> dict[str, float]:
+        if "time" in serie.dims or "time" in serie.coords:
+            times = np.atleast_1d(serie["time"].values)
+            vals = np.atleast_1d(serie.values)
+            return {
+                str(pd.Timestamp(t).date()): float(v)
+                for t, v in zip(times, vals)
+                if not np.isnan(v)
+            }
+        return {fallback_date: float(serie.mean().item())}
 
     def extract_field_metrics(
         self, polygon_coords: Any, dataset: Any = None
     ) -> dict[str, Any]:
-        _ = (polygon_coords, dataset)
-        raise NotImplementedError(
-            "A integração real com NASA Earthdata será implementada aqui."
-        )
+        norm_coords = _normalize_polygon_coords(polygon_coords)
+        geom = _build_polygon_geometry(norm_coords)
+        gdf = gpd.GeoDataFrame(index=[0], crs="EPSG:4326", geometry=[geom])
+        minx, miny, maxx, maxy = geom.bounds
+        bbox = (float(minx), float(miny), float(maxx), float(maxy))
 
+        end_dt = datetime.now(timezone.utc).date()
+        start_dt = end_dt - timedelta(days=self.days_back)
+        temporal = (start_dt.isoformat(), end_dt.isoformat())
+
+        ea = None
+        authenticated = False
+        if not isinstance(dataset, xr.Dataset):
+            ea = self._load_earthaccess()
+            if ea is not None:
+                authenticated = self._authenticate(ea)
+
+        series: dict[str, xr.DataArray | None] = {}
+        qualities: dict[str, str] = {}
+
+        for key, (short_name, candidates) in self.COLLECTIONS.items():
+            ds, should_close = self._open_collection_dataset(
+                key=key,
+                short_name=short_name,
+                bbox=bbox,
+                temporal=temporal,
+                dataset=dataset,
+                ea=ea,
+                authenticated=authenticated,
+            )
+            if ds is None:
+                series[key] = None
+                qualities[key] = "no_data"
+                continue
+
+            try:
+                prepared, var_name = self._prepare_dataset(ds, candidates)
+                if prepared is None or var_name is None:
+                    series[key] = None
+                    qualities[key] = "no_data"
+                    continue
+
+                serie, quality = MockNASADataProvider._reduce_spatial(
+                    prepared, var_name, gdf, geom
+                )
+                if serie is None:
+                    series[key] = None
+                    qualities[key] = "no_data"
+                    continue
+
+                loaded = serie.load()
+                if key == "surface_temp" and float(loaded.mean().item()) > 150.0:
+                    loaded = loaded - 273.15
+                elif key == "ndvi" and abs(float(loaded.mean().item())) > 2.0:
+                    loaded = loaded * 0.0001
+
+                series[key] = loaded
+                qualities[key] = quality
+            finally:
+                if should_close:
+                    ds.close()
+
+        def _mean(key: str) -> float:
+            s = series.get(key)
+            return float(s.mean().item()) if s is not None else 0.0
+
+        primary_qualities = [qualities[k] for k in self._PRIMARY_KEYS]
+        if "no_data" in primary_qualities:
+            data_quality = "no_data"
+        elif "nearest_cell" in primary_qualities:
+            data_quality = "nearest_cell"
+        else:
+            data_quality = "clip"
+
+        avg_moisture = _mean("soil_moisture")
+        avg_temp = _mean("surface_temp")
+        avg_precip = _mean("precipitation")
+
+        time_series: list[dict[str, Any]] = []
+        if all(series.get(k) is not None for k in self._PRIMARY_KEYS):
+            fallback_date = end_dt.isoformat()
+            m_map = self._series_by_date(series["soil_moisture"], fallback_date)
+            t_map = self._series_by_date(series["surface_temp"], fallback_date)
+            p_map = self._series_by_date(series["precipitation"], fallback_date)
+            for d_str in sorted(set(m_map) | set(t_map) | set(p_map)):
+                time_series.append(
+                    {
+                        "data": d_str,
+                        "soil_moisture": m_map.get(d_str, avg_moisture),
+                        "surface_temp_c": t_map.get(d_str, avg_temp),
+                        "precipitation_mm": p_map.get(d_str, avg_precip),
+                    }
+                )
+
+        if data_quality == "no_data":
+            is_bare = False
+        elif series.get("ndvi") is not None:
+            is_bare = _mean("ndvi") < self.BARE_NDVI_MAX
+        else:
+            is_bare = (
+                avg_moisture < self.BARE_MOISTURE_MAX
+                and avg_temp >= self.BARE_TEMP_MIN_C
+            )
+
+        return {
+            "coordinates": polygon_coords,
+            "avg_soil_moisture_smap": avg_moisture,
+            "avg_surface_temp_ecostress": avg_temp,
+            "avg_precipitation_gpm": avg_precip,
+            "is_bare_field_period": bool(is_bare),
+            "data_quality": data_quality,
+            "time_series": time_series,
+        }
+
+
+def get_nasa_data_provider(
+    data_path: str = "data",
+    provider_type: str | None = None,
+    credentials: dict[str, Any] | None = None,
+) -> INASADataProvider:
+    """Seleciona MockNASADataProvider (padrão) ou RealNASADataProvider via NASA_PROVIDER."""
+    selected = (
+        provider_type
+        if provider_type is not None
+        else os.getenv("NASA_PROVIDER", "mock")
+    )
+    if str(selected).strip().lower() == "real":
+        return RealNASADataProvider(credentials=credentials, data_path=data_path)
+    return MockNASADataProvider(data_path=data_path)
+
+
+create_nasa_provider = get_nasa_data_provider
 
 # Alias de compatibilidade com chamadas legadas
 NasaDataProcessor = MockNASADataProvider

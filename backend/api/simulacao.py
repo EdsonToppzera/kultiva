@@ -1,5 +1,6 @@
 import importlib
 import logging
+import os
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, or_
@@ -49,14 +50,21 @@ def _get_cached_service(
 
 
 def get_nasa_processor() -> Optional[Any]:
-    """Provedor de dependência para MockNASADataProvider/NasaDataProcessor."""
+    """Provedor de dependência para INASADataProvider (mock ou real via NASA_PROVIDER)."""
+    provider_mode = os.getenv("NASA_PROVIDER", "mock").strip().lower() or "mock"
+
     def _build(geo_module: Any) -> Any:
+        factory = getattr(geo_module, "get_nasa_data_provider", None)
+        if callable(factory):
+            return factory(data_path="data", provider_type=provider_mode)
         provider_cls = getattr(geo_module, "MockNASADataProvider", None) or getattr(
             geo_module, "NasaDataProcessor"
         )
         return provider_cls(data_path="data")
 
-    return _get_cached_service("nasa", "backend.services.geospatial", _build)
+    return _get_cached_service(
+        f"nasa:{provider_mode}", "backend.services.geospatial", _build
+    )
 
 
 def get_crop_simulator() -> Optional[Any]:

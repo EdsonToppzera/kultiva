@@ -1,8 +1,11 @@
 import sys
-from unittest.mock import patch
+from types import ModuleType
+from unittest.mock import MagicMock, patch
 
 import numpy as np
+import pandas as pd
 import pytest
+import xarray as xr
 from langchain_core.language_models.fake import FakeListLLM
 
 from backend.schemas.simulacao import EstrategiaRotacaoSugerida
@@ -418,3 +421,139 @@ def test_llm_explain_strategies_parseia_blocos_estruturados_e_lista_vazia():
     explicacoes_modelos = agent.explain_strategies(modelos)
     assert len(explicacoes_modelos) == 3
     assert all("decisão final" in t.lower() for t in explicacoes_modelos)
+
+
+# ---- A5: RealNASADataProvider e NASA_PROVIDER ----------------------------
+
+
+@pytest.fixture()
+def geospatial_mod():
+    import backend.services as services_pkg
+    import backend.services.geospatial as geo_mod
+
+    yield geo_mod
+
+    sys.modules.pop("backend.services.geospatial", None)
+    if hasattr(services_pkg, "geospatial"):
+        delattr(services_pkg, "geospatial")
+
+
+def test_factory_nasa_provider_seleciona_mock_por_padrao_e_real_por_env(
+    monkeypatch, geospatial_mod
+):
+    monkeypatch.delenv("NASA_PROVIDER", raising=False)
+    assert isinstance(
+        geospatial_mod.get_nasa_data_provider(), geospatial_mod.MockNASADataProvider
+    )
+
+    monkeypatch.setenv("NASA_PROVIDER", "mock")
+    assert isinstance(
+        geospatial_mod.get_nasa_data_provider(), geospatial_mod.MockNASADataProvider
+    )
+
+    monkeypatch.setenv("NASA_PROVIDER", "real")
+    real = geospatial_mod.get_nasa_data_provider()
+    assert isinstance(real, geospatial_mod.RealNASADataProvider)
+
+
+def test_real_nasa_provider_earthaccess_e_open_mfdataset_com_kelvin_e_ndvi(
+    monkeypatch, tmp_path, geospatial_mod
+):
+    lats = np.array([-16.0, -15.5, -15.0])
+    lons = np.array([-48.0, -47.5, -47.0])
+    d1 = pd.date_range("2026-11-10", periods=1)
+    d2 = pd.date_range("2026-11-11", periods=1)
+    d_both = pd.date_range("2026-11-10", periods=2)
+
+    smap_1 = tmp_path / "smap_1.nc"
+    smap_2 = tmp_path / "smap_2.nc"
+    eco_file = tmp_path / "eco.nc"
+    gpm_file = tmp_path / "gpm.nc"
+    ndvi_file = tmp_path / "ndvi.nc"
+
+    xr.Dataset(
+        {"soil_moisture": (["time", "lat", "lon"], np.full((1, 3, 3), 0.32))},
+        coords={"time": d1, "lat": lats, "lon": lons},
+    ).to_netcdf(smap_1)
+    xr.Dataset(
+        {"soil_moisture": (["time", "lat", "lon"], np.full((1, 3, 3), 0.32))},
+        coords={"time": d2, "lat": lats, "lon": lons},
+    ).to_netcdf(smap_2)
+    xr.Dataset(
+        {"LST": (["time", "latitude", "longitude"], np.full((2, 3, 3), 308.15))},
+        coords={"time": d_both, "latitude": lats, "longitude": lons},
+    ).to_netcdf(eco_file)
+    xr.Dataset(
+        {"precipitation": (["time", "lat", "lon"], np.full((2, 3, 3), 4.5))},
+        coords={"time": d_both, "lat": lats, "lon": lons},
+    ).to_netcdf(gpm_file)
+    xr.Dataset(
+        {"NDVI": (["time", "lat", "lon"], np.full((2, 3, 3), 1800.0))},
+        coords={"time": d_both, "lat": lats, "lon": lons},
+    ).to_netcdf(ndvi_file)
+
+    files_by_collection = {
+        "SPL3SMP_E": [str(smap_1), str(smap_2)],
+        "ECO2LSTE": [str(eco_file)],
+        "GPM_3IMERGDF": [str(gpm_file)],
+        "MOD13Q1": [str(ndvi_file)],
+    }
+
+    fake_ea = ModuleType("earthaccess")
+    fake_ea.login = MagicMock(return_value=MagicMock(authenticated=True))
+    fake_ea.search_data = MagicMock(
+        side_effect=lambda short_name, **kwargs: [{"short_name": short_name}]
+    )
+    fake_ea.open = MagicMock(
+        side_effect=lambda granules: files_by_collection[granules[0]["short_name"]]
+    )
+    monkeypatch.setitem(sys.modules, "earthaccess", fake_ea)
+
+    poligono_amplo = [
+        {"lat": -16.0, "lng": -48.0},
+        {"lat": -16.0, "lng": -47.0},
+        {"lat": -15.0, "lng": -47.0},
+        {"lat": -15.0, "lng": -48.0},
+    ]
+
+    real_provider = geospatial_mod.RealNASADataProvider(
+        credentials={"username": "nasa_user", "password": "secret"}
+    )
+    with patch.object(xr, "open_mfdataset", wraps=xr.open_mfdataset) as spy_mf:
+        metricas = real_provider.extract_field_metrics(poligono_amplo)
+
+    fake_ea.login.assert_called_once()
+    assert fake_ea.search_data.call_count == 4
+    assert spy_mf.call_count == 4
+    assert metricas["data_quality"] == "clip"
+    assert metricas["avg_soil_moisture_smap"] == pytest.approx(0.32, abs=1e-4)
+    assert metricas["avg_surface_temp_ecostress"] == pytest.approx(35.0, abs=1e-2)
+    assert metricas["avg_precipitation_gpm"] == pytest.approx(4.5, abs=1e-4)
+    # Umidade está alta (0.32), mas NDVI=0.18 (< 0.25) indica solo exposto
+    assert metricas["is_bare_field_period"] is True
+    assert len(metricas["time_series"]) == 2
+    assert {"data", "soil_moisture", "surface_temp_c", "precipitation_mm"} <= set(
+        metricas["time_series"][0]
+    )
+
+
+def test_real_nasa_provider_sem_earthaccess_retorna_no_data(
+    monkeypatch, geospatial_mod
+):
+    monkeypatch.setitem(sys.modules, "earthaccess", None)
+    real_provider = geospatial_mod.RealNASADataProvider()
+    metricas = real_provider.extract_field_metrics(POLIGONO_SP)
+
+    assert metricas["data_quality"] == "no_data"
+    assert metricas["time_series"] == []
+    assert metricas["is_bare_field_period"] is False
+    assert metricas["coordinates"] == POLIGONO_SP
+    assert set(metricas) == {
+        "coordinates",
+        "avg_soil_moisture_smap",
+        "avg_surface_temp_ecostress",
+        "avg_precipitation_gpm",
+        "is_bare_field_period",
+        "data_quality",
+        "time_series",
+    }

@@ -43,6 +43,9 @@ def get_nasa_provider(data_path: str = "data") -> Optional[Any]:
     """Instancia o provedor NASA (INASADataProvider) via geospatial.py."""
     try:
         geo_module = importlib.import_module("backend.services.geospatial")
+        factory = getattr(geo_module, "get_nasa_data_provider", None)
+        if callable(factory):
+            return factory(data_path=data_path)
         provider_cls = getattr(geo_module, "MockNASADataProvider", None) or getattr(
             geo_module, "NasaDataProcessor", None
         )
