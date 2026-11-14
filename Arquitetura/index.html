@@ -764,10 +764,10 @@
     M3 --&gt;|"generate_explanation() (Gemini / FakeListLLM)"| LLM["RotationExplainerAgent (services/llm_agent.py)"]
     M3 --&gt;|"JSON SimulacaoResponse"| FE</code></pre>
 <ul>
-<li><strong>Resiliência (Graceful Fallback):</strong> Caso os dados geoespaciais NetCDF ou pacotes científicos opcionais não estejam presentes no ambiente de execução, o controlador aplica fallbacks determinísticos para manter o contrato JSON estável para o frontend.</li>
+<li><strong>Resiliência (Graceful Fallback) e Flexibilidade de Entrada:</strong> O controlador aceita tanto <code>terreno_id</code> (buscando no banco) quanto <code>coordenadas_poligono</code> e <code>prioridades</code> enviados diretamente no JSON sem exigir cadastro prévio. Caso dados geoespaciais NetCDF ou pacotes científicos opcionais não estejam presentes no ambiente de execução, o controlador aplica fallbacks determinísticos para manter o contrato JSON estável para o frontend.</li>
 </ul>
 <h2 id="3-fluxo-assincrono-de-alertas-climaticos-e-calendario-maleavel-m4-e-m5">3. Fluxo Assíncrono de Alertas Climáticos e Calendário Maleável (M4 e M5)<a class="headerlink" href="#3-fluxo-assincrono-de-alertas-climaticos-e-calendario-maleavel-m4-e-m5" title="Permanent link">&para;</a></h2>
-<p>Para manter o ambiente containerizado enxuto (sem necessidade de broker externo no <code>docker-compose.yml</code> atual), os alertas <code>[M5]</code> utilizam <code>FastAPI BackgroundTasks</code> encapsuladas em <code>backend/services/alert_tasks.py</code>:</p>
+<p>Para manter o ambiente containerizado enxuto (sem necessidade de broker externo no <code>docker-compose.yml</code> atual), os alertas <code>[M5]</code> utilizam <code>FastAPI BackgroundTasks</code> e o ciclo de vida (<code>lifespan</code>) nativo do FastAPI em <code>backend/services/alert_tasks.py</code> (<code>lifespan_monitoramento_alertas</code>), que inicia automaticamente o agendador periódico em segundo plano no startup da aplicação (configurável via variável de ambiente <code>ALERT_MONITOR_INTERVAL_HOURS</code>, padrão <code>6</code> horas):</p>
 <pre class="mermaid"><code>flowchart TD
     MON["Rotina Periódica (6h / 12h) ou POST /api/v1/alertas/monitorar"] --&gt;|"Coleta dados climáticos"| MOCK["generate_synthetic_netcdf() (services/mock_nasa_data.py)"]
     MOCK --&gt;|"Série / métricas"| DET["ClimateAnomalyDetector (services/ml_models.py)"]
