@@ -1,12 +1,13 @@
 fastapi
 uvicorn[standard]
 sqlalchemy
-psycopg2
+psycopg2-binary
 xarray
 netCDF4
 rasterio
 geopandas
 pandas
 langchain
-langchain-openai
+langchain-google-genai
+python-dotenv
 scikit-learn
