@@ -88,3 +88,34 @@ Após iniciar os containers:
 - [Arquitetura do Sistema](Arquitetura/README.md) — Modelagem do banco de dados (DER) e fluxos de orquestração síncrona e em segundo plano.
 - [Especificações Técnicas (Specs)](Specs/README.md) — Contratos REST, parâmetros de consulta e payloads JSON dos endpoints.
 - [Design e UI/UX](Design/README.md) — Diretrizes de interface Mobile-First, Offline-First (PWA) e ativos visuais.
+
+---
+
+## 🗺️ Roadmap e Próximos Passos
+
+### Fase 1 — Inteligência e Dados Geoespaciais (`backend/services/`)
+1. **Lógica Dinâmica no Simulador [M3] (`backend/services/ml_models.py`):**
+   - Evoluir `CropSimulator.simulate_rotation_strategies` e `predict_rotation_viability` de retornos estáticos para cálculo dinâmico ponderando `avg_soil_moisture_smap`, `avg_surface_temp_ecostress`, precipitação e `farmer_priorities` (ex.: conservação de água), preparando a base para modelos treinados (`RandomForest`/`XGBoost`).
+2. **Detecção de Anomalias Climáticas [M5] (`backend/services/ml_models.py`):**
+   - Implementar `ClimateAnomalyDetector.detect_extremes(time_series_data)` usando `IsolationForest` e limiares de calor/chuva extrema para integrar diretamente com `_executar_detector_anomalias` em `backend/api/alertas.py`.
+3. **Cobertura GPM/IMERG e Provedor Real (`backend/services/mock_nasa_data.py` e `backend/services/geospatial.py`):**
+   - Incluir geração e recorte espacial (`.rio.clip()`) de precipitação (`gpm_mock.nc`) e detecção de solo exposto (`is_bare_field_period`) no `MockNASADataProvider`.
+   - Implementar `RealNASADataProvider` para ingestão real via NASA Earthdata (`earthaccess` e `xr.open_mfdataset`).
+
+### Fase 2 — Fechamento dos Módulos Funcionais (`[M1]` a `[M6]`)
+4. **Catálogo do Produtor [M2]:**
+   - Criar rotas CRUD para que o próprio agricultor cadastre culturas e rotações preferenciais no banco, expandindo o catálogo além do `seed_culturas` inicial em `backend/main.py`.
+5. **Orquestração Contínua [M4] + [M5] (`backend/services/alert_tasks.py`):**
+   - Conectar o ciclo `executar_ciclo_monitoramento_alertas` às métricas extraídas pelo `INASADataProvider` e às predições do `ClimateAnomalyDetector`, disparando ajustes automáticos no calendário de atividades.
+6. **Relatórios Periódicos [M6]:**
+   - Implementar serviço e endpoints de relatório consolidando histórico de umidade/temperatura do terreno, vigor das culturas e histórico de adaptações realizadas no calendário.
+
+### Fase 3 — Qualidade, Testes e Configuração
+7. **Execução e Ampliação da Suíte de Testes:**
+   - Adicionar `pytest` e `httpx` às dependências de desenvolvimento/container para executar `backend/tests/test_m3_m4_m5.py` e incluir testes unitários diretos para `MockNASADataProvider.extract_field_metrics` (`.rio.clip()`), `CropSimulator` e `ClimateAnomalyDetector`.
+8. **Configuração do Gemini e Ambiente:**
+   - Criar `.env.example` documentando `GOOGLE_API_KEY` e manter alinhada a versão do modelo configurada em `backend/services/llm_agent.py` e documentada em `docs/index.md`.
+
+### Fase 4 — Frontend (Mobile-First / Offline-First PWA)
+9. **Integração com a UI do Agricultor:**
+   - Conectar o frontend ao fluxo `[M1] -> [M3] -> [M4]/[M5]` (desenho do polígono no mapa, exibição comparativa das 3 estratégias com explicação em linguagem acessível e checklist diário de manejo).
