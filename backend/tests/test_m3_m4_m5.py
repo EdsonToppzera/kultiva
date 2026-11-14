@@ -218,6 +218,30 @@ def test_m3_simulacao_validacoes_erro(client_e_db):
     assert resp_404_cultura.status_code == 404
 
 
+def test_m3_simular_rotacao_direta_sem_terreno_no_banco(client_e_db):
+    client, _ = client_e_db
+
+    resp = client.post(
+        "/api/v1/simular-rotacao",
+        json={
+            "nome_propriedade": "Área Teste Direto",
+            "coordenadas_poligono": [
+                {"lat": -23.5505, "lng": -46.6333},
+                {"lat": -23.5515, "lng": -46.6343},
+                {"lat": -23.5525, "lng": -46.6323},
+            ],
+            "prioridades": {"agua": "escassa", "water_conservation": True},
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["terreno_id"] is None
+    assert body["nome_propriedade"] == "Área Teste Direto"
+    assert body["metricas_geoespaciais"]["total_vertices_poligono"] == 3
+    assert len(body["rotacoes_sugeridas"]) == 3
+    assert body["explicacao_textual"] == body["explicacao_ia"]
+
+
 def test_m4_calendario_activity_status_e_filtro_periodo(client_e_db):
     client, _ = client_e_db
     terreno_id = _criar_terreno(client)
@@ -446,6 +470,10 @@ def test_m5_alerta_onda_de_calor_e_leitura(client_e_db):
 def test_m5_monitoramento_periodico_gera_alerta_no_banco(client_e_db, monkeypatch):
     client, TestingSessionLocal = client_e_db
     terreno_id = _criar_terreno(client)
+
+    # Verifica que o lifespan do FastAPI iniciou a task periódica em segundo plano
+    assert hasattr(app.state, "alert_monitor_task")
+    assert not app.state.alert_monitor_task.done()
 
     fake_ml_mod = ModuleType("backend.services.ml_models")
     fake_detector_instance = MagicMock()
