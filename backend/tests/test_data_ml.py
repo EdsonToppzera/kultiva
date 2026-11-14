@@ -14,7 +14,11 @@ from backend.services.llm_agent import (
     STRATEGY_SEPARATOR,
     RotationExplainerAgent,
 )
-from backend.services.ml_models import ClimateAnomalyDetector, CropSimulator
+from backend.services.ml_models import (
+    ClimateAnomalyDetector,
+    CropSimulator,
+    get_fallback_rotation_strategies,
+)
 from backend.services.mock_nasa_data import (
     ECOSTRESS_FILE,
     GPM_FILE,
@@ -557,3 +561,200 @@ def test_real_nasa_provider_sem_earthaccess_retorna_no_data(
         "data_quality",
         "time_series",
     }
+
+
+# ---- A7: Geometria do terreno, histórico de cultivos e fallback -----------
+
+
+def test_calcular_geometria_terreno_poligono_valido_e_casos_borda(geospatial_mod):
+    # Polígono ~1 km x 1 km próximo ao DF (~100 ha)
+    poligono_100ha = [
+        {"lat": -15.500, "lng": -47.500},
+        {"lat": -15.500, "lng": -47.49068},
+        {"lat": -15.509, "lng": -47.49068},
+        {"lat": -15.509, "lng": -47.500},
+    ]
+    geo = geospatial_mod.calcular_geometria_terreno(poligono_100ha)
+    assert 85.0 <= geo["area_hectares"] <= 115.0
+    assert geo["total_vertices"] == 4
+    assert geo["localizacao_central"]["lat"] == pytest.approx(-15.5045, abs=1e-4)
+    assert geo["localizacao_central"]["lng"] == pytest.approx(-47.49534, abs=1e-4)
+
+    # Método na interface INASADataProvider delega para a função geoespacial
+    assert geospatial_mod.MockNASADataProvider().calculate_field_geometry(
+        poligono_100ha
+    ) == geo
+
+    # Casos de borda: lista vazia e menos de 3 vértices
+    vazio = geospatial_mod.calcular_geometria_terreno([])
+    assert vazio == {
+        "area_hectares": 0.0,
+        "localizacao_central": {"lat": 0.0, "lng": 0.0},
+        "total_vertices": 0,
+    }
+
+    dois_pontos = geospatial_mod.calcular_geometria_terreno(
+        [{"lat": -15.0, "lng": -47.0}, {"lat": -15.2, "lng": -47.4}]
+    )
+    assert dois_pontos["area_hectares"] == 0.0
+    assert dois_pontos["total_vertices"] == 2
+    assert dois_pontos["localizacao_central"] == {"lat": -15.1, "lng": -47.2}
+
+
+def test_crop_simulator_historico_penaliza_monocultura_e_premia_rotacao():
+    sim = CropSimulator()
+    sem_historico = sim.simulate_rotation_strategies(UMIDO, {})
+
+    historico_monocultura = {
+        "ultimoCultivo": {"id": "milho", "officialName": "Milho"},
+        "cultivoAnterior": {"id": "milho", "officialName": "Milho"},
+        "naoLembro": False,
+    }
+    com_historico = sim.simulate_rotation_strategies(
+        UMIDO,
+        {"historico_cultivos": historico_monocultura},
+    )
+
+    sem_map = {e["strategy"]: e for e in sem_historico}
+    com_map = {e["strategy"]: e for e in com_historico}
+
+    atual_sem = next(v for k, v in sem_map.items() if "(Atual)" in k)
+    atual_com = next(v for k, v in com_map.items() if "(Atual)" in k)
+    assert atual_com["score_breakdown"]["history_adjustment"] < 0
+    assert atual_com["viability"] < atual_sem["viability"]
+
+    leguminosa = next(
+        e for e in com_historico if "Feijão" in e["strategy"] and "(Atual)" not in e["strategy"]
+    )
+    assert leguminosa["score_breakdown"]["history_adjustment"] > 0
+    # Ranking alterado: rotação com leguminosa supera a monocultura repetida
+    assert com_historico[0]["strategy"] == leguminosa["strategy"]
+    assert "(Atual)" not in com_historico[0]["strategy"]
+
+    # Quando `naoLembro=True`, não altera os scores
+    nao_lembro = sim.simulate_rotation_strategies(
+        UMIDO,
+        {},
+        historico_cultivos={"ultimoCultivo": "Milho", "cultivoAnterior": "Milho", "naoLembro": True},
+    )
+    assert nao_lembro[0]["score_breakdown"]["history_adjustment"] == 0.0
+    assert [e["viability"] for e in nao_lembro] == [e["viability"] for e in sem_historico]
+
+    # Também aceita lista simples de strings
+    lista_hist = sim.simulate_rotation_strategies(UMIDO, {}, historico_cultivos=["Sorgo", "Milho"])
+    atual_lista = next(e for e in lista_hist if "(Atual)" in e["strategy"])
+    assert atual_lista["score_breakdown"]["history_adjustment"] < 0
+
+
+def test_crop_simulator_fallback_strategies_dinamico():
+    sim = CropSimulator()
+    fb_seco = sim.fallback_strategies(
+        {"agua": "escassa"},
+        {"umidade_solo_estimada": 0.11, "precipitacao_estimada_mm": 380.0},
+    )
+    fb_padrao = get_fallback_rotation_strategies()
+
+    assert len(fb_seco) == 3
+    assert len(fb_padrao) == 3
+    for item in fb_seco:
+        assert "score_breakdown" in item
+        assert "water_fit" in item["score_breakdown"]
+        assert item["benefits"]
+
+    atual_seco = next(e for e in fb_seco if "(Atual)" in e["strategy"])
+    atual_padrao = next(e for e in fb_padrao if "(Atual)" in e["strategy"])
+    assert atual_seco["viability"] < atual_padrao["viability"]
+    assert atual_seco["water_risk"] == "high"
+
+
+# ---- A8: RotationExplainerAgent (alertas [M5] e relatórios [M6]) --------
+
+
+def test_explainer_explain_alert_e_report_com_disclaimer(monkeypatch):
+    from backend.schemas.relatorio import (
+        AdaptacoesTerrenoResumo,
+        ResumoClimaticoRelatorio,
+        VigorTerrenoResumo,
+        VulnerabilidadeTerrenoResumo,
+    )
+
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    agent = RotationExplainerAgent()
+
+    explicacao_chuva = agent.explain_alert(
+        tipo_evento="chuva_intensa",
+        severidade="alta",
+        cultura="Milho",
+        resumo_adaptacao="Adiar adubação em 2 dias",
+        detalhes_clima={"max_precipitation_mm": 88.5},
+    )
+    assert "chuva intensa" in explicacao_chuva.lower()
+    assert "milho" in explicacao_chuva.lower()
+    assert "adub" in explicacao_chuva.lower()
+    assert "Adiar adubação em 2 dias" in explicacao_chuva
+    assert explicacao_chuva.endswith(DISCLAIMER)
+
+    explicacao_calor = agent.explain_alert(
+        tipo_evento="onda_de_calor",
+        severidade="critica",
+        detalhes_clima={"max_surface_temp_c": 41.2},
+    )
+    assert "onda de calor" in explicacao_calor.lower()
+    assert "palhada" in explicacao_calor.lower()
+    assert explicacao_calor.endswith(DISCLAIMER)
+
+    resumo_rel = agent.explain_report(
+        resumo_climatico=ResumoClimaticoRelatorio(
+            umidade_media_solo=0.29,
+            umidade_min_solo=0.18,
+            umidade_max_solo=0.38,
+            temperatura_media_c=29.4,
+            temperatura_max_c=34.0,
+            precipitacao_total_mm=142.0,
+            precipitacao_media_mm=4.7,
+            dias_solo_exposto=1,
+            total_medicoes=30,
+        ),
+        vigor=VigorTerrenoResumo(
+            indice=0.76,
+            classificacao="bom",
+            tendencia="subindo",
+            descricao="Cobertura vegetal evoluindo bem",
+        ),
+        vulnerabilidade=VulnerabilidadeTerrenoResumo(
+            indice=0.28,
+            nivel="baixa",
+            total_alertas_periodo=1,
+            eventos_criticos=[],
+            fatores_risco=[],
+        ),
+        adaptacoes=AdaptacoesTerrenoResumo(
+            total_atividades_periodo=5,
+            total_ajustadas_por_alerta=1,
+            taxa_adaptacao=0.2,
+            atividades_ajustadas=[],
+        ),
+        nome_propriedade="Sítio Esperança",
+    )
+    assert "Sítio Esperança" in resumo_rel
+    assert "29%" in resumo_rel
+    assert "bom" in resumo_rel
+    assert "subindo" in resumo_rel
+    assert "1 de 5 atividade(s)" in resumo_rel
+    assert resumo_rel.endswith(DISCLAIMER)
+
+    # Também funciona com LLM customizado mantendo texto e adicionando disclaimer
+    custom_agent = RotationExplainerAgent(
+        llm=FakeListLLM(
+            responses=[
+                "Verifique os canais de drenagem antes da chuva.",
+                "O solo manteve boa umidade durante todo o mês.",
+            ]
+        )
+    )
+    r1 = custom_agent.explain_alert("chuva_intensa")
+    r2 = custom_agent.explain_report({"umidade_media_solo": 0.30})
+    assert "Verifique os canais de drenagem" in r1
+    assert r1.endswith(DISCLAIMER)
+    assert "O solo manteve boa umidade" in r2
+    assert r2.endswith(DISCLAIMER)

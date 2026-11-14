@@ -13,17 +13,63 @@ DISCLAIMER = (
     "mas não substitui a sua experiência local. A decisão final é sempre sua."
 )
 STRATEGY_SEPARATOR = "---ESTRATEGIA---"
+_DEFAULT_MOCK_RESPONSE = (
+    "Esta é uma explicação mockada gerada localmente. "
+    "A rotação sugerida ajuda na infiltração de água."
+)
 
 _RISK_LABELS = {
     "low": "baixo",
     "medium": "médio",
     "high": "alto",
     "baixo": "baixo",
+    "baixa": "baixa",
     "medio": "médio",
     "médio": "médio",
+    "media": "média",
+    "média": "média",
+    "moderada": "moderada",
+    "moderado": "moderado",
     "alto": "alto",
+    "alta": "alta",
     "critico": "crítico",
     "crítico": "crítico",
+    "critica": "crítica",
+    "crítica": "crítica",
+}
+
+_EVENT_LABELS = {
+    "chuva_intensa": "chuva intensa",
+    "onda_de_calor": "onda de calor",
+    "seca": "seca e falta de umidade no solo",
+    "geada": "risco de geada",
+    "vendaval": "ventos fortes",
+}
+
+_ALERT_ACTIONS = {
+    "chuva_intensa": (
+        "Evite entrar com máquinas ou aplicar adubo e defensivos antes da chuva para não "
+        "perder insumos levados pela enxurrada. Confira os sulcos, valas e curvas de nível "
+        "para a água escoar sem carregar a terra fértil."
+    ),
+    "onda_de_calor": (
+        "Mantenha palhada ou cobertura morta sobre a terra para refrescar as raízes e "
+        "segurar a umidade. Se tiver irrigação, faça a rega bem cedo pela manhã ou no "
+        "fim da tarde para a água não evaporar rápido."
+    ),
+    "seca": (
+        "Evite revolver ou arar o solo seco para não perder a pouca umidade restante. "
+        "Proteja o chão com cobertura vegetal ou palhada, adie novos plantios mais "
+        "exigentes e priorize a irrigação nas áreas mais sensíveis."
+    ),
+    "geada": (
+        "Proteja mudas mais sensíveis com cobertura leve ou palhada seca e evite "
+        "adubação com excesso de nitrogênio agora para não deixar as brotações vulneráveis."
+    ),
+    "vendaval": (
+        "Reforce estacas e tutoramentos, revise quebra-ventos e adie pulverizações "
+        "até o vento baixar para evitar deriva e desperdício."
+    ),
 }
 
 
@@ -216,6 +262,181 @@ def _build_simple_fallback_explanation(
     return f"{intro} {' '.join(details)}"
 
 
+def _to_dict(obj: Any) -> dict[str, Any]:
+    """Converte dict, modelo Pydantic ou objeto simples em dicionário."""
+    if obj is None:
+        return {}
+    if isinstance(obj, dict):
+        return obj
+    if hasattr(obj, "model_dump"):
+        return obj.model_dump()
+    if hasattr(obj, "dict"):
+        return obj.dict()
+    if hasattr(obj, "__dict__"):
+        return dict(vars(obj))
+    return {}
+
+
+def _format_alert_climate_details(detalhes_clima: dict[str, Any] | None) -> str:
+    if not isinstance(detalhes_clima, dict) or not detalhes_clima:
+        return "Sem medições detalhadas informadas."
+    parts: list[str] = []
+    max_rain = _to_float(
+        detalhes_clima.get("max_precipitation_mm")
+        or detalhes_clima.get("precipitacao_mm")
+    )
+    max_temp = _to_float(
+        detalhes_clima.get("max_surface_temp_c")
+        or detalhes_clima.get("temperatura_media_c")
+    )
+    min_moist = _to_float(
+        detalhes_clima.get("min_soil_moisture")
+        or detalhes_clima.get("umidade_solo")
+    )
+    if max_rain is not None and max_rain > 0:
+        parts.append(f"chuva máxima registrada de {max_rain:.1f} mm")
+    if max_temp is not None and max_temp > 0:
+        parts.append(f"temperatura da superfície chegando a {max_temp:.1f} °C")
+    if min_moist is not None:
+        parts.append(f"umidade mínima do solo em {round(min_moist * 100)}%")
+    return "; ".join(parts) if parts else "Dados climáticos de monitoramento do terreno."
+
+
+def _build_alert_fallback(
+    tipo_evento: str,
+    severidade: str,
+    cultura: str | None,
+    resumo_adaptacao: str | None,
+    detalhes_clima: dict[str, Any] | None,
+) -> str:
+    """Explicação acessível e prática para alertas climáticos [M5] em modo offline."""
+    evento_key = str(tipo_evento or "").strip().lower()
+    evento_label = _EVENT_LABELS.get(evento_key, str(tipo_evento or "alerta climático").replace("_", " "))
+    sev_label = _translate_risk(severidade)
+    cultura_txt = f" para a lavoura de {cultura.strip()}" if cultura and cultura.strip() else ""
+
+    parts = [
+        f"Atenção: identificamos um alerta de severidade {sev_label} para {evento_label}{cultura_txt}."
+    ]
+    climate_txt = _format_alert_climate_details(detalhes_clima)
+    if isinstance(detalhes_clima, dict) and detalhes_clima:
+        parts.append(f"Sinais observados no terreno: {climate_txt}.")
+
+    action_txt = _ALERT_ACTIONS.get(
+        evento_key,
+        "Acompanhe a lavoura de perto nos próximos dias, proteja a cobertura do solo e "
+        "ajuste adubações ou tratos culturais conforme a condição do tempo no terreno.",
+    )
+    parts.append(f"O que fazer na prática no campo: {action_txt}")
+
+    if resumo_adaptacao and str(resumo_adaptacao).strip():
+        parts.append(f"Ajuste sugerido no calendário: {str(resumo_adaptacao).strip()}.")
+
+    return " ".join(parts)
+
+
+def _format_report_summary_fields(
+    resumo_climatico: Any,
+    vigor: Any,
+    vulnerabilidade: Any,
+    adaptacoes: Any,
+    nome_propriedade: str | None,
+) -> tuple[str | None, dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
+    """Extrai blocos do relatório [M6], aceitando objeto completo ou seções isoladas."""
+    raw_clima = _to_dict(resumo_climatico)
+    if "resumo_climatico" in raw_clima and isinstance(
+        raw_clima.get("resumo_climatico"), (dict, object)
+    ):
+        prop_name = nome_propriedade or raw_clima.get("nome_propriedade")
+        clima = _to_dict(raw_clima.get("resumo_climatico"))
+        vigor_d = _to_dict(vigor if vigor is not None else raw_clima.get("vigor"))
+        vuln_d = _to_dict(
+            vulnerabilidade if vulnerabilidade is not None else raw_clima.get("vulnerabilidade")
+        )
+        adapt_d = _to_dict(
+            adaptacoes if adaptacoes is not None else raw_clima.get("adaptacoes")
+        )
+        return (str(prop_name) if prop_name else None), clima, vigor_d, vuln_d, adapt_d
+
+    return (
+        nome_propriedade,
+        raw_clima,
+        _to_dict(vigor),
+        _to_dict(vulnerabilidade),
+        _to_dict(adaptacoes),
+    )
+
+
+def _build_report_fallback(
+    prop_name: str | None,
+    clima: dict[str, Any],
+    vigor_d: dict[str, Any],
+    vuln_d: dict[str, Any],
+    adapt_d: dict[str, Any],
+) -> str:
+    """Gera resumo acessível do relatório de adaptação [M6] em modo offline."""
+    local_txt = f" da propriedade {prop_name}" if prop_name else " do seu terreno"
+    sections: list[str] = [f"Resumo do acompanhamento{local_txt} no período analisado:"]
+
+    clima_bits: list[str] = []
+    umidade = _to_float(clima.get("umidade_media_solo"))
+    if umidade is not None:
+        umidade_pct = round(umidade * 100) if umidade <= 1.0 else round(umidade)
+        clima_bits.append(f"umidade média do solo em torno de {umidade_pct}%")
+    temp = _to_float(clima.get("temperatura_media_c"))
+    if temp is not None:
+        clima_bits.append(f"temperatura média da superfície de {temp:.1f} °C")
+    chuva_total = _to_float(clima.get("precipitacao_total_mm"))
+    if chuva_total is not None:
+        clima_bits.append(f"chuva acumulada de {chuva_total:.1f} mm")
+    dias_exposto = clima.get("dias_solo_exposto")
+    if isinstance(dias_exposto, int):
+        clima_bits.append(f"{dias_exposto} dia(s) com sinal de solo mais seco e descoberto")
+    if clima_bits:
+        sections.append("No clima e no solo, observamos " + ", ".join(clima_bits) + ".")
+
+    classif = str(vigor_d.get("classificacao") or "").strip()
+    tendencia = str(vigor_d.get("tendencia") or "").strip()
+    if classif or tendencia:
+        vigor_txt = f"A saúde e força da lavoura está classificada como {classif or 'acompanhada'}"
+        if tendencia:
+            vigor_txt += f", com tendência de {tendencia}"
+        sections.append(f"{vigor_txt}.")
+    elif vigor_d.get("descricao"):
+        sections.append(str(vigor_d["descricao"]).strip())
+
+    nivel_vuln = _translate_risk(str(vuln_d.get("nivel") or ""))
+    total_alertas = vuln_d.get("total_alertas_periodo")
+    if vuln_d:
+        vuln_msg = f"O risco climático do terreno no período ficou em nível {nivel_vuln}"
+        if total_alertas is not None:
+            vuln_msg += f", com {total_alertas} alerta(s) registrado(s)"
+        sections.append(f"{vuln_msg}.")
+
+    total_ativ = adapt_d.get("total_atividades_periodo")
+    total_ajust = adapt_d.get("total_ajustadas_por_alerta")
+    ultimo_resumo = (
+        adapt_d.get("ultimo_resumo_adaptacao") or adapt_d.get("acao_recomendada")
+    )
+    if total_ativ is not None or total_ajust is not None:
+        ajust_n = int(total_ajust or 0)
+        ativ_n = int(total_ativ or 0)
+        if ajust_n > 0:
+            sections.append(
+                f"Para proteger a produção, {ajust_n} de {ativ_n} atividade(s) do "
+                "calendário já foram adaptadas ao clima."
+            )
+        elif ativ_n > 0:
+            sections.append(
+                f"As {ativ_n} atividade(s) do calendário seguiram sem necessidade de "
+                "reagendamento por alertas."
+            )
+    if ultimo_resumo:
+        sections.append(f"Destaque de manejo: {str(ultimo_resumo).strip()}.")
+
+    return " ".join(sections)
+
+
 class RotationExplainerAgent:
     """Agente responsável por traduzir simulações agronômicas para linguagem simples."""
 
@@ -226,12 +447,7 @@ class RotationExplainerAgent:
             api_key = os.getenv("GOOGLE_API_KEY")
             # Mock para desenvolvimento local sem API Key
             if not api_key:
-                self.llm = FakeListLLM(
-                    responses=[
-                        "Esta é uma explicação mockada gerada localmente. "
-                        "A rotação sugerida ajuda na infiltração de água."
-                    ]
-                )
+                self.llm = FakeListLLM(responses=[_DEFAULT_MOCK_RESPONSE])
             else:
                 self.llm = ChatGoogleGenerativeAI(
                     model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
@@ -270,11 +486,41 @@ class RotationExplainerAgent:
                 "é sempre do produtor."
             ),
         )
+        self.alert_prompt = PromptTemplate(
+            input_variables=["tipo_evento", "severidade", "cultura", "resumo_adaptacao", "detalhes_clima"],
+            template=(
+                "Você é um assistente amigo do pequeno produtor rural e da agricultura familiar.\n"
+                "Alerta climático: {tipo_evento} | Severidade: {severidade} | Cultura: {cultura}\n"
+                "Sinais climáticos: {detalhes_clima}\n"
+                "Adaptação sugerida no calendário: {resumo_adaptacao}\n\n"
+                "Explique em linguagem bem simples, calma e direta o que esse alerta significa "
+                "e dê 2 ou 3 orientações práticas do que o agricultor pode fazer já no campo.\n\n"
+                "MANDATÓRIO: Conclua lembrando que a ferramenta apoia a decisão, mas a decisão final "
+                "é sempre do produtor."
+            ),
+        )
+        self.report_prompt = PromptTemplate(
+            input_variables=["propriedade", "clima", "vigor", "vulnerabilidade", "adaptacoes"],
+            template=(
+                "Você é um assistente amigo do pequeno produtor rural e da agricultura familiar.\n"
+                "Propriedade: {propriedade}\n"
+                "Resumo climático: {clima}\n"
+                "Vigor do terreno: {vigor}\n"
+                "Vulnerabilidade: {vulnerabilidade}\n"
+                "Adaptações de calendário: {adaptacoes}\n\n"
+                "Faça um resumo executivo curto, encorajador e em linguagem simples para o agricultor "
+                "entender como a terra e o plantio responderam ao clima neste período.\n\n"
+                "MANDATÓRIO: Conclua lembrando que a ferramenta apoia a decisão, mas a decisão final "
+                "é sempre do produtor."
+            ),
+        )
         self._build_chains()
 
     def _build_chains(self) -> None:
         self.chain = self.prompt | self.llm
         self.strategies_chain = self.strategies_prompt | self.llm
+        self.alert_chain = self.alert_prompt | self.llm
+        self.report_chain = self.report_prompt | self.llm
         self._chain_llm = self.llm
 
     def _sync_chains(self) -> None:
@@ -336,5 +582,82 @@ class RotationExplainerAgent:
             explanations.append(_ensure_disclaimer(text))
 
         return explanations
+
+    def explain_alert(
+        self,
+        tipo_evento: str,
+        severidade: str = "alta",
+        cultura: str | None = None,
+        resumo_adaptacao: str | None = None,
+        detalhes_clima: dict[str, Any] | None = None,
+    ) -> str:
+        """Traduz alertas climáticos [M5] em orientações práticas de manejo com disclaimer."""
+        self._sync_chains()
+        payload = {
+            "tipo_evento": str(tipo_evento or "alerta_climatico"),
+            "severidade": str(severidade or "alta"),
+            "cultura": str(cultura or "cultura monitorada"),
+            "resumo_adaptacao": str(resumo_adaptacao or "Reavaliar agenda de campo"),
+            "detalhes_clima": _format_alert_climate_details(detalhes_clima),
+        }
+        raw_text = ""
+        try:
+            response = self.alert_chain.invoke(payload)
+            raw_text = _extract_text(response)
+        except Exception:
+            raw_text = ""
+
+        if not raw_text or raw_text.strip() == _DEFAULT_MOCK_RESPONSE:
+            raw_text = _build_alert_fallback(
+                tipo_evento=tipo_evento,
+                severidade=severidade,
+                cultura=cultura,
+                resumo_adaptacao=resumo_adaptacao,
+                detalhes_clima=detalhes_clima,
+            )
+
+        return _ensure_disclaimer(raw_text)
+
+    def explain_report(
+        self,
+        resumo_climatico: Any,
+        vigor: Any = None,
+        vulnerabilidade: Any = None,
+        adaptacoes: Any = None,
+        nome_propriedade: str | None = None,
+    ) -> str:
+        """Gera resumo acessível em linguagem simples para o relatório [M6] com disclaimer."""
+        prop_name, clima, vigor_d, vuln_d, adapt_d = _format_report_summary_fields(
+            resumo_climatico=resumo_climatico,
+            vigor=vigor,
+            vulnerabilidade=vulnerabilidade,
+            adaptacoes=adaptacoes,
+            nome_propriedade=nome_propriedade,
+        )
+        self._sync_chains()
+        payload = {
+            "propriedade": prop_name or "Propriedade cadastrada",
+            "clima": str(clima),
+            "vigor": str(vigor_d),
+            "vulnerabilidade": str(vuln_d),
+            "adaptacoes": str(adapt_d),
+        }
+        raw_text = ""
+        try:
+            response = self.report_chain.invoke(payload)
+            raw_text = _extract_text(response)
+        except Exception:
+            raw_text = ""
+
+        if not raw_text or raw_text.strip() == _DEFAULT_MOCK_RESPONSE:
+            raw_text = _build_report_fallback(
+                prop_name=prop_name,
+                clima=clima,
+                vigor_d=vigor_d,
+                vuln_d=vuln_d,
+                adapt_d=adapt_d,
+            )
+
+        return _ensure_disclaimer(raw_text)
 
     generate_strategies_explanations = explain_strategies

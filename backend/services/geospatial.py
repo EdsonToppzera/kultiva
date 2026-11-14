@@ -1,5 +1,6 @@
 import importlib
 import logging
+import math
 import os
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
@@ -29,10 +30,10 @@ _DEFAULT_BRAZIL_POLYGON = [
 ]
 
 
-def _normalize_polygon_coords(polygon_coords: Any) -> list[tuple[float, float]]:
-    """Normaliza coordenadas de entrada para pares (lon, lat) válidos no Brasil."""
+def _parse_polygon_points(polygon_coords: Any) -> list[tuple[float, float]]:
+    """Extrai pares (lon, lat) da entrada sem aplicar fallback para lista vazia."""
     if not isinstance(polygon_coords, (list, tuple)) or not polygon_coords:
-        return _DEFAULT_BRAZIL_POLYGON
+        return []
 
     points: list[tuple[float, float]] = []
     for item in polygon_coords:
@@ -48,7 +49,70 @@ def _normalize_polygon_coords(polygon_coords: Any) -> list[tuple[float, float]]:
                 x, y = y, x
             points.append((x, y))
 
-    return points or _DEFAULT_BRAZIL_POLYGON
+    return points
+
+
+def _normalize_polygon_coords(polygon_coords: Any) -> list[tuple[float, float]]:
+    """Normaliza coordenadas de entrada para pares (lon, lat) válidos no Brasil."""
+    return _parse_polygon_points(polygon_coords) or _DEFAULT_BRAZIL_POLYGON
+
+
+def calcular_geometria_terreno(polygon_coords: Any) -> dict[str, Any]:
+    """Calcula área em hectares e centroide geográfico (lat/lng) de um polígono."""
+    points = _parse_polygon_points(polygon_coords)
+    total_vertices = len(points)
+    if total_vertices == 0:
+        return {
+            "area_hectares": 0.0,
+            "localizacao_central": {"lat": 0.0, "lng": 0.0},
+            "total_vertices": 0,
+        }
+
+    mean_lng = sum(p[0] for p in points) / total_vertices
+    mean_lat = sum(p[1] for p in points) / total_vertices
+
+    if total_vertices < 3:
+        return {
+            "area_hectares": 0.0,
+            "localizacao_central": {
+                "lat": round(float(mean_lat), 6),
+                "lng": round(float(mean_lng), 6),
+            },
+            "total_vertices": total_vertices,
+        }
+
+    poly = Polygon(points)
+    if not poly.is_valid:
+        poly = poly.buffer(0)
+
+    if poly.is_empty or poly.area == 0:
+        ref_lng, ref_lat = mean_lng, mean_lat
+    else:
+        centroid = poly.centroid
+        ref_lng, ref_lat = float(centroid.x), float(centroid.y)
+
+    # Projeção métrica local no centroide evita erro de grau->metro em latitudes brasileiras.
+    m_per_deg_lat = 111_132.0
+    m_per_deg_lon = 111_320.0 * math.cos(math.radians(ref_lat))
+    metric_points = [
+        ((lon - ref_lng) * m_per_deg_lon, (lat - ref_lat) * m_per_deg_lat)
+        for lon, lat in points
+    ]
+    metric_poly = Polygon(metric_points)
+    if not metric_poly.is_valid:
+        metric_poly = metric_poly.buffer(0)
+
+    raw_area = float(metric_poly.area) / 10_000.0 if not metric_poly.is_empty else 0.0
+    area_hectares = round(raw_area, 2) if math.isfinite(raw_area) else 0.0
+
+    return {
+        "area_hectares": area_hectares,
+        "localizacao_central": {
+            "lat": round(ref_lat, 6),
+            "lng": round(ref_lng, 6),
+        },
+        "total_vertices": total_vertices,
+    }
 
 
 def _build_polygon_geometry(points: list[tuple[float, float]]) -> Polygon:
@@ -75,6 +139,10 @@ class INASADataProvider(ABC):
         self, polygon_coords: Any, dataset: Any = None
     ) -> dict[str, Any]:
         pass
+
+    def calculate_field_geometry(self, polygon_coords: Any) -> dict[str, Any]:
+        """Calcula área em hectares e centroide do polígono informado."""
+        return calcular_geometria_terreno(polygon_coords)
 
 
 class MockNASADataProvider(INASADataProvider):

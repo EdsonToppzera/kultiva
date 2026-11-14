@@ -57,8 +57,8 @@
 | A4 | ✅ | Agente LLM: explicar as 3 estratégias numa chamada, linguagem simples (o cache/singleton do agente já veio na C1) | `llm_agent.py` | Uma chamada → 3 explicações, todas com disclaimer |
 | A5 | ✅ | `RealNASADataProvider` (`earthaccess` + `xr.open_mfdataset`) via `NASA_PROVIDER=mock\|real` | `geospatial.py` | Fábrica `get_nasa_data_provider` e `RealNASADataProvider` com NDVI/Earthdata testados; mock segue como padrão |
 | A6 | ✅ | Testes unitários de `MockNASADataProvider`, `CropSimulator`, `ClimateAnomalyDetector` e `RotationExplainerAgent` | `backend/tests/` | `pytest` verde |
-| A7 | ⬜ | Cálculo geoespacial de área (`area_hectares`) e centroide do polígono; `CropSimulator` considerando `historico_cultivos` (penaliza monocultura, bonifica quebra de ciclo) e fallback dinâmico | `geospatial.py`, `ml_models.py` | Área/centroide calculados do polígono; histórico altera ranking do simulador |
-| A8 | ⬜ | Expandir `RotationExplainerAgent` com `explain_alert` (orientações práticas de manejo para `[M5]`) e `explain_report` (resumo em linguagem simples para `[M6]`), mantendo `DISCLAIMER` e mock offline | `llm_agent.py` | Alertas e relatórios geram explicação acessível sempre com disclaimer |
+| A7 | ✅ | Cálculo geoespacial de área (`area_hectares`) e centroide do polígono; `CropSimulator` considerando `historico_cultivos` (penaliza monocultura, bonifica quebra de ciclo) e fallback dinâmico | `geospatial.py`, `ml_models.py` | Área/centroide calculados do polígono; histórico altera ranking do simulador |
+| A8 | ✅ | Expandir `RotationExplainerAgent` com `explain_alert` (orientações práticas de manejo para `[M5]`) e `explain_report` (resumo em linguagem simples para `[M6]`), mantendo `DISCLAIMER` e mock offline | `llm_agent.py` | Alertas e relatórios geram explicação acessível sempre com disclaimer |
 | A9 | ⬜ | Perfis climáticos simuláveis (`normal`, `seca`, `chuva_extrema`, `onda_de_calor`) em `mock_nasa_data.py` para testes de estresse/demo + testes unitários de `A7–A9` | `mock_nasa_data.py`, `backend/tests/test_data_ml.py` | Perfis geram cenários distintos e `pytest` verde |
 
 ## Dev B — Catálogo, relatórios, terrenos e infra/demo
@@ -89,7 +89,7 @@
 ## Ordem e dependências
 
 1. ✅ **Rodada 1 concluída:** `A1–A6` · `B1–B4` · `C1–C5`.
-2. **Rodada 2 — Agora, em paralelo:** `A7, A8` · `B5` · `C6`.
+2. **Rodada 2 — Agora, em paralelo:** `A7` ✅, `A8` ✅ · `B5` · `C6`.
 3. **Rodada 2 — Em seguida:** `A9` · `B6` (depende de `A8`) · `B7` (depende de `B5`) · `C7` (depende de `A7`) · `C8` (depende de `A8`).
 4. **Por último:** Integração completa com o `frontend/` e ensaio da demo do Hackathon.
 
