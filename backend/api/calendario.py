@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional, Tuple
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
@@ -80,7 +80,7 @@ def _aplicar_status(
         atividade.concluida = nova_conclusao
         atividade.status = "concluida" if nova_conclusao else "pendente"
 
-    atividade.data_conclusao = datetime.utcnow() if atividade.concluida else None
+    atividade.data_conclusao = datetime.now(timezone.utc) if atividade.concluida else None
 
 
 @router.post(
@@ -127,7 +127,7 @@ def criar_atividade(
         **dados,
         status=status_norm,
         concluida=flag_concluida,
-        data_conclusao=datetime.utcnow() if flag_concluida else None,
+        data_conclusao=datetime.now(timezone.utc) if flag_concluida else None,
     )
     db.add(db_atividade)
     db.commit()

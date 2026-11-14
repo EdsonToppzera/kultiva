@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Boolean, Column, Date, DateTime, Float, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import relationship
 from backend.db.database import Base
@@ -48,7 +48,7 @@ class Activity(Base):
     data_conclusao = Column(DateTime, nullable=True)
     ajustada_por_alerta = Column(Boolean, default=False, nullable=False)
     motivo_ajuste = Column(String, nullable=True)
-    criado_em = Column(DateTime, default=datetime.utcnow, nullable=False)
+    criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 # Alias de retrocompatibilidade para módulos existentes
@@ -69,7 +69,7 @@ class AlertaClimatico(Base):
     processado_background = Column(Boolean, default=False, nullable=False)
     resumo_adaptacao = Column(Text, nullable=True)
     lido = Column(Boolean, default=False, nullable=False)
-    criado_em = Column(DateTime, default=datetime.utcnow, nullable=False)
+    criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 Alert = AlertaClimatico

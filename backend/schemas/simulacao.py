@@ -67,5 +67,7 @@ class SimulacaoResponse(BaseModel):
     riscos_identificados: List[str]
     explicacao_ia: str
     explicacao_textual: str
+    origem: str = "servicos_ia_nasa"
+    fallback_usado: bool = False
     rotacoes_sugeridas: List[EstrategiaRotacaoSugerida]
     plano_rotacao: List[EtapaRotacaoSimulada]
