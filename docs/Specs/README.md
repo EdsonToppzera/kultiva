@@ -36,12 +36,18 @@ Cria um novo terreno com o polígono geográfico e prioridades do produtor.
 ### `POST /api/v1/simular-rotacao`
 *(Também disponível em `POST /api/v1/simulacoes/` e `POST /api/v1/simulacoes/simular-rotacao`)*
 
-Recebe a requisição do frontend, consulta o terreno no banco e injeta as dependências `NasaDataProcessor` (`services/geospatial.py`), `CropSimulator` (`services/ml_models.py`) e `RotationExplainerAgent` (`services/llm_agent.py`), retornando as estratégias de rotação sugeridas e a explicação textual gerada pela IA.
+Recebe a requisição do frontend, aceita tanto `terreno_id` (busca no PostgreSQL) quanto `coordenadas_poligono`, `nome_propriedade` e `prioridades` enviados diretamente no JSON sem exigir cadastro prévio, e injeta as dependências `NasaDataProcessor` (`services/geospatial.py`), `CropSimulator` (`services/ml_models.py`) e `RotationExplainerAgent` (`services/llm_agent.py`), retornando as estratégias de rotação sugeridas e a explicação textual gerada pela IA.
 
-**Request Body (completo ou mínimo apenas com `terreno_id`):**
+**Request Body (com `terreno_id` cadastrado ou com coordenadas diretas no JSON):**
 ```json
 {
   "terreno_id": 1,
+  "nome_propriedade": "Sítio Esperança",
+  "coordenadas_poligono": [
+    {"lat": -23.5505, "lng": -46.6333},
+    {"lat": -23.5515, "lng": -46.6343},
+    {"lat": -23.5525, "lng": -46.6323}
+  ],
   "cultura_id": null,
   "nome_cultura": "Feijão Carioca",
   "culturas_rotacao": ["Milho", "Crotalária"],
@@ -58,7 +64,7 @@ Recebe a requisição do frontend, consulta o terreno no banco e injeta as depen
   }
 }
 ```
-> **Observação:** Caso `cultura_id` e `nome_cultura` sejam omitidos, o controlador seleciona automaticamente a estratégia de maior viabilidade retornada por `CropSimulator.simulate_rotation_strategies()`.
+> **Observação:** `terreno_id` é opcional se forem enviadas `coordenadas_poligono`/`prioridades` diretamente no payload (neste caso `terreno_id` retorna `null`). Caso `cultura_id` e `nome_cultura` sejam omitidos, o controlador seleciona automaticamente a estratégia de maior viabilidade retornada por `CropSimulator.simulate_rotation_strategies()`.
 
 **Response (`200 OK`):**
 ```json
@@ -177,7 +183,7 @@ Remove uma atividade do calendário.
 ## [M5] Alertas Climáticos e Background Tasks (`backend/api/alertas.py`)
 
 ### `POST /api/v1/alertas/monitorar` (`202 Accepted`)
-Agenda em segundo plano (`FastAPI BackgroundTasks`) um ciclo da rotina `executar_ciclo_monitoramento_alertas()` (`backend/services/alert_tasks.py`), que consulta dados climáticos sintéticos (`services/mock_nasa_data.py`), executa `ClimateAnomalyDetector.detect_extremes()` e, caso anomalias sejam detectadas, persiste automaticamente um `AlertaClimatico` no banco e adapta o calendário `[M4]`. Também suporta agendamento periódico em loop (`iniciar_monitoramento_periodico` com intervalo de `6` ou `12` horas).
+Além do agendador periódico iniciado automaticamente no `lifespan` do FastAPI (configurável via `ALERT_MONITOR_INTERVAL_HOURS`, padrão `6` horas), este endpoint permite disparar sob demanda em segundo plano (`FastAPI BackgroundTasks`) um ciclo da rotina `executar_ciclo_monitoramento_alertas()` (`backend/services/alert_tasks.py`), que consulta dados climáticos sintéticos (`services/mock_nasa_data.py`), executa `ClimateAnomalyDetector.detect_extremes()` e, caso anomalias sejam detectadas, persiste automaticamente um `AlertaClimatico` no banco e adapta o calendário `[M4]`.
 
 **Request Body:**
 ```json

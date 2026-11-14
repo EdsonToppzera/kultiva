@@ -84,11 +84,11 @@ flowchart LR
     M3 -->|"JSON SimulacaoResponse"| FE
 ```
 
-- **Resiliência (Graceful Fallback):** Caso os dados geoespaciais NetCDF ou pacotes científicos opcionais não estejam presentes no ambiente de execução, o controlador aplica fallbacks determinísticos para manter o contrato JSON estável para o frontend.
+- **Resiliência (Graceful Fallback) e Flexibilidade de Entrada:** O controlador aceita tanto `terreno_id` (buscando no banco) quanto `coordenadas_poligono` e `prioridades` enviados diretamente no JSON sem exigir cadastro prévio. Caso dados geoespaciais NetCDF ou pacotes científicos opcionais não estejam presentes no ambiente de execução, o controlador aplica fallbacks determinísticos para manter o contrato JSON estável para o frontend.
 
 ## 3. Fluxo Assíncrono de Alertas Climáticos e Calendário Maleável (M4 e M5)
 
-Para manter o ambiente containerizado enxuto (sem necessidade de broker externo no `docker-compose.yml` atual), os alertas `[M5]` utilizam `FastAPI BackgroundTasks` encapsuladas em `backend/services/alert_tasks.py`:
+Para manter o ambiente containerizado enxuto (sem necessidade de broker externo no `docker-compose.yml` atual), os alertas `[M5]` utilizam `FastAPI BackgroundTasks` e o ciclo de vida (`lifespan`) nativo do FastAPI em `backend/services/alert_tasks.py` (`lifespan_monitoramento_alertas`), que inicia automaticamente o agendador periódico em segundo plano no startup da aplicação (configurável via variável de ambiente `ALERT_MONITOR_INTERVAL_HOURS`, padrão `6` horas):
 
 ```mermaid
 flowchart TD
