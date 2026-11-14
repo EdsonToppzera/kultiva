@@ -52,6 +52,8 @@ class EstrategiaRotacaoSugerida(BaseModel):
     viability: float
     water_risk: str
     benefits: Optional[str] = None
+    score_breakdown: Optional[Dict[str, Any]] = None
+    explicacao: Optional[str] = None
 
 
 class SimulacaoResponse(BaseModel):
