@@ -1,5 +1,8 @@
-from datetime import timedelta
-from typing import List
+import asyncio
+import os
+from datetime import date, timedelta
+from typing import Any, Dict, List, Optional
+
 from backend.db import models
 from backend.db.database import SessionLocal
 
@@ -30,13 +33,13 @@ def processar_alerta_e_adaptar_calendario(
         janela_inicio = alerta.data_evento
         janela_fim = alerta.data_evento + timedelta(days=3)
 
-        atividades_pendentes: List[models.AtividadeCalendario] = (
-            db.query(models.AtividadeCalendario)
+        atividades_pendentes: List[models.Activity] = (
+            db.query(models.Activity)
             .filter(
-                models.AtividadeCalendario.terreno_id == alerta.terreno_id,
-                models.AtividadeCalendario.concluida.is_(False),
-                models.AtividadeCalendario.data_programada >= janela_inicio,
-                models.AtividadeCalendario.data_programada <= janela_fim,
+                models.Activity.terreno_id == alerta.terreno_id,
+                models.Activity.concluida.is_(False),
+                models.Activity.data_programada >= janela_inicio,
+                models.Activity.data_programada <= janela_fim,
             )
             .all()
         )
@@ -62,7 +65,7 @@ def processar_alerta_e_adaptar_calendario(
                     )
                     ajustadas += 1
 
-            nova_atividade = models.AtividadeCalendario(
+            nova_atividade = models.Activity(
                 terreno_id=alerta.terreno_id,
                 titulo="Inspeção de drenagem e escoamento pós-chuva",
                 descricao=(
@@ -72,6 +75,8 @@ def processar_alerta_e_adaptar_calendario(
                 tipo_atividade="inspecao",
                 data_programada=alerta.data_evento + timedelta(days=1),
                 prioridade="alta",
+                status="pendente",
+                concluida=False,
                 ajustada_por_alerta=True,
                 motivo_ajuste=f"Criada automaticamente por alerta #{alerta.id}",
             )
@@ -89,7 +94,7 @@ def processar_alerta_e_adaptar_calendario(
                     )
                     ajustadas += 1
 
-            nova_atividade = models.AtividadeCalendario(
+            nova_atividade = models.Activity(
                 terreno_id=alerta.terreno_id,
                 titulo="Irrigação suplementar e proteção térmica do solo",
                 descricao=(
@@ -99,6 +104,8 @@ def processar_alerta_e_adaptar_calendario(
                 tipo_atividade="irrigacao",
                 data_programada=alerta.data_evento,
                 prioridade="critica",
+                status="pendente",
+                concluida=False,
                 ajustada_por_alerta=True,
                 motivo_ajuste=(
                     f"Criada automaticamente por alerta de {alerta.tipo_evento} #{alerta.id}"
@@ -120,7 +127,7 @@ def processar_alerta_e_adaptar_calendario(
                     )
                     ajustadas += 1
 
-            nova_atividade = models.AtividadeCalendario(
+            nova_atividade = models.Activity(
                 terreno_id=alerta.terreno_id,
                 titulo=f"Proteção emergencial da lavoura contra {alerta.tipo_evento}",
                 descricao=(
@@ -129,6 +136,8 @@ def processar_alerta_e_adaptar_calendario(
                 tipo_atividade="manejo",
                 data_programada=alerta.data_evento,
                 prioridade="critica",
+                status="pendente",
+                concluida=False,
                 ajustada_por_alerta=True,
                 motivo_ajuste=f"Criada automaticamente por alerta #{alerta.id}",
             )
@@ -147,3 +156,178 @@ def processar_alerta_e_adaptar_calendario(
         raise
     finally:
         db.close()
+
+
+def coletar_dados_climaticos_sinteticos(output_dir: str = "data") -> Dict[str, Any]:
+    """
+    Gera/consulta dados climáticos sintéticos via mock_nasa_data (NetCDF) com
+    fallback determinístico quando bibliotecas científicas não estão disponíveis.
+    """
+    try:
+        import xarray as xr
+        from backend.services.mock_nasa_data import generate_synthetic_netcdf
+
+        mensagem_netcdf = generate_synthetic_netcdf(output_dir=output_dir)
+        caminho_nc = os.path.join(output_dir, "smap_mock.nc")
+        umidade_media = 0.22
+        if os.path.exists(caminho_nc):
+            with xr.open_dataset(caminho_nc) as ds:
+                if "soil_moisture" in ds:
+                    umidade_media = float(ds["soil_moisture"].mean().item())
+
+        return {
+            "origem": "mock_nasa_data_netcdf",
+            "detalhe_geracao": mensagem_netcdf,
+            "soil_moisture": round(umidade_media, 4),
+            "precipitation_mm": 82.0 if umidade_media > 0.3 else 12.0,
+            "surface_temp_c": 24.5 if umidade_media > 0.3 else 36.8,
+            "anomaly_detected": True,
+        }
+    except Exception:
+        return {
+            "origem": "fallback_sintetico",
+            "soil_moisture": 0.14,
+            "precipitation_mm": 82.0,
+            "surface_temp_c": 36.8,
+            "anomaly_detected": True,
+        }
+
+
+def _avaliar_anomalia_climatica(dados_sinteticos: Dict[str, Any]) -> Dict[str, Any]:
+    """Aciona ClimateAnomalyDetector com interpretação determinística de limiares."""
+    resultado_ml: Any = None
+    origem_detector = "limiar_sintetico"
+
+    try:
+        from backend.services.ml_models import ClimateAnomalyDetector
+
+        detector = ClimateAnomalyDetector()
+        resultado_ml = detector.detect_extremes(dados_sinteticos)
+        origem_detector = "climate_anomaly_detector"
+    except Exception as exc:
+        resultado_ml = {"erro_detector": str(exc)}
+
+    if isinstance(resultado_ml, dict) and "anomaly_detected" in resultado_ml:
+        anomalia = bool(resultado_ml["anomaly_detected"])
+        tipo_evento = str(resultado_ml.get("tipo_evento", "onda_de_calor"))
+        severidade = str(resultado_ml.get("severidade", "alta"))
+    else:
+        anomalia = bool(dados_sinteticos.get("anomaly_detected", True))
+        precip = float(dados_sinteticos.get("precipitation_mm", 0.0))
+        temp = float(dados_sinteticos.get("surface_temp_c", 25.0))
+        umidade = float(dados_sinteticos.get("soil_moisture", 0.3))
+
+        if precip >= 60.0:
+            tipo_evento = "chuva_intensa"
+            severidade = "alta"
+        elif temp >= 35.0 or umidade <= 0.2:
+            tipo_evento = "onda_de_calor"
+            severidade = "alta"
+        else:
+            tipo_evento = "onda_de_calor"
+            severidade = "media"
+
+    return {
+        "origem_detector": origem_detector,
+        "anomaly_detected": anomalia,
+        "tipo_evento": tipo_evento,
+        "severidade": severidade,
+        "resultado_ml": resultado_ml,
+    }
+
+
+def executar_ciclo_monitoramento_alertas(
+    terreno_id: Optional[int] = None,
+    intervalo_horas: int = 6,
+    output_dir: str = "data",
+    session_factory=None,
+) -> List[int]:
+    """
+    Executa um ciclo de monitoramento climático em segundo plano:
+    consulta o gerador sintético/ClimateAnomalyDetector e persiste Alertas no banco.
+    """
+    dados_sinteticos = coletar_dados_climaticos_sinteticos(output_dir=output_dir)
+    avaliacao = _avaliar_anomalia_climatica(dados_sinteticos)
+    if not avaliacao["anomaly_detected"]:
+        return []
+
+    factory = session_factory or SessionLocal
+    db = factory()
+    alertas_gerados: List[int] = []
+    try:
+        query_terrenos = db.query(models.Terreno)
+        if terreno_id is not None:
+            query_terrenos = query_terrenos.filter(models.Terreno.id == terreno_id)
+        terrenos = query_terrenos.all()
+        if not terrenos:
+            return []
+
+        data_prevista = date.today() + timedelta(days=1)
+        tipo_evento = avaliacao["tipo_evento"]
+        severidade = avaliacao["severidade"]
+
+        for terreno in terrenos:
+            alerta = models.AlertaClimatico(
+                terreno_id=terreno.id,
+                tipo_evento=tipo_evento,
+                severidade=severidade,
+                titulo=f"Monitoramento automático ({intervalo_horas}h): {tipo_evento.replace('_', ' ')}",
+                mensagem=(
+                    f"Anomalia climática detectada ({tipo_evento}) para o terreno "
+                    f"'{terreno.nome_propriedade}' em {data_prevista.isoformat()}."
+                ),
+                data_evento=data_prevista,
+                origem_gatilho="periodic_synthetic_monitor",
+                dados_gatilho={
+                    "intervalo_horas": intervalo_horas,
+                    "dados_climaticos": dados_sinteticos,
+                    "detector": avaliacao,
+                },
+                processado_background=False,
+            )
+            db.add(alerta)
+            db.commit()
+            db.refresh(alerta)
+            alertas_gerados.append(alerta.id)
+
+            processar_alerta_e_adaptar_calendario(
+                alerta_id=alerta.id,
+                dias_adiamento=2,
+                session_factory=factory,
+            )
+
+        return alertas_gerados
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+async def iniciar_monitoramento_periodico(
+    intervalo_horas: int = 6,
+    max_ciclos: Optional[int] = 1,
+    terreno_id: Optional[int] = None,
+    session_factory=None,
+) -> List[int]:
+    """
+    Orquestra ciclos periódicos de verificação climática (ex: a cada 6 ou 12 horas).
+    """
+    todos_alertas: List[int] = []
+    ciclos_executados = 0
+
+    while max_ciclos is None or ciclos_executados < max_ciclos:
+        gerados = executar_ciclo_monitoramento_alertas(
+            terreno_id=terreno_id,
+            intervalo_horas=intervalo_horas,
+            session_factory=session_factory,
+        )
+        todos_alertas.extend(gerados)
+        ciclos_executados += 1
+
+        if max_ciclos is not None and ciclos_executados >= max_ciclos:
+            break
+
+        await asyncio.sleep(max(0, intervalo_horas) * 3600)
+
+    return todos_alertas
