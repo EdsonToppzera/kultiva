@@ -28,21 +28,27 @@ class Cultura(Base):
     tempo_colheita_dias = Column(Integer)
 
 
-class AtividadeCalendario(Base):
+class Activity(Base):
     __tablename__ = "atividades_calendario"
     id = Column(Integer, primary_key=True, index=True)
-    terreno_id = Column(Integer, ForeignKey("terrenos.id"), nullable=False, index=True)
+    terreno_id = Column(Integer, ForeignKey("terrenos.id"), nullable=True, index=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True, index=True)
     cultura_id = Column(Integer, ForeignKey("culturas.id"), nullable=True, index=True)
     titulo = Column(String, nullable=False)
     descricao = Column(Text, nullable=True)
     tipo_atividade = Column(String, nullable=False, index=True)  # plantio, irrigacao, adubacao, manejo, colheita, inspecao
     data_programada = Column(Date, nullable=False, index=True)
     prioridade = Column(String, default="media", nullable=False)  # baixa, media, alta, critica
+    status = Column(String, default="pendente", nullable=False, index=True)  # pendente, concluida
     concluida = Column(Boolean, default=False, nullable=False, index=True)
     data_conclusao = Column(DateTime, nullable=True)
     ajustada_por_alerta = Column(Boolean, default=False, nullable=False)
     motivo_ajuste = Column(String, nullable=True)
     criado_em = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# Alias de retrocompatibilidade para módulos existentes
+AtividadeCalendario = Activity
 
 
 class AlertaClimatico(Base):
@@ -60,3 +66,6 @@ class AlertaClimatico(Base):
     resumo_adaptacao = Column(Text, nullable=True)
     lido = Column(Boolean, default=False, nullable=False)
     criado_em = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+Alert = AlertaClimatico

@@ -4,7 +4,8 @@ from pydantic import BaseModel, Field
 
 
 class AtividadeCalendarioBase(BaseModel):
-    terreno_id: int
+    terreno_id: Optional[int] = None
+    usuario_id: Optional[int] = None
     cultura_id: Optional[int] = None
     titulo: str = Field(..., min_length=1)
     descricao: Optional[str] = None
@@ -17,6 +18,10 @@ class AtividadeCalendarioBase(BaseModel):
         default="media",
         description="Prioridade da atividade: baixa, media, alta, critica",
     )
+    status: str = Field(
+        default="pendente",
+        description="Status da atividade: pendente ou concluida",
+    )
 
 
 class AtividadeCalendarioCreate(AtividadeCalendarioBase):
@@ -24,16 +29,23 @@ class AtividadeCalendarioCreate(AtividadeCalendarioBase):
 
 
 class AtividadeCalendarioUpdate(BaseModel):
+    terreno_id: Optional[int] = None
+    usuario_id: Optional[int] = None
     titulo: Optional[str] = None
     descricao: Optional[str] = None
     tipo_atividade: Optional[str] = None
     data_programada: Optional[date] = None
     prioridade: Optional[str] = None
+    status: Optional[str] = None
     concluida: Optional[bool] = None
 
 
 class AtividadeStatusPatch(BaseModel):
-    concluida: bool = True
+    concluida: Optional[bool] = None
+    status: Optional[str] = Field(
+        default=None,
+        description="Novo status da atividade: pendente ou concluida",
+    )
 
 
 class GerarCronogramaRequest(BaseModel):
@@ -47,6 +59,7 @@ class GerarCronogramaRequest(BaseModel):
 class AtividadeCalendarioResponse(AtividadeCalendarioBase):
     id: int
     concluida: bool
+    status: str
     data_conclusao: Optional[datetime] = None
     ajustada_por_alerta: bool
     motivo_ajuste: Optional[str] = None
@@ -54,3 +67,10 @@ class AtividadeCalendarioResponse(AtividadeCalendarioBase):
 
     class Config:
         from_attributes = True
+
+
+# Aliases alinhados ao modelo Activity
+ActivityCreate = AtividadeCalendarioCreate
+ActivityUpdate = AtividadeCalendarioUpdate
+ActivityStatusPatch = AtividadeStatusPatch
+ActivityResponse = AtividadeCalendarioResponse
