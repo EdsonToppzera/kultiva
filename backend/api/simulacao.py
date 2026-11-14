@@ -275,26 +275,35 @@ def _processar_simulacao(
     crop_simulator: Optional[Any],
     rotation_explainer: Optional[Any],
 ) -> SimulacaoResponse:
-    terreno = (
-        db.query(models.Terreno)
-        .filter(models.Terreno.id == payload.terreno_id)
-        .first()
-    )
-    if not terreno:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Terreno não encontrado",
+    terreno_id_resp: Optional[int] = None
+    nome_propriedade = payload.nome_propriedade or "Terreno Simulado"
+    coordenadas_poligono: Any = payload.coordenadas_poligono or []
+    prioridades_terreno: Dict[str, Any] = {}
+
+    if payload.terreno_id is not None:
+        terreno = (
+            db.query(models.Terreno)
+            .filter(models.Terreno.id == payload.terreno_id)
+            .first()
         )
+        if not terreno:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Terreno não encontrado",
+            )
+        terreno_id_resp = terreno.id
+        nome_propriedade = payload.nome_propriedade or terreno.nome_propriedade
+        if payload.coordenadas_poligono is None:
+            coordenadas_poligono = terreno.coordenadas_poligono
+        if isinstance(terreno.prioridades, dict):
+            prioridades_terreno = terreno.prioridades
 
     dados_climaticos_req = payload.dados_climaticos or {}
-    prioridades_terreno = (
-        terreno.prioridades if isinstance(terreno.prioridades, dict) else {}
-    )
     prioridades_finais = {**prioridades_terreno, **(payload.prioridades or {})}
     dados_solo = payload.dados_solo or {"prioridades_terreno": prioridades_finais}
 
     metricas_geoespaciais = _extrair_metricas_geoespaciais(
-        terreno.coordenadas_poligono, dados_climaticos_req, nasa_processor
+        coordenadas_poligono, dados_climaticos_req, nasa_processor
     )
     rotacoes_sugeridas = _simular_estrategias_rotacao(
         metricas_geoespaciais, prioridades_finais, crop_simulator
@@ -374,8 +383,8 @@ def _processar_simulacao(
         )
 
     return SimulacaoResponse(
-        terreno_id=terreno.id,
-        nome_propriedade=terreno.nome_propriedade,
+        terreno_id=terreno_id_resp,
+        nome_propriedade=nome_propriedade,
         cultura_principal=nome_cultura,
         viability_score=viability_score,
         water_risk=water_risk,

@@ -3,7 +3,17 @@ from pydantic import BaseModel, Field
 
 
 class SimulacaoRequest(BaseModel):
-    terreno_id: int = Field(..., description="ID do terreno cadastrado no módulo M1")
+    terreno_id: Optional[int] = Field(
+        default=None, description="ID opcional do terreno cadastrado no módulo M1"
+    )
+    nome_propriedade: Optional[str] = Field(
+        default=None,
+        description="Nome opcional da propriedade para simulação direta sem cadastro prévio",
+    )
+    coordenadas_poligono: Optional[List[Dict[str, float]]] = Field(
+        default=None,
+        description="Coordenadas do polígono caso terreno_id não seja informado",
+    )
     cultura_id: Optional[int] = Field(
         default=None, description="ID da cultura cadastrada no banco"
     )
@@ -44,7 +54,7 @@ class EstrategiaRotacaoSugerida(BaseModel):
 
 
 class SimulacaoResponse(BaseModel):
-    terreno_id: int
+    terreno_id: Optional[int] = None
     nome_propriedade: str
     cultura_principal: str
     viability_score: float
