@@ -1,5 +1,5 @@
 import asyncio
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 import importlib
 import logging
 import os
@@ -10,7 +10,10 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from backend.db import models
-from backend.db.database import SessionLocal
+from backend.db.database import SessionLocal, get_db
+from backend.services.metrics_service import persistir_metricas_terreno
+
+_DEFAULT_SESSION_LOCAL = SessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +98,69 @@ def buscar_alerta_duplicado(
     return None
 
 
+@contextmanager
+def _abrir_sessao_background(session_factory=None):
+    """
+    Abre uma sessão SQLAlchemy respeitando:
+    1) `session_factory` explícita;
+    2) `alert_tasks.SessionLocal` quando sobrescrita em testes;
+    3) override de `get_db` registrado em `backend.main.app.dependency_overrides`, se houver;
+    4) fallback para `SessionLocal` padrão.
+    """
+    if session_factory is not None:
+        db = session_factory()
+        try:
+            yield db
+        finally:
+            db.close()
+        return
+
+    if SessionLocal is not _DEFAULT_SESSION_LOCAL:
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+        return
+
+    override_fn = None
+    try:
+        main_mod = importlib.import_module("backend.main")
+        fastapi_app = getattr(main_mod, "app", None)
+        if fastapi_app is not None:
+            override_fn = fastapi_app.dependency_overrides.get(get_db)
+    except Exception:
+        override_fn = None
+
+    if override_fn is not None:
+        gen = override_fn()
+        if hasattr(gen, "__next__"):
+            db = next(gen)
+            try:
+                yield db
+            finally:
+                try:
+                    next(gen)
+                except StopIteration:
+                    pass
+                except Exception:
+                    gen.close()
+            return
+        db = gen
+        try:
+            yield db
+        finally:
+            if hasattr(db, "close"):
+                db.close()
+        return
+
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 def processar_alerta_e_adaptar_calendario(
     alerta_id: int,
     dias_adiamento: int = 2,
@@ -104,143 +170,140 @@ def processar_alerta_e_adaptar_calendario(
     Rotina assíncrona executada em segundo plano para adaptar o calendário [M4]
     quando um alerta climático [M5] é disparado pelo modelo de ML ou sensor.
     """
-    factory = session_factory or SessionLocal
-    db = factory()
-    try:
-        alerta = (
-            db.query(models.AlertaClimatico)
-            .filter(models.AlertaClimatico.id == alerta_id)
-            .first()
-        )
-        if not alerta:
-            return
-
-        janela_inicio = alerta.data_evento
-        janela_fim = alerta.data_evento + timedelta(days=3)
-
-        atividades_pendentes: List[models.Activity] = (
-            db.query(models.Activity)
-            .filter(
-                models.Activity.terreno_id == alerta.terreno_id,
-                models.Activity.concluida.is_(False),
-                models.Activity.data_programada >= janela_inicio,
-                models.Activity.data_programada <= janela_fim,
+    with _abrir_sessao_background(session_factory) as db:
+        try:
+            alerta = (
+                db.query(models.AlertaClimatico)
+                .filter(models.AlertaClimatico.id == alerta_id)
+                .first()
             )
-            .all()
-        )
+            if not alerta:
+                return
 
-        evento = alerta.tipo_evento.strip().lower()
-        ajustadas = 0
-        criadas = 0
+            janela_inicio = alerta.data_evento
+            janela_fim = alerta.data_evento + timedelta(days=3)
 
-        if evento in TIPOS_CHUVA:
-            for atividade in atividades_pendentes:
-                if atividade.tipo_atividade.lower() in {
-                    "irrigacao",
-                    "adubacao",
-                    "pulverizacao",
-                }:
-                    atividade.data_programada = (
-                        atividade.data_programada + timedelta(days=dias_adiamento)
-                    )
-                    atividade.ajustada_por_alerta = True
-                    atividade.motivo_ajuste = (
-                        f"Adiado automaticamente em {dias_adiamento} dia(s) "
-                        f"devido a alerta de {alerta.tipo_evento} ({alerta.data_evento.isoformat()})"
-                    )
-                    ajustadas += 1
-
-            nova_atividade = models.Activity(
-                terreno_id=alerta.terreno_id,
-                titulo="Inspeção de drenagem e escoamento pós-chuva",
-                descricao=(
-                    "Verificar acúmulo de água, erosão em canteiros e condição das raízes "
-                    f"após evento de {alerta.tipo_evento}."
-                ),
-                tipo_atividade="inspecao",
-                data_programada=alerta.data_evento + timedelta(days=1),
-                prioridade="alta",
-                status="pendente",
-                concluida=False,
-                ajustada_por_alerta=True,
-                motivo_ajuste=f"Criada automaticamente por alerta #{alerta.id}",
+            atividades_pendentes: List[models.Activity] = (
+                db.query(models.Activity)
+                .filter(
+                    models.Activity.terreno_id == alerta.terreno_id,
+                    models.Activity.concluida.is_(False),
+                    models.Activity.data_programada >= janela_inicio,
+                    models.Activity.data_programada <= janela_fim,
+                )
+                .all()
             )
-            db.add(nova_atividade)
-            criadas += 1
 
-        elif evento in TIPOS_CALOR_SECA:
-            for atividade in atividades_pendentes:
-                if atividade.tipo_atividade.lower() == "irrigacao":
-                    atividade.prioridade = "critica"
-                    atividade.ajustada_por_alerta = True
-                    atividade.motivo_ajuste = (
-                        "Prioridade elevada para crítica devido a alerta de "
-                        f"{alerta.tipo_evento} ({alerta.data_evento.isoformat()})"
-                    )
-                    ajustadas += 1
+            evento = alerta.tipo_evento.strip().lower()
+            ajustadas = 0
+            criadas = 0
 
-            nova_atividade = models.Activity(
-                terreno_id=alerta.terreno_id,
-                titulo="Irrigação suplementar e proteção térmica do solo",
-                descricao=(
-                    "Reforçar cobertura morta e realizar irrigação nos horários mais frescos "
-                    f"para mitigar {alerta.tipo_evento}."
-                ),
-                tipo_atividade="irrigacao",
-                data_programada=alerta.data_evento,
-                prioridade="critica",
-                status="pendente",
-                concluida=False,
-                ajustada_por_alerta=True,
-                motivo_ajuste=(
-                    f"Criada automaticamente por alerta de {alerta.tipo_evento} #{alerta.id}"
-                ),
+            if evento in TIPOS_CHUVA:
+                for atividade in atividades_pendentes:
+                    if atividade.tipo_atividade.lower() in {
+                        "irrigacao",
+                        "adubacao",
+                        "pulverizacao",
+                    }:
+                        atividade.data_programada = (
+                            atividade.data_programada + timedelta(days=dias_adiamento)
+                        )
+                        atividade.ajustada_por_alerta = True
+                        atividade.motivo_ajuste = (
+                            f"Adiado automaticamente em {dias_adiamento} dia(s) "
+                            f"devido a alerta de {alerta.tipo_evento} ({alerta.data_evento.isoformat()})"
+                        )
+                        ajustadas += 1
+
+                nova_atividade = models.Activity(
+                    terreno_id=alerta.terreno_id,
+                    titulo="Inspeção de drenagem e escoamento pós-chuva",
+                    descricao=(
+                        "Verificar acúmulo de água, erosão em canteiros e condição das raízes "
+                        f"após evento de {alerta.tipo_evento}."
+                    ),
+                    tipo_atividade="inspecao",
+                    data_programada=alerta.data_evento + timedelta(days=1),
+                    prioridade="alta",
+                    status="pendente",
+                    concluida=False,
+                    ajustada_por_alerta=True,
+                    motivo_ajuste=f"Criada automaticamente por alerta #{alerta.id}",
+                )
+                db.add(nova_atividade)
+                criadas += 1
+
+            elif evento in TIPOS_CALOR_SECA:
+                for atividade in atividades_pendentes:
+                    if atividade.tipo_atividade.lower() == "irrigacao":
+                        atividade.prioridade = "critica"
+                        atividade.ajustada_por_alerta = True
+                        atividade.motivo_ajuste = (
+                            "Prioridade elevada para crítica devido a alerta de "
+                            f"{alerta.tipo_evento} ({alerta.data_evento.isoformat()})"
+                        )
+                        ajustadas += 1
+
+                nova_atividade = models.Activity(
+                    terreno_id=alerta.terreno_id,
+                    titulo="Irrigação suplementar e proteção térmica do solo",
+                    descricao=(
+                        "Reforçar cobertura morta e realizar irrigação nos horários mais frescos "
+                        f"para mitigar {alerta.tipo_evento}."
+                    ),
+                    tipo_atividade="irrigacao",
+                    data_programada=alerta.data_evento,
+                    prioridade="critica",
+                    status="pendente",
+                    concluida=False,
+                    ajustada_por_alerta=True,
+                    motivo_ajuste=(
+                        f"Criada automaticamente por alerta de {alerta.tipo_evento} #{alerta.id}"
+                    ),
+                )
+                db.add(nova_atividade)
+                criadas += 1
+
+            else:
+                for atividade in atividades_pendentes:
+                    if atividade.tipo_atividade.lower() in {"plantio", "adubacao"}:
+                        atividade.data_programada = (
+                            atividade.data_programada + timedelta(days=dias_adiamento)
+                        )
+                        atividade.ajustada_por_alerta = True
+                        atividade.motivo_ajuste = (
+                            f"Adiado automaticamente em {dias_adiamento} dia(s) "
+                            f"devido a alerta de {alerta.tipo_evento} ({alerta.data_evento.isoformat()})"
+                        )
+                        ajustadas += 1
+
+                nova_atividade = models.Activity(
+                    terreno_id=alerta.terreno_id,
+                    titulo=f"Proteção emergencial da lavoura contra {alerta.tipo_evento}",
+                    descricao=(
+                        "Adotar barreiras de proteção ou cobertura temporária antes do pico do evento extremo."
+                    ),
+                    tipo_atividade="manejo",
+                    data_programada=alerta.data_evento,
+                    prioridade="critica",
+                    status="pendente",
+                    concluida=False,
+                    ajustada_por_alerta=True,
+                    motivo_ajuste=f"Criada automaticamente por alerta #{alerta.id}",
+                )
+                db.add(nova_atividade)
+                criadas += 1
+
+            alerta.processado_background = True
+            alerta.resumo_adaptacao = (
+                f"Calendário adaptado automaticamente na janela de {janela_inicio.isoformat()} "
+                f"a {janela_fim.isoformat()}: {ajustadas} atividade(s) ajustada(s)/adiada(s) "
+                f"e {criadas} nova(s) atividade(s) criada(s)."
             )
-            db.add(nova_atividade)
-            criadas += 1
-
-        else:
-            for atividade in atividades_pendentes:
-                if atividade.tipo_atividade.lower() in {"plantio", "adubacao"}:
-                    atividade.data_programada = (
-                        atividade.data_programada + timedelta(days=dias_adiamento)
-                    )
-                    atividade.ajustada_por_alerta = True
-                    atividade.motivo_ajuste = (
-                        f"Adiado automaticamente em {dias_adiamento} dia(s) "
-                        f"devido a alerta de {alerta.tipo_evento} ({alerta.data_evento.isoformat()})"
-                    )
-                    ajustadas += 1
-
-            nova_atividade = models.Activity(
-                terreno_id=alerta.terreno_id,
-                titulo=f"Proteção emergencial da lavoura contra {alerta.tipo_evento}",
-                descricao=(
-                    "Adotar barreiras de proteção ou cobertura temporária antes do pico do evento extremo."
-                ),
-                tipo_atividade="manejo",
-                data_programada=alerta.data_evento,
-                prioridade="critica",
-                status="pendente",
-                concluida=False,
-                ajustada_por_alerta=True,
-                motivo_ajuste=f"Criada automaticamente por alerta #{alerta.id}",
-            )
-            db.add(nova_atividade)
-            criadas += 1
-
-        alerta.processado_background = True
-        alerta.resumo_adaptacao = (
-            f"Calendário adaptado automaticamente na janela de {janela_inicio.isoformat()} "
-            f"a {janela_fim.isoformat()}: {ajustadas} atividade(s) ajustada(s)/adiada(s) "
-            f"e {criadas} nova(s) atividade(s) criada(s)."
-        )
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
 
 
 def coletar_dados_climaticos_sinteticos(output_dir: str = "data") -> Dict[str, Any]:
@@ -388,83 +451,86 @@ def executar_ciclo_monitoramento_alertas(
         if intervalo_horas is None
         else max(1, int(intervalo_horas))
     )
-    factory = session_factory or SessionLocal
-    db = factory()
     alertas_gerados: List[int] = []
-    try:
-        query_terrenos = db.query(models.Terreno)
-        if terreno_id is not None:
-            query_terrenos = query_terrenos.filter(models.Terreno.id == terreno_id)
-        terrenos = query_terrenos.all()
-        if not terrenos:
-            return []
+    with _abrir_sessao_background(session_factory) as db:
+        try:
+            query_terrenos = db.query(models.Terreno)
+            if terreno_id is not None:
+                query_terrenos = query_terrenos.filter(models.Terreno.id == terreno_id)
+            terrenos = query_terrenos.all()
+            if not terrenos:
+                return []
 
-        nasa_provider = get_nasa_provider(data_path=output_dir)
-        data_prevista = date.today() + timedelta(days=1)
+            nasa_provider = get_nasa_provider(data_path=output_dir)
+            data_prevista = date.today() + timedelta(days=1)
 
-        for terreno in terrenos:
-            dados_terreno = coletar_dados_climaticos_terreno(
-                terreno=terreno,
-                output_dir=output_dir,
-                nasa_provider=nasa_provider,
-            )
-            avaliacao = _avaliar_anomalia_climatica(dados_terreno)
-            if not avaliacao["anomaly_detected"]:
-                continue
-
-            tipo_evento = avaliacao["tipo_evento"]
-            severidade = avaliacao["severidade"]
-
-            if buscar_alerta_duplicado(
-                db=db,
-                terreno_id=terreno.id,
-                tipo_evento=tipo_evento,
-                data_evento=data_prevista,
-                cooldown_horas=cooldown_horas,
-            ):
-                logger.info(
-                    "Alerta duplicado/em cooldown ignorado para terreno=%s tipo=%s data=%s",
-                    terreno.id,
-                    tipo_evento,
-                    data_prevista.isoformat(),
+            for terreno in terrenos:
+                dados_terreno = coletar_dados_climaticos_terreno(
+                    terreno=terreno,
+                    output_dir=output_dir,
+                    nasa_provider=nasa_provider,
                 )
-                continue
+                persistir_metricas_terreno(
+                    db=db,
+                    terreno_id=terreno.id,
+                    field_metrics=dados_terreno,
+                    origem=str(dados_terreno.get("origem") or "monitoramento_climatico"),
+                )
+                avaliacao = _avaliar_anomalia_climatica(dados_terreno)
+                if not avaliacao["anomaly_detected"]:
+                    continue
 
-            alerta = models.AlertaClimatico(
-                terreno_id=terreno.id,
-                tipo_evento=tipo_evento,
-                severidade=severidade,
-                titulo=f"Monitoramento automático ({intervalo_efetivo}h): {tipo_evento.replace('_', ' ')}",
-                mensagem=(
-                    f"Anomalia climática detectada ({tipo_evento}) para o terreno "
-                    f"'{terreno.nome_propriedade}' em {data_prevista.isoformat()}."
-                ),
-                data_evento=data_prevista,
-                origem_gatilho="periodic_synthetic_monitor",
-                dados_gatilho={
-                    "intervalo_horas": intervalo_efetivo,
-                    "dados_climaticos": dados_terreno,
-                    "detector": avaliacao,
-                },
-                processado_background=False,
-            )
-            db.add(alerta)
-            db.commit()
-            db.refresh(alerta)
-            alertas_gerados.append(alerta.id)
+                tipo_evento = avaliacao["tipo_evento"]
+                severidade = avaliacao["severidade"]
 
-            processar_alerta_e_adaptar_calendario(
-                alerta_id=alerta.id,
-                dias_adiamento=2,
-                session_factory=factory,
-            )
+                if buscar_alerta_duplicado(
+                    db=db,
+                    terreno_id=terreno.id,
+                    tipo_evento=tipo_evento,
+                    data_evento=data_prevista,
+                    cooldown_horas=cooldown_horas,
+                ):
+                    logger.info(
+                        "Alerta duplicado/em cooldown ignorado para terreno=%s tipo=%s data=%s",
+                        terreno.id,
+                        tipo_evento,
+                        data_prevista.isoformat(),
+                    )
+                    continue
 
-        return alertas_gerados
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
+                alerta = models.AlertaClimatico(
+                    terreno_id=terreno.id,
+                    tipo_evento=tipo_evento,
+                    severidade=severidade,
+                    titulo=f"Monitoramento automático ({intervalo_efetivo}h): {tipo_evento.replace('_', ' ')}",
+                    mensagem=(
+                        f"Anomalia climática detectada ({tipo_evento}) para o terreno "
+                        f"'{terreno.nome_propriedade}' em {data_prevista.isoformat()}."
+                    ),
+                    data_evento=data_prevista,
+                    origem_gatilho="periodic_synthetic_monitor",
+                    dados_gatilho={
+                        "intervalo_horas": intervalo_efetivo,
+                        "dados_climaticos": dados_terreno,
+                        "detector": avaliacao,
+                    },
+                    processado_background=False,
+                )
+                db.add(alerta)
+                db.commit()
+                db.refresh(alerta)
+                alertas_gerados.append(alerta.id)
+
+                processar_alerta_e_adaptar_calendario(
+                    alerta_id=alerta.id,
+                    dias_adiamento=2,
+                    session_factory=session_factory,
+                )
+
+            return alertas_gerados
+        except Exception:
+            db.rollback()
+            raise
 
 
 async def iniciar_monitoramento_periodico(

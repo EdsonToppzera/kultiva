@@ -4,12 +4,11 @@
 
 **Legenda:** ✅ feito (mergeado na `dev`) · 🔄 em andamento · ⬜ pendente
 
-## Estado atual (atualizado após A4 e A6)
+## Estado atual (atualizado após A4, A6 e conclusão de B1–B4)
 
-- Suíte `backend/tests`: **verde** (34 testes no total, sendo 20 em `test_data_ml.py`).
-- **Feito:** A1, A2, A3, A4, A6 (Dev A) · C1, C5 (Dev C) · base de infra (`.env.example`, deps, healthcheck do Postgres, monitor de alertas ligado ao lifespan, disclaimer garantido no LLM).
-- **Próximos em paralelo:** B1, B3 (Dev B) · C2, C3 (Dev C, destravadas pela A3).
-- **Por último:** A5, C4, B2, B4 e integração/demo.
+- Suíte `backend/tests`: **verde** (cobrindo A1–A4, A6, C1–C3, C5 e B1–B4).
+- **Feito:** A1, A2, A3, A4, A6 (Dev A) · B1, B2, B3, B4 (Dev B) · C1, C2, C3, C5 (Dev C) · base de infra (`.env.example`, deps, healthcheck do Postgres, Alembic inicial, monitor de alertas ligado ao lifespan, disclaimer garantido no LLM, CI no GitHub Actions).
+- **Por último:** A5, C4 e integração/demo.
 
 ### O que a Dev A entregou (A1–A4 e A6)
 
@@ -58,27 +57,25 @@
 
 | # | Status | Task | Pronto quando |
 |---|---|---|---|
-| B1 | ⬜ | **[M2]** CRUD completo de culturas/rotações do produtor (PUT/DELETE, validações); marcar customizadas vs seed e proteger as de seed; rotações preferenciais entram no simulador | Produtor cadastra/edita/remove; seed não removível |
-| B2 | ⬜ | **[M6]** Serviço e endpoints de relatório: histórico de umidade/temperatura, vigor, vulnerabilidade, adaptações (`ajustada_por_alerta`) | `GET` de relatório por terreno e período; usa `field_metrics` |
-| B3 | ⬜ | Persistir métricas históricas (tabela + migração/Alembic) para alimentar o M6 | Série por terreno consultável |
-| B4 | ⬜ | Testes de API para M2/M6 e CI rodando `pytest` | CI verde no PR |
+| B1 | ✅ | **[M2]** CRUD completo de culturas/rotações do produtor (PUT/DELETE, validações); marcar customizadas vs seed e proteger as de seed; rotações preferenciais entram no simulador | Produtor cadastra/edita/remove; seed não removível |
+| B2 | ✅ | **[M6]** Serviço e endpoints de relatório: histórico de umidade/temperatura, vigor, vulnerabilidade, adaptações (`ajustada_por_alerta`) | `GET` de relatório por terreno e período; usa `field_metrics` |
+| B3 | ✅ | Persistir métricas históricas (tabela + migração/Alembic) para alimentar o M6 | Série por terreno consultável |
+| B4 | ✅ | Testes de API para M2/M6 e CI rodando `pytest` | CI verde no PR |
 
 ## Dev C — Simulação, alertas e calendário
 
 | # | Status | Task | Arquivos | Pronto quando |
 |---|---|---|---|---|
 | C1 | ✅ | `origem`/`fallback_usado` na resposta; provider/simulator/agente instanciados uma vez | `api/simulacao.py` | Resposta indica se houve fallback |
-| C2 | ⬜ | Monitor [M5]: métricas **por terreno** via `INASADataProvider` (polígono); alerta só com `anomaly_detected` (A3 já pronta) | `services/alert_tasks.py` | Terrenos diferentes → alertas diferentes |
-| C3 | ⬜ | Deduplicar alertas (mesmo terreno + tipo + data), cooldown; intervalo por env | `alert_tasks.py`, `api/alertas.py` | Dois ciclos seguidos não duplicam |
+| C2 | ✅ | Monitor [M5]: métricas **por terreno** via `INASADataProvider` (polígono); alerta só com `anomaly_detected` (A3 já pronta) | `services/alert_tasks.py` | Terrenos diferentes → alertas diferentes |
+| C3 | ✅ | Deduplicar alertas (mesmo terreno + tipo + data), cooldown; intervalo por env | `alert_tasks.py`, `api/alertas.py` | Dois ciclos seguidos não duplicam |
 | C4 | ⬜ | Calendário gerado a partir da estratégia escolhida no M3 (`[M1]→[M3]→[M4]`); regras de ajuste pós-alerta testáveis | `api/calendario.py` | Fluxo ponta a ponta coberto por teste |
 | C5 | ✅ | Datetimes com timezone e schemas Pydantic em `ConfigDict` | `api/calendario.py`, `schemas/` | `pytest` sem DeprecationWarning do projeto |
 
 ## Ordem e dependências
 
-1. ✅ **Concluído:** A1, A2, A3, A4, A6 · C1, C2, C3, C5.
-2. **Agora, em paralelo:** B1, B3.
-3. **Depois:** B2 (depende do B3) · B4.
-4. **Por último:** A5, C4, integração e demo.
+1. ✅ **Concluído:** A1, A2, A3, A4, A6 · B1, B2, B3, B4 · C1, C2, C3, C5.
+2. **Por último:** A5, C4, integração e demo.
 
 ## Regras de trabalho
 

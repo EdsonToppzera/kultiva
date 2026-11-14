@@ -7,7 +7,11 @@ Este documento descreve a modelagem relacional do banco de dados (PostgreSQL/SQL
 ```mermaid
 erDiagram
     usuarios ||--o{ terrenos : possui
+    usuarios ||--o{ culturas : personaliza
+    usuarios ||--o{ rotacoes_produtor : define
     usuarios ||--o{ atividades_calendario : acompanha
+    terrenos ||--o{ rotacoes_produtor : prefere
+    terrenos ||--o{ metricas_historicas_terreno : registra
     terrenos ||--o{ atividades_calendario : agenda
     culturas ||--o{ atividades_calendario : referencia
     terrenos ||--o{ alertas_climaticos : recebe
@@ -31,6 +35,31 @@ erDiagram
         string nome
         float consumo_agua_mm
         int tempo_colheita_dias
+        boolean is_seed
+        boolean customizada
+        int usuario_id FK
+    }
+
+    rotacoes_produtor {
+        int id PK
+        string nome
+        json culturas
+        int usuario_id FK
+        int terreno_id FK
+        boolean preferencial
+        boolean is_seed
+    }
+
+    metricas_historicas_terreno {
+        int id PK
+        int terreno_id FK
+        date data_medicao
+        float soil_moisture
+        float surface_temp_c
+        float precipitation_mm
+        boolean is_bare_field_period
+        string data_quality
+        string origem
     }
 
     atividades_calendario {

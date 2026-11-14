@@ -177,20 +177,85 @@ class CropSimulator:
         """
         Gera e compara 3 estratégias de rotação, sempre incluindo a prática atual
         do agricultor (`farmer_priorities["pratica_atual"]`, padrão "Milho -> Soja").
-        Usa apenas chaves padronizadas de `field_metrics` (mock ou real) e, na falta
-        delas, as chaves de fallback da API.
+        Quando `farmer_priorities["rotacoes_preferenciais"]` estiver presente, avalia
+        e inclui a melhor rotação preferencial cadastrada pelo produtor no comparativo.
         """
         metrics = self._read_metrics(field_metrics)
         water_priority = self._water_priority(farmer_priorities)
+        priorities_dict = farmer_priorities or {}
         current_name = str(
-            (farmer_priorities or {}).get("pratica_atual") or _DEFAULT_CURRENT_PRACTICE
+            priorities_dict.get("pratica_atual") or _DEFAULT_CURRENT_PRACTICE
         ).strip()
 
         def normalize(name: str) -> str:
             return name.lower().replace("(atual)", "").replace("→", "->").replace(" ", "")
 
-        results: list[dict[str, Any]] = []
+        catalog_by_norm: dict[str, dict[str, Any]] = {}
         for item in _ROTATION_CATALOG:
+            catalog_by_norm[normalize(item["strategy"])] = {**item, "preferred": False}
+
+        preferred_raw = priorities_dict.get("rotacoes_preferenciais") or []
+        if isinstance(preferred_raw, list):
+            for raw in preferred_raw:
+                if isinstance(raw, str):
+                    name = raw.strip()
+                    if not name:
+                        continue
+                    base = catalog_by_norm.get(normalize(name), {})
+                    entry = {
+                        "strategy": name,
+                        "water_demand": base.get("water_demand", 0.55),
+                        "heat_tolerance": base.get("heat_tolerance", 0.70),
+                        "soil_benefit": base.get("soil_benefit", 0.70),
+                        "market": base.get("market", 0.65),
+                        "benefits": base.get("benefits") or "Rotação preferencial cadastrada pelo produtor",
+                        "preferred": True,
+                    }
+                    catalog_by_norm[normalize(name)] = entry
+                elif isinstance(raw, dict):
+                    culturas = raw.get("culturas")
+                    name = str(
+                        raw.get("strategy")
+                        or raw.get("nome")
+                        or (" -> ".join(culturas) if isinstance(culturas, list) else "")
+                    ).strip()
+                    if not name:
+                        continue
+                    base = catalog_by_norm.get(normalize(name), {})
+                    entry = {
+                        "strategy": name,
+                        "water_demand": _clamp(
+                            _to_float(raw.get("water_demand"))
+                            if _to_float(raw.get("water_demand")) is not None
+                            else base.get("water_demand", 0.55)
+                        ),
+                        "heat_tolerance": _clamp(
+                            _to_float(raw.get("heat_tolerance"))
+                            if _to_float(raw.get("heat_tolerance")) is not None
+                            else base.get("heat_tolerance", 0.70)
+                        ),
+                        "soil_benefit": _clamp(
+                            _to_float(raw.get("soil_benefit"))
+                            if _to_float(raw.get("soil_benefit")) is not None
+                            else base.get("soil_benefit", 0.70)
+                        ),
+                        "market": _clamp(
+                            _to_float(raw.get("market"))
+                            if _to_float(raw.get("market")) is not None
+                            else base.get("market", 0.65)
+                        ),
+                        "benefits": str(
+                            raw.get("benefits")
+                            or raw.get("beneficios")
+                            or base.get("benefits")
+                            or "Rotação preferencial cadastrada pelo produtor"
+                        ),
+                        "preferred": True,
+                    }
+                    catalog_by_norm[normalize(name)] = entry
+
+        results: list[dict[str, Any]] = []
+        for item in catalog_by_norm.values():
             scored = self._score(
                 metrics,
                 item["water_demand"],
@@ -206,6 +271,7 @@ class CropSimulator:
                     "water_risk": scored["water_risk"],
                     "benefits": item["benefits"],
                     "score_breakdown": scored["score_breakdown"],
+                    "_preferred": bool(item.get("preferred", False)),
                 }
             )
 
@@ -225,10 +291,32 @@ class CropSimulator:
             }
         else:
             results.remove(current)
+            current = {k: v for k, v in current.items() if k != "_preferred"}
         current = {**current, "strategy": f"{current['strategy']} (Atual)"}
 
-        others = sorted(results, key=lambda r: r["viability"], reverse=True)[:2]
-        return sorted([current, *others], key=lambda r: r["viability"], reverse=True)
+        preferred_candidates = sorted(
+            [r for r in results if r.get("_preferred")],
+            key=lambda r: r["viability"],
+            reverse=True,
+        )
+        selected_others: list[dict[str, Any]] = []
+        if preferred_candidates:
+            top_pref = preferred_candidates[0]
+            selected_others.append(top_pref)
+            remaining = [r for r in results if r is not top_pref]
+            remaining_sorted = sorted(remaining, key=lambda r: r["viability"], reverse=True)
+            if remaining_sorted:
+                selected_others.append(remaining_sorted[0])
+        else:
+            selected_others = sorted(
+                results, key=lambda r: r["viability"], reverse=True
+            )[:2]
+
+        cleaned_others = [
+            {k: v for k, v in item.items() if k != "_preferred"}
+            for item in selected_others
+        ]
+        return sorted([current, *cleaned_others], key=lambda r: r["viability"], reverse=True)
 
     def predict_rotation_viability(
         self,

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def seed_culturas():
-    """Popula o catálogo inicial de culturas caso a tabela esteja vazia."""
+    """Popula o catálogo inicial de culturas e rotações base caso as tabelas estejam vazias."""
     db = SessionLocal()
     try:
         if db.query(models.Cultura).count() == 0:
@@ -21,27 +21,69 @@ def seed_culturas():
                     consumo_agua_mm=500.0,
                     tempo_colheita_dias=90,
                     resistencia_pragas="Média (Lagarta)",
+                    is_seed=True,
+                    customizada=False,
                 ),
                 models.Cultura(
                     nome="Feijão Macáçar",
                     consumo_agua_mm=300.0,
                     tempo_colheita_dias=70,
                     resistencia_pragas="Alta (Seca/Pragas)",
+                    is_seed=True,
+                    customizada=False,
                 ),
                 models.Cultura(
                     nome="Mandioca",
                     consumo_agua_mm=400.0,
                     tempo_colheita_dias=270,
                     resistencia_pragas="Alta",
+                    is_seed=True,
+                    customizada=False,
                 ),
                 models.Cultura(
                     nome="Crotalária",
                     consumo_agua_mm=250.0,
                     tempo_colheita_dias=60,
                     resistencia_pragas="Alta (Nematoides)",
+                    is_seed=True,
+                    customizada=False,
                 ),
             ]
             db.add_all(culturas_iniciais)
+            db.commit()
+
+        if db.query(models.RotacaoProdutor).count() == 0:
+            rotacoes_iniciais = [
+                models.RotacaoProdutor(
+                    nome="Milho -> Soja",
+                    culturas=["Milho", "Soja"],
+                    preferencial=False,
+                    is_seed=True,
+                    beneficios="Mercado estabelecido e cadeia de comercialização consolidada",
+                ),
+                models.RotacaoProdutor(
+                    nome="Sorgo -> Feijão-caupi",
+                    culturas=["Sorgo", "Feijão-caupi"],
+                    preferencial=False,
+                    is_seed=True,
+                    beneficios="Alta tolerância à seca, fixa nitrogênio",
+                ),
+                models.RotacaoProdutor(
+                    nome="Milheto -> Amendoim",
+                    culturas=["Milheto", "Amendoim"],
+                    preferencial=False,
+                    is_seed=True,
+                    beneficios="Melhora a estrutura do solo",
+                ),
+                models.RotacaoProdutor(
+                    nome="Mandioca -> Crotalária",
+                    culturas=["Mandioca", "Crotalária"],
+                    preferencial=False,
+                    is_seed=True,
+                    beneficios="Rústica, cobre o solo e controla nematoides",
+                ),
+            ]
+            db.add_all(rotacoes_iniciais)
             db.commit()
     finally:
         db.close()
