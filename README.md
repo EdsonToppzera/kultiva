@@ -7,3 +7,16 @@ Sistema de apoio à decisão para pequenos produtores rurais, unindo dados de sa
 ```bash
 docker-compose up --build
 ```
+
+## Documentação (MkDocs)
+A documentação técnica do projeto utiliza **MkDocs Material**. Para visualizá-la localmente com *live reload*:
+
+```bash
+pip install mkdocs-material
+mkdocs serve
+```
+
+Para validar o build estático da documentação:
+```bash
+mkdocs build --strict
+```
