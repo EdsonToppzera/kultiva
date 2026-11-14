@@ -1,8 +1,9 @@
 from fastapi import APIRouter
-from backend.api import alertas, calendario, simulacao, terreno
+from backend.api import alertas, calendario, cultura, simulacao, terreno
 
 api_router = APIRouter()
 api_router.include_router(terreno.router)
+api_router.include_router(cultura.router)
 api_router.include_router(simulacao.router)
 api_router.include_router(calendario.router)
 api_router.include_router(alertas.router)

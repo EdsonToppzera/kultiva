@@ -8,6 +8,7 @@ class Usuario(Base):
     id = Column(Integer, primary_key=True, index=True)
     nome = Column(String, index=True)
     email = Column(String, unique=True, index=True)
+    hashed_password = Column(String, nullable=True)
     terrenos = relationship("Terreno", back_populates="proprietario")
 
 class Terreno(Base):
@@ -16,6 +17,8 @@ class Terreno(Base):
     nome_propriedade = Column(String)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
     coordenadas_poligono = Column(JSON) # Guarda lista de dicts com lat/lng
+    area_hectares = Column(Float, nullable=True)
+    localizacao_central = Column(JSON, nullable=True) # Ex: {"lat": -3.73, "lng": -38.52}
     prioridades = Column(JSON) # Ex: {"agua": "escassa", "equipamento": "manual"}
     
     proprietario = relationship("Usuario", back_populates="terrenos")
@@ -26,6 +29,7 @@ class Cultura(Base):
     nome = Column(String, unique=True, index=True)
     consumo_agua_mm = Column(Float)
     tempo_colheita_dias = Column(Integer)
+    resistencia_pragas = Column(String, nullable=True)
 
 
 class AtividadeCalendario(Base):
