@@ -1,6 +1,7 @@
 from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional, Tuple
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from backend.db import models
@@ -135,81 +136,68 @@ def criar_atividade(
     return db_atividade
 
 
-@router.post(
-    "/gerar-cronograma",
-    response_model=List[AtividadeCalendarioResponse],
-    status_code=status.HTTP_201_CREATED,
-)
-def gerar_cronograma_inicial(
-    payload: GerarCronogramaRequest, db: Session = Depends(get_db)
-):
-    """Gera automaticamente as atividades essenciais do ciclo de cultivo."""
-    terreno = _obter_terreno_ou_404(payload.terreno_id, db)
-
-    nome_cultura = payload.nome_cultura or "Cultura Principal"
-    duracao_dias = payload.tempo_colheita_dias
-
-    if payload.cultura_id is not None:
-        cultura = (
-            db.query(models.Cultura)
-            .filter(models.Cultura.id == payload.cultura_id)
-            .first()
-        )
-        if not cultura:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Cultura não encontrada",
-            )
-        nome_cultura = cultura.nome
-        if payload.tempo_colheita_dias == 90 and cultura.tempo_colheita_dias:
-            duracao_dias = cultura.tempo_colheita_dias
-
+def _construir_atividades_etapa(
+    terreno: models.Terreno,
+    cultura_id: Optional[int],
+    nome_cultura: str,
+    data_inicio: date,
+    duracao_dias: int,
+    risco_hidrico: Optional[str] = None,
+    ordem_etapa: Optional[int] = None,
+) -> List[models.Activity]:
+    """Constrói as 5 atividades agronômicas essenciais para uma etapa do cultivo."""
     dia_inspecao = max(5, min(duracao_dias - 2, duracao_dias // 6))
     dia_adubacao = max(10, min(duracao_dias - 1, duracao_dias // 3))
+    prefixo = f"[Etapa {ordem_etapa}] " if ordem_etapa is not None else ""
+    prioridade_irrigacao = (
+        "critica"
+        if (risco_hidrico or "").strip().lower() in {"high", "alto", "critico"}
+        else "alta"
+    )
 
     etapas = [
         (
-            f"Plantio de {nome_cultura}",
+            f"{prefixo}Plantio de {nome_cultura}",
             f"Preparo do canteiro e semeadura/plantio de {nome_cultura}.",
             "plantio",
-            payload.data_inicio,
+            data_inicio,
             "alta",
         ),
         (
-            f"Irrigação inicial — {nome_cultura}",
+            f"{prefixo}Irrigação inicial — {nome_cultura}",
             "Rega de estabelecimento para garantir germinação uniforme.",
             "irrigacao",
-            payload.data_inicio + timedelta(days=2),
-            "alta",
+            data_inicio + timedelta(days=2),
+            prioridade_irrigacao,
         ),
         (
-            f"Inspeção fitossanitária — {nome_cultura}",
+            f"{prefixo}Inspeção fitossanitária — {nome_cultura}",
             "Verificação preventiva de pragas, doenças e umidade do solo.",
             "inspecao",
-            payload.data_inicio + timedelta(days=dia_inspecao),
+            data_inicio + timedelta(days=dia_inspecao),
             "media",
         ),
         (
-            f"Adubação de cobertura — {nome_cultura}",
+            f"{prefixo}Adubação de cobertura — {nome_cultura}",
             "Reforço nutricional conforme desenvolvimento vegetativo.",
             "adubacao",
-            payload.data_inicio + timedelta(days=dia_adubacao),
+            data_inicio + timedelta(days=dia_adubacao),
             "media",
         ),
         (
-            f"Colheita de {nome_cultura}",
+            f"{prefixo}Colheita de {nome_cultura}",
             "Avaliação do ponto ideal e realização da colheita.",
             "colheita",
-            payload.data_inicio + timedelta(days=duracao_dias),
+            data_inicio + timedelta(days=duracao_dias),
             "alta",
         ),
     ]
 
-    atividades = [
+    return [
         models.Activity(
-            terreno_id=payload.terreno_id,
+            terreno_id=terreno.id,
             usuario_id=terreno.usuario_id,
-            cultura_id=payload.cultura_id,
+            cultura_id=cultura_id,
             titulo=titulo,
             descricao=descricao,
             tipo_atividade=tipo,
@@ -220,6 +208,123 @@ def gerar_cronograma_inicial(
         )
         for titulo, descricao, tipo, data_prevista, prioridade in etapas
     ]
+
+
+def _gerar_atividades_de_rotacao(
+    payload: GerarCronogramaRequest,
+    terreno: models.Terreno,
+    db: Session,
+) -> List[models.Activity]:
+    """Gera atividades sequenciais a partir de plano_rotacao ou estrategia_rotacao (M3)."""
+    atividades: List[models.Activity] = []
+    cursor_data = payload.data_inicio
+
+    if payload.plano_rotacao:
+        etapas_ordenadas = sorted(
+            payload.plano_rotacao,
+            key=lambda item: item.ordem if item.ordem is not None else 0,
+        )
+        for idx, etapa in enumerate(etapas_ordenadas, start=1):
+            nome_limpo = etapa.cultura.strip()
+            cultura_db = (
+                db.query(models.Cultura)
+                .filter(func.lower(models.Cultura.nome) == nome_limpo.lower())
+                .first()
+            )
+            cultura_id = cultura_db.id if cultura_db else None
+            atividades.extend(
+                _construir_atividades_etapa(
+                    terreno=terreno,
+                    cultura_id=cultura_id,
+                    nome_cultura=cultura_db.nome if cultura_db else nome_limpo,
+                    data_inicio=cursor_data,
+                    duracao_dias=etapa.duracao_dias,
+                    risco_hidrico=etapa.risco_hidrico,
+                    ordem_etapa=etapa.ordem or idx,
+                )
+            )
+            cursor_data = cursor_data + timedelta(days=etapa.duracao_dias + 1)
+        return atividades
+
+    nomes = [
+        parte.strip()
+        for parte in (payload.estrategia_rotacao or "").replace("(Atual)", "").split("->")
+        if parte.strip()
+    ]
+    for idx, nome in enumerate(nomes, start=1):
+        cultura_db = (
+            db.query(models.Cultura)
+            .filter(func.lower(models.Cultura.nome) == nome.lower())
+            .first()
+        )
+        duracao = (
+            int(cultura_db.tempo_colheita_dias)
+            if cultura_db and cultura_db.tempo_colheita_dias
+            else payload.tempo_colheita_dias
+        )
+        atividades.extend(
+            _construir_atividades_etapa(
+                terreno=terreno,
+                cultura_id=cultura_db.id if cultura_db else None,
+                nome_cultura=cultura_db.nome if cultura_db else nome,
+                data_inicio=cursor_data,
+                duracao_dias=duracao,
+                ordem_etapa=idx,
+            )
+        )
+        cursor_data = cursor_data + timedelta(days=duracao + 1)
+    return atividades
+
+
+@router.post(
+    "/gerar-cronograma",
+    response_model=List[AtividadeCalendarioResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+@router.post(
+    "/gerar-de-simulacao",
+    response_model=List[AtividadeCalendarioResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+def gerar_cronograma_inicial(
+    payload: GerarCronogramaRequest, db: Session = Depends(get_db)
+):
+    """Gera automaticamente as atividades do ciclo de cultivo (cultura única ou rotação M3)."""
+    terreno = _obter_terreno_ou_404(payload.terreno_id, db)
+
+    if payload.plano_rotacao or (payload.estrategia_rotacao and payload.estrategia_rotacao.strip()):
+        atividades = _gerar_atividades_de_rotacao(payload, terreno, db)
+        if not atividades:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Nenhuma etapa válida encontrada na estratégia de rotação.",
+            )
+    else:
+        nome_cultura = payload.nome_cultura or "Cultura Principal"
+        duracao_dias = payload.tempo_colheita_dias
+
+        if payload.cultura_id is not None:
+            cultura = (
+                db.query(models.Cultura)
+                .filter(models.Cultura.id == payload.cultura_id)
+                .first()
+            )
+            if not cultura:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Cultura não encontrada",
+                )
+            nome_cultura = cultura.nome
+            if payload.tempo_colheita_dias == 90 and cultura.tempo_colheita_dias:
+                duracao_dias = cultura.tempo_colheita_dias
+
+        atividades = _construir_atividades_etapa(
+            terreno=terreno,
+            cultura_id=payload.cultura_id,
+            nome_cultura=nome_cultura,
+            data_inicio=payload.data_inicio,
+            duracao_dias=duracao_dias,
+        )
 
     db.add_all(atividades)
     db.commit()
