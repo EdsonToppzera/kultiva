@@ -33,16 +33,27 @@ Cria um novo terreno com o polígono geográfico e prioridades do produtor.
 
 ## [M3] Simulador de Culturas e Rotações (`backend/api/simulacao.py`)
 
-### `POST /api/v1/simulacoes/`
-Recebe a requisição do frontend, consulta o terreno/cultura no banco, aciona `NasaDataProcessor` (`services/geospatial.py`), `CropSimulator` (`services/ml_models.py`) e `RotationExplainerAgent` (`services/llm_agent.py`), devolvendo o JSON estruturado da simulação.
+### `POST /api/v1/simular-rotacao`
+*(Também disponível em `POST /api/v1/simulacoes/` e `POST /api/v1/simulacoes/simular-rotacao`)*
 
-**Request Body:**
+Recebe a requisição do frontend, aceita tanto `terreno_id` (busca no PostgreSQL) quanto `coordenadas_poligono`, `nome_propriedade` e `prioridades` enviados diretamente no JSON sem exigir cadastro prévio, e injeta as dependências `NasaDataProcessor` (`services/geospatial.py`), `CropSimulator` (`services/ml_models.py`) e `RotationExplainerAgent` (`services/llm_agent.py`), retornando as estratégias de rotação sugeridas e a explicação textual gerada pela IA.
+
+**Request Body (com `terreno_id` cadastrado ou com coordenadas diretas no JSON):**
 ```json
 {
   "terreno_id": 1,
+  "nome_propriedade": "Sítio Esperança",
+  "coordenadas_poligono": [
+    {"lat": -23.5505, "lng": -46.6333},
+    {"lat": -23.5515, "lng": -46.6343},
+    {"lat": -23.5525, "lng": -46.6323}
+  ],
   "cultura_id": null,
   "nome_cultura": "Feijão Carioca",
   "culturas_rotacao": ["Milho", "Crotalária"],
+  "prioridades": {
+    "water_conservation": true
+  },
   "dados_solo": {
     "ph": 6.2,
     "textura": "argilosa"
@@ -53,7 +64,7 @@ Recebe a requisição do frontend, consulta o terreno/cultura no banco, aciona `
   }
 }
 ```
-> **Observação:** Deve ser informado `cultura_id` ou `nome_cultura` (caso contrário retorna `400 Bad Request`).
+> **Observação:** `terreno_id` é opcional se forem enviadas `coordenadas_poligono`/`prioridades` diretamente no payload (neste caso `terreno_id` retorna `null`). Caso `cultura_id` e `nome_cultura` sejam omitidos, o controlador seleciona automaticamente a estratégia de maior viabilidade retornada por `CropSimulator.simulate_rotation_strategies()`.
 
 **Response (`200 OK`):**
 ```json
@@ -66,7 +77,7 @@ Recebe a requisição do frontend, consulta o terreno/cultura no banco, aciona `
   "tempo_colheita_dias": 90,
   "consumo_agua_mm": 450.0,
   "metricas_geoespaciais": {
-    "origem": "fallback_geoespacial",
+    "origem": "nasa_geospatial_service",
     "total_vertices_poligono": 3,
     "centroide": {"lat": -23.5515, "lng": -46.6333},
     "precipitacao_estimada_mm": 480.0,
@@ -75,13 +86,18 @@ Recebe a requisição do frontend, consulta o terreno/cultura no banco, aciona `
   },
   "beneficios_esperados": [
     "Adequação do ciclo de Feijão Carioca ao planejamento da propriedade",
-    "Aproveitamento dos dados ambientais para manejo preventivo de recursos",
-    "Diversificação produtiva com rotação envolvendo Milho, Crotalária"
+    "Aproveitamento dos dados ambientais para manejo preventivo de recursos"
   ],
   "riscos_identificados": [
     "Terreno com prioridade hídrica 'escassa' frente ao consumo estimado de 450 mm"
   ],
   "explicacao_ia": "...",
+  "explicacao_textual": "...",
+  "rotacoes_sugeridas": [
+    {"strategy": "Milho -> Soja (Atual)", "viability": 0.70, "water_risk": "high"},
+    {"strategy": "Sorgo -> Feijão-caupi", "viability": 0.88, "water_risk": "low"},
+    {"strategy": "Milheto -> Amendoim", "viability": 0.82, "water_risk": "medium"}
+  ],
   "plano_rotacao": [
     {
       "ordem": 1,
@@ -99,23 +115,28 @@ Recebe a requisição do frontend, consulta o terreno/cultura no banco, aciona `
 
 ## [M4] Calendário de Atividades do Cultivo (`backend/api/calendario.py`)
 
+O módulo utiliza o modelo `Activity` (`atividades_calendario`), que pode ser vinculado a um `terreno_id`, a um `usuario_id` ou a ambos, mantendo `status` (`pendente` / `concluida`) sincronizado com `concluida` (`bool`).
+
 ### `POST /api/v1/calendario/atividades` (`201 Created`)
-Cria uma atividade diária programada no calendário do terreno.
+Cria uma atividade diária programada no calendário (requer `terreno_id` ou `usuario_id`).
 
 **Request Body:**
 ```json
 {
   "terreno_id": 1,
+  "usuario_id": 1,
   "cultura_id": null,
   "titulo": "Irrigação matinal dos canteiros",
   "descricao": "Aplicar lâmina leve de água antes das 9h",
   "tipo_atividade": "irrigacao",
   "data_programada": "2026-11-20",
-  "prioridade": "alta"
+  "prioridade": "alta",
+  "status": "pendente"
 }
 ```
-Tipos suportados: `plantio`, `irrigacao`, `adubacao`, `manejo`, `colheita`, `inspecao` (e quaisquer categorias operacionais adicionais).  
-Prioridades: `baixa`, `media`, `alta`, `critica`.
+Tipos suportados: `plantio`, `irrigacao`, `adubacao`, `manejo`, `colheita`, `inspecao`.  
+Prioridades: `baixa`, `media`, `alta`, `critica`.  
+Status válidos: `pendente`, `concluida`.
 
 ### `POST /api/v1/calendario/gerar-cronograma` (`201 Created`)
 Gera automaticamente o cronograma inicial de um ciclo (plantio, irrigação inicial, inspeção fitossanitária, adubação de cobertura e colheita).
@@ -132,21 +153,24 @@ Gera automaticamente o cronograma inicial de um ciclo (plantio, irrigação inic
 ```
 
 ### `GET /api/v1/calendario/atividades` (`200 OK`)
-Lista atividades ordenadas por `data_programada` e `id`.  
-**Query Params opcionais:** `terreno_id`, `concluida`, `tipo_atividade`, `data_inicio`, `data_fim`.
+Lista atividades ordenadas por `data_programada` e `id`, com ênfase na consulta por período.  
+**Query Params opcionais:** `terreno_id`, `usuario_id`, `status` (`pendente` / `concluida`), `concluida`, `tipo_atividade`, `data_inicio`, `data_fim`.
 
 ### `GET /api/v1/calendario/atividades/{atividade_id}` (`200 OK`)
 Retorna os detalhes de uma atividade específica.
 
-### `PATCH /api/v1/calendario/atividades/{atividade_id}/concluir` (`200 OK`)
-Marca ou desmarca uma atividade como `"concluída"` pelo agricultor (preenche `data_conclusao` automaticamente).
+### `PATCH /api/v1/calendario/atividades/{atividade_id}/status` (`200 OK`)
+*(Também disponível em `PATCH /api/v1/calendario/atividades/{atividade_id}/concluir`)*
+
+Atualiza o status da atividade entre `pendente` e `concluida`, atualizando automaticamente `concluida` e `data_conclusao`.
 
 **Request Body:**
 ```json
 {
-  "concluida": true
+  "status": "concluida"
 }
 ```
+*(Aceita alternativamente `{"concluida": true}` ou `{"concluida": false}`).*
 
 ### `PUT /api/v1/calendario/atividades/{atividade_id}` (`200 OK`)
 Atualiza parcialmente ou integralmente uma atividade programada.
@@ -158,8 +182,29 @@ Remove uma atividade do calendário.
 
 ## [M5] Alertas Climáticos e Background Tasks (`backend/api/alertas.py`)
 
+### `POST /api/v1/alertas/monitorar` (`202 Accepted`)
+Além do agendador periódico iniciado automaticamente no `lifespan` do FastAPI (configurável via `ALERT_MONITOR_INTERVAL_HOURS`, padrão `6` horas), este endpoint permite disparar sob demanda em segundo plano (`FastAPI BackgroundTasks`) um ciclo da rotina `executar_ciclo_monitoramento_alertas()` (`backend/services/alert_tasks.py`), que consulta dados climáticos sintéticos (`services/mock_nasa_data.py`), executa `ClimateAnomalyDetector.detect_extremes()` e, caso anomalias sejam detectadas, persiste automaticamente um `AlertaClimatico` no banco e adapta o calendário `[M4]`.
+
+**Request Body:**
+```json
+{
+  "terreno_id": 1,
+  "intervalo_horas": 6
+}
+```
+
+**Response (`202 Accepted`):**
+```json
+{
+  "status": "accepted",
+  "mensagem": "Monitoramento climático em segundo plano agendado (janela configurada de 6h).",
+  "intervalo_horas": 6,
+  "terreno_id": 1
+}
+```
+
 ### `POST /api/v1/alertas/gatilho` (`202 Accepted`)
-Recebe gatilhos de algoritmos de ML (ou dados NASA/manuais), aciona opcionalmente `ClimateAnomalyDetector.detect_extremes()`, grava o alerta e agenda em segundo plano (`BackgroundTasks`) a função `processar_alerta_e_adaptar_calendario()` para adaptar as tarefas pendentes na janela `[data_evento, data_evento + 3 dias]`.
+Recebe gatilhos explícitos de algoritmos de ML (ou dados NASA/manuais), aciona opcionalmente `ClimateAnomalyDetector.detect_extremes()`, grava o alerta e agenda em segundo plano a função `processar_alerta_e_adaptar_calendario()` para adaptar as tarefas pendentes na janela `[data_evento, data_evento + 3 dias]`.
 
 **Request Body:**
 ```json
@@ -179,32 +224,8 @@ Recebe gatilhos de algoritmos de ML (ou dados NASA/manuais), aciona opcionalment
 }
 ```
 
-**Response (`202 Accepted`):**
-```json
-{
-  "status": "accepted",
-  "mensagem": "Alerta registrado e rotina de adaptação do calendário agendada em segundo plano.",
-  "alerta": {
-    "id": 1,
-    "terreno_id": 1,
-    "tipo_evento": "chuva_intensa",
-    "severidade": "alta",
-    "titulo": "Alerta de precipitação intensa",
-    "mensagem": "Previsão de chuva acima de 70 mm nas próximas 48 horas.",
-    "data_evento": "2026-11-20",
-    "origem_gatilho": "ml_anomaly_detector",
-    "dados_gatilho": { "...": "..." },
-    "processado_background": false,
-    "resumo_adaptacao": null,
-    "lido": false,
-    "criado_em": "2026-11-14T11:05:00"
-  }
-}
-```
-> Após a conclusão da `BackgroundTask`, `processado_background` passa para `true` e `resumo_adaptacao` detalha as atividades ajustadas e criadas no módulo `[M4]`.
-
 ### `GET /api/v1/alertas/` (`200 OK`)
-Lista alertas climáticos ordenados por `data_evento` descrescente.  
+Lista alertas climáticos ordenados por `data_evento` decrescente.  
 **Query Params opcionais:** `terreno_id`, `lido`, `severidade`, `tipo_evento`.
 
 ### `GET /api/v1/alertas/{alerta_id}` (`200 OK`)

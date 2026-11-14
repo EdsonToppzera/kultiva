@@ -50,3 +50,23 @@ class AlertaDisparoResponse(BaseModel):
     status: str
     mensagem: str
     alerta: AlertaClimaticoResponse
+
+
+class MonitoramentoClimaRequest(BaseModel):
+    terreno_id: Optional[int] = Field(
+        default=None,
+        description="ID do terreno a monitorar (se omitido, monitora todos os terrenos cadastrados)",
+    )
+    intervalo_horas: int = Field(
+        default=6,
+        ge=1,
+        le=24,
+        description="Intervalo periódico em horas (ex: 6 ou 12)",
+    )
+
+
+class MonitoramentoClimaResponse(BaseModel):
+    status: str
+    mensagem: str
+    intervalo_horas: int
+    terreno_id: Optional[int] = None

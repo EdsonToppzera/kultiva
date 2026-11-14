@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -6,50 +6,50 @@ from sqlalchemy.orm import Session
 from backend.db import models
 from backend.db.database import get_db
 from backend.schemas.simulacao import (
+    EstrategiaRotacaoSugerida,
     EtapaRotacaoSimulada,
     SimulacaoRequest,
     SimulacaoResponse,
 )
 
 router = APIRouter(prefix="/simulacoes", tags=["Simulador (M3)"])
+simular_rotacao_router = APIRouter(tags=["Simulador (M3)"])
+
+_ROTACOES_PADRAO = [
+    {"strategy": "Milho -> Soja (Atual)", "viability": 0.70, "water_risk": "high"},
+    {"strategy": "Sorgo -> Feijão-caupi", "viability": 0.88, "water_risk": "low"},
+    {"strategy": "Milheto -> Amendoim", "viability": 0.82, "water_risk": "medium"},
+]
 
 
-def _resolver_cultura_principal(
-    payload: SimulacaoRequest, db: Session
-) -> Tuple[str, float, int]:
-    """Resolve nome, consumo de água (mm) e ciclo (dias) da cultura principal."""
-    if payload.cultura_id is not None:
-        cultura = (
-            db.query(models.Cultura)
-            .filter(models.Cultura.id == payload.cultura_id)
-            .first()
-        )
-        if not cultura:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Cultura não encontrada",
-            )
-        return cultura.nome, float(cultura.consumo_agua_mm), int(cultura.tempo_colheita_dias)
+def get_nasa_processor() -> Optional[Any]:
+    """Provedor de dependência para NasaDataProcessor."""
+    try:
+        from backend.services.geospatial import NasaDataProcessor
 
-    if payload.nome_cultura and payload.nome_cultura.strip():
-        nome_limpo = payload.nome_cultura.strip()
-        cultura = (
-            db.query(models.Cultura)
-            .filter(func.lower(models.Cultura.nome) == nome_limpo.lower())
-            .first()
-        )
-        if cultura:
-            return (
-                cultura.nome,
-                float(cultura.consumo_agua_mm),
-                int(cultura.tempo_colheita_dias),
-            )
-        return nome_limpo, 450.0, 90
+        return NasaDataProcessor(data_path="data")
+    except Exception:
+        return None
 
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Informe cultura_id ou nome_cultura para a simulação",
-    )
+
+def get_crop_simulator() -> Optional[Any]:
+    """Provedor de dependência para CropSimulator."""
+    try:
+        from backend.services.ml_models import CropSimulator
+
+        return CropSimulator()
+    except Exception:
+        return None
+
+
+def get_rotation_explainer() -> Optional[Any]:
+    """Provedor de dependência para RotationExplainerAgent."""
+    try:
+        from backend.services.llm_agent import RotationExplainerAgent
+
+        return RotationExplainerAgent()
+    except Exception:
+        return None
 
 
 def _calcular_metricas_fallback(
@@ -81,46 +81,119 @@ def _calcular_metricas_fallback(
 
 
 def _extrair_metricas_geoespaciais(
-    coordenadas_poligono: Any, dados_climaticos: Dict[str, Any]
+    coordenadas_poligono: Any,
+    dados_climaticos: Dict[str, Any],
+    nasa_processor: Optional[Any],
 ) -> Dict[str, Any]:
-    """Consulta o serviço geoespacial da NASA com fallback seguro."""
-    try:
-        from backend.services.geospatial import NasaDataProcessor
+    """Consulta o serviço geoespacial da NASA injetado com fallback seguro."""
+    fallback = _calcular_metricas_fallback(coordenadas_poligono, dados_climaticos)
+    if nasa_processor is not None:
+        try:
+            metricas = nasa_processor.extract_field_metrics(
+                coordenadas_poligono, dataset=None
+            )
+            if isinstance(metricas, dict) and metricas:
+                return {
+                    **fallback,
+                    **{k: v for k, v in metricas.items() if v is not None},
+                    "origem": "nasa_geospatial_service",
+                }
+        except Exception:
+            pass
 
-        processor = NasaDataProcessor(data_path="data/nasa")
-        metricas = processor.extract_field_metrics(coordenadas_poligono, dataset=None)
-        if isinstance(metricas, dict) and metricas:
-            return {
-                "origem": "nasa_geospatial_service",
-                **metricas,
-            }
-    except Exception:
-        pass
+    return fallback
 
-    return _calcular_metricas_fallback(coordenadas_poligono, dados_climaticos)
+
+def _simular_estrategias_rotacao(
+    metricas_geoespaciais: Dict[str, Any],
+    prioridades: Dict[str, Any],
+    crop_simulator: Optional[Any],
+) -> List[EstrategiaRotacaoSugerida]:
+    """Obtém as estratégias de rotação sugeridas via CropSimulator."""
+    if crop_simulator is not None:
+        try:
+            estrategias = crop_simulator.simulate_rotation_strategies(
+                metricas_geoespaciais, prioridades
+            )
+            if isinstance(estrategias, list) and estrategias and all(
+                isinstance(item, dict) and "strategy" in item for item in estrategias
+            ):
+                return [
+                    EstrategiaRotacaoSugerida(
+                        strategy=str(item["strategy"]),
+                        viability=float(item.get("viability", 0.85)),
+                        water_risk=str(item.get("water_risk", "low")),
+                    )
+                    for item in estrategias
+                ]
+        except Exception:
+            pass
+
+    return [EstrategiaRotacaoSugerida(**item) for item in _ROTACOES_PADRAO]
 
 
 def _simular_viabilidade_ml(
     soil_data: Dict[str, Any],
     climate_data: Dict[str, Any],
     crop_requirements: Dict[str, Any],
+    crop_simulator: Optional[Any],
 ) -> Tuple[float, str]:
-    """Executa predição de viabilidade no CropSimulator com fallback seguro."""
-    try:
-        from backend.services.ml_models import CropSimulator
-
-        simulator = CropSimulator()
-        resultado = simulator.predict_rotation_viability(
-            soil_data, climate_data, crop_requirements
-        )
-        if isinstance(resultado, dict):
-            score = float(resultado.get("viability_score", 0.85))
-            risk = str(resultado.get("water_risk", "low"))
-            return score, risk
-    except Exception:
-        pass
+    """Executa predição de viabilidade no CropSimulator injetado com fallback seguro."""
+    if crop_simulator is not None:
+        try:
+            resultado = crop_simulator.predict_rotation_viability(
+                soil_data, climate_data, crop_requirements
+            )
+            if isinstance(resultado, dict):
+                score = float(resultado.get("viability_score", 0.85))
+                risk = str(resultado.get("water_risk", "low"))
+                return score, risk
+        except Exception:
+            pass
 
     return 0.85, "low"
+
+
+def _resolver_cultura_principal(
+    payload: SimulacaoRequest,
+    db: Session,
+    rotacoes_sugeridas: List[EstrategiaRotacaoSugerida],
+) -> Tuple[str, float, int]:
+    """Resolve nome, consumo de água (mm) e ciclo (dias) da cultura/estratégia principal."""
+    if payload.cultura_id is not None:
+        cultura = (
+            db.query(models.Cultura)
+            .filter(models.Cultura.id == payload.cultura_id)
+            .first()
+        )
+        if not cultura:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Cultura não encontrada",
+            )
+        return (
+            cultura.nome,
+            float(cultura.consumo_agua_mm),
+            int(cultura.tempo_colheita_dias),
+        )
+
+    if payload.nome_cultura and payload.nome_cultura.strip():
+        nome_limpo = payload.nome_cultura.strip()
+        cultura = (
+            db.query(models.Cultura)
+            .filter(func.lower(models.Cultura.nome) == nome_limpo.lower())
+            .first()
+        )
+        if cultura:
+            return (
+                cultura.nome,
+                float(cultura.consumo_agua_mm),
+                int(cultura.tempo_colheita_dias),
+            )
+        return nome_limpo, 450.0, 90
+
+    melhor_estrategia = max(rotacoes_sugeridas, key=lambda item: item.viability)
+    return melhor_estrategia.strategy, 420.0, 95
 
 
 def _montar_beneficios_e_riscos(
@@ -164,25 +237,26 @@ def _gerar_explicacao_ia(
     riscos: List[str],
     viability_score: float,
     water_risk: str,
+    rotation_explainer: Optional[Any],
 ) -> str:
-    """Chama RotationExplainerAgent com fallback determinístico em português."""
+    """Chama RotationExplainerAgent injetado com fallback determinístico em português."""
     beneficios_txt = "; ".join(beneficios)
     riscos_txt = "; ".join(riscos)
 
-    try:
-        from backend.services.llm_agent import RotationExplainerAgent
-
-        agent = RotationExplainerAgent()
-        resposta = agent.generate_explanation(
-            crop=nome_cultura,
-            benefits=beneficios_txt,
-            risks=riscos_txt,
-        )
-        conteudo = resposta.content if hasattr(resposta, "content") else str(resposta)
-        if conteudo and conteudo.strip():
-            return conteudo.strip()
-    except Exception:
-        pass
+    if rotation_explainer is not None:
+        try:
+            resposta = rotation_explainer.generate_explanation(
+                crop=nome_cultura,
+                benefits=beneficios_txt,
+                risks=riscos_txt,
+            )
+            conteudo = (
+                resposta.content if hasattr(resposta, "content") else str(resposta)
+            )
+            if conteudo and conteudo.strip():
+                return conteudo.strip()
+        except Exception:
+            pass
 
     return (
         f"A simulação para a cultura {nome_cultura} apresentou índice de viabilidade de "
@@ -194,34 +268,49 @@ def _gerar_explicacao_ia(
     )
 
 
-@router.post("/", response_model=SimulacaoResponse)
-def executar_simulacao(
-    payload: SimulacaoRequest, db: Session = Depends(get_db)
+def _processar_simulacao(
+    payload: SimulacaoRequest,
+    db: Session,
+    nasa_processor: Optional[Any],
+    crop_simulator: Optional[Any],
+    rotation_explainer: Optional[Any],
 ) -> SimulacaoResponse:
-    """Recebe parâmetros do frontend, integra serviços geoespaciais/ML/LLM e retorna a simulação."""
-    terreno = (
-        db.query(models.Terreno)
-        .filter(models.Terreno.id == payload.terreno_id)
-        .first()
-    )
-    if not terreno:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Terreno não encontrado",
-        )
+    terreno_id_resp: Optional[int] = None
+    nome_propriedade = payload.nome_propriedade or "Terreno Simulado"
+    coordenadas_poligono: Any = payload.coordenadas_poligono or []
+    prioridades_terreno: Dict[str, Any] = {}
 
-    nome_cultura, consumo_agua_mm, tempo_colheita_dias = _resolver_cultura_principal(
-        payload, db
-    )
+    if payload.terreno_id is not None:
+        terreno = (
+            db.query(models.Terreno)
+            .filter(models.Terreno.id == payload.terreno_id)
+            .first()
+        )
+        if not terreno:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Terreno não encontrado",
+            )
+        terreno_id_resp = terreno.id
+        nome_propriedade = payload.nome_propriedade or terreno.nome_propriedade
+        if payload.coordenadas_poligono is None:
+            coordenadas_poligono = terreno.coordenadas_poligono
+        if isinstance(terreno.prioridades, dict):
+            prioridades_terreno = terreno.prioridades
 
     dados_climaticos_req = payload.dados_climaticos or {}
-    prioridades_terreno = (
-        terreno.prioridades if isinstance(terreno.prioridades, dict) else {}
-    )
-    dados_solo = payload.dados_solo or {"prioridades_terreno": prioridades_terreno}
+    prioridades_finais = {**prioridades_terreno, **(payload.prioridades or {})}
+    dados_solo = payload.dados_solo or {"prioridades_terreno": prioridades_finais}
 
     metricas_geoespaciais = _extrair_metricas_geoespaciais(
-        terreno.coordenadas_poligono, dados_climaticos_req
+        coordenadas_poligono, dados_climaticos_req, nasa_processor
+    )
+    rotacoes_sugeridas = _simular_estrategias_rotacao(
+        metricas_geoespaciais, prioridades_finais, crop_simulator
+    )
+
+    nome_cultura, consumo_agua_mm, tempo_colheita_dias = _resolver_cultura_principal(
+        payload, db, rotacoes_sugeridas
     )
 
     climate_data = {**metricas_geoespaciais, **dados_climaticos_req}
@@ -231,7 +320,7 @@ def executar_simulacao(
         "tempo_colheita_dias": tempo_colheita_dias,
     }
     viability_score, water_risk = _simular_viabilidade_ml(
-        dados_solo, climate_data, crop_requirements
+        dados_solo, climate_data, crop_requirements, crop_simulator
     )
 
     culturas_rotacao = [
@@ -241,15 +330,16 @@ def executar_simulacao(
         nome_cultura=nome_cultura,
         consumo_agua_mm=consumo_agua_mm,
         water_risk=water_risk,
-        prioridades=prioridades_terreno,
+        prioridades=prioridades_finais,
         culturas_rotacao=culturas_rotacao,
     )
-    explicacao_ia = _gerar_explicacao_ia(
+    explicacao = _gerar_explicacao_ia(
         nome_cultura=nome_cultura,
         beneficios=beneficios,
         riscos=riscos,
         viability_score=viability_score,
         water_risk=water_risk,
+        rotation_explainer=rotation_explainer,
     )
 
     plano_rotacao = [
@@ -279,6 +369,7 @@ def executar_simulacao(
                 "consumo_agua_mm": etapa_consumo,
                 "tempo_colheita_dias": etapa_duracao,
             },
+            crop_simulator,
         )
         plano_rotacao.append(
             EtapaRotacaoSimulada(
@@ -292,8 +383,8 @@ def executar_simulacao(
         )
 
     return SimulacaoResponse(
-        terreno_id=terreno.id,
-        nome_propriedade=terreno.nome_propriedade,
+        terreno_id=terreno_id_resp,
+        nome_propriedade=nome_propriedade,
         cultura_principal=nome_cultura,
         viability_score=viability_score,
         water_risk=water_risk,
@@ -302,6 +393,45 @@ def executar_simulacao(
         metricas_geoespaciais=metricas_geoespaciais,
         beneficios_esperados=beneficios,
         riscos_identificados=riscos,
-        explicacao_ia=explicacao_ia,
+        explicacao_ia=explicacao,
+        explicacao_textual=explicacao,
+        rotacoes_sugeridas=rotacoes_sugeridas,
         plano_rotacao=plano_rotacao,
+    )
+
+
+@router.post("/", response_model=SimulacaoResponse)
+@router.post("/simular-rotacao", response_model=SimulacaoResponse)
+def executar_simulacao(
+    payload: SimulacaoRequest,
+    db: Session = Depends(get_db),
+    nasa_processor: Optional[Any] = Depends(get_nasa_processor),
+    crop_simulator: Optional[Any] = Depends(get_crop_simulator),
+    rotation_explainer: Optional[Any] = Depends(get_rotation_explainer),
+) -> SimulacaoResponse:
+    """Recebe parâmetros do frontend, integra serviços geoespaciais/ML/LLM e retorna a simulação."""
+    return _processar_simulacao(
+        payload=payload,
+        db=db,
+        nasa_processor=nasa_processor,
+        crop_simulator=crop_simulator,
+        rotation_explainer=rotation_explainer,
+    )
+
+
+@simular_rotacao_router.post("/simular-rotacao", response_model=SimulacaoResponse)
+def simular_rotacao(
+    payload: SimulacaoRequest,
+    db: Session = Depends(get_db),
+    nasa_processor: Optional[Any] = Depends(get_nasa_processor),
+    crop_simulator: Optional[Any] = Depends(get_crop_simulator),
+    rotation_explainer: Optional[Any] = Depends(get_rotation_explainer),
+) -> SimulacaoResponse:
+    """Endpoint direto /api/v1/simular-rotacao para orquestração de simulação e explicação IA."""
+    return _processar_simulacao(
+        payload=payload,
+        db=db,
+        nasa_processor=nasa_processor,
+        crop_simulator=crop_simulator,
+        rotation_explainer=rotation_explainer,
     )
