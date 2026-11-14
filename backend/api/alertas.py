@@ -12,7 +12,9 @@ from backend.schemas.alerta import (
     MonitoramentoClimaResponse,
 )
 from backend.services.alert_tasks import (
+    buscar_alerta_duplicado,
     executar_ciclo_monitoramento_alertas,
+    obter_intervalo_monitoramento_horas,
     processar_alerta_e_adaptar_calendario,
 )
 
@@ -67,6 +69,19 @@ def disparar_alerta_climatico(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Terreno não encontrado",
+        )
+
+    alerta_existente = buscar_alerta_duplicado(
+        db=db,
+        terreno_id=payload.terreno_id,
+        tipo_evento=payload.tipo_evento,
+        data_evento=payload.data_evento,
+    )
+    if alerta_existente is not None:
+        return AlertaDisparoResponse(
+            status="deduplicated",
+            mensagem="Alerta equivalente já registrado para este terreno/evento (deduplicado).",
+            alerta=alerta_existente,
         )
 
     dados_gatilho = _executar_detector_anomalias(payload.serie_temporal_clima)
@@ -131,19 +146,25 @@ def iniciar_monitoramento_clima(
                 detail="Terreno não encontrado",
             )
 
+    intervalo_efetivo = (
+        payload.intervalo_horas
+        if payload.intervalo_horas is not None
+        else obter_intervalo_monitoramento_horas()
+    )
+
     background_tasks.add_task(
         executar_ciclo_monitoramento_alertas,
         payload.terreno_id,
-        payload.intervalo_horas,
+        intervalo_efetivo,
     )
 
     return MonitoramentoClimaResponse(
         status="accepted",
         mensagem=(
             "Monitoramento climático em segundo plano agendado "
-            f"(janela configurada de {payload.intervalo_horas}h)."
+            f"(janela configurada de {intervalo_efetivo}h)."
         ),
-        intervalo_horas=payload.intervalo_horas,
+        intervalo_horas=intervalo_efetivo,
         terreno_id=payload.terreno_id,
     )
 

@@ -56,11 +56,11 @@ class MonitoramentoClimaRequest(BaseModel):
         default=None,
         description="ID do terreno a monitorar (se omitido, monitora todos os terrenos cadastrados)",
     )
-    intervalo_horas: int = Field(
-        default=6,
+    intervalo_horas: Optional[int] = Field(
+        default=None,
         ge=1,
         le=24,
-        description="Intervalo periódico em horas (ex: 6 ou 12)",
+        description="Intervalo periódico em horas (se omitido, usa ALERT_MONITOR_INTERVAL_HOURS)",
     )
 
 
