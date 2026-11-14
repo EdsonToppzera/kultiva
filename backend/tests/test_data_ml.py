@@ -1,10 +1,23 @@
 import sys
+from unittest.mock import patch
 
 import numpy as np
 import pytest
+from langchain_core.language_models.fake import FakeListLLM
 
+from backend.schemas.simulacao import EstrategiaRotacaoSugerida
+from backend.services.llm_agent import (
+    DISCLAIMER,
+    STRATEGY_SEPARATOR,
+    RotationExplainerAgent,
+)
 from backend.services.ml_models import ClimateAnomalyDetector, CropSimulator
-from backend.services.mock_nasa_data import generate_synthetic_netcdf
+from backend.services.mock_nasa_data import (
+    ECOSTRESS_FILE,
+    GPM_FILE,
+    SMAP_FILE,
+    generate_synthetic_netcdf,
+)
 
 POLIGONO_SP = [
     {"lat": -23.5505, "lng": -46.6333},
@@ -177,3 +190,231 @@ def test_contrato_de_saida_e_serie_vazia():
     r = ClimateAnomalyDetector().detect_extremes([])
     assert set(r) == {"anomaly_detected", "tipo_evento", "severidade", "detalhes"}
     assert r["anomaly_detected"] is False
+
+
+def test_detector_serie_curta_constante_e_outlier_benigno():
+    d = ClimateAnomalyDetector()
+
+    # Série curta (< 10 pontos) sem estourar limiar não aciona IsolationForest
+    curta = _serie_normal(n=9)
+    curta[5]["precipitation_mm"] = 40.0
+    assert d.detect_extremes(curta)["anomaly_detected"] is False
+
+    # Série constante (MAD == 0) não divide por zero nem gera falso positivo
+    constante = [
+        {"precipitation_mm": 5.0, "surface_temp_c": 26.0, "soil_moisture": 0.30}
+        for _ in range(15)
+    ]
+    res_const = d.detect_extremes(constante)
+    assert res_const["anomaly_detected"] is False
+    assert res_const["tipo_evento"] == "nenhum"
+
+    # Outlier no sentido benigno (menos chuva / dia mais frio) não gera alerta
+    benigno = _serie_normal(n=30)
+    benigno[10]["precipitation_mm"] = 0.0
+    benigno[12]["surface_temp_c"] = 17.0
+    benigno[15]["soil_moisture"] = 0.45
+    assert d.detect_extremes(benigno)["anomaly_detected"] is False
+
+    # Aliases em português aceitos pelo detector
+    assert d.detect_extremes({"precipitacao_mm": 75.0})["tipo_evento"] == "chuva_intensa"
+    assert d.detect_extremes({"temperatura_media_c": 37.0})["tipo_evento"] == "onda_de_calor"
+    assert d.detect_extremes({"umidade_solo": 0.12})["tipo_evento"] == "seca"
+
+
+# ---- A1 / A2: casos extremos adicionais -----------------------------------
+
+
+def test_normalizacao_poligono_invalido_invertido_e_poucos_vertices(provider):
+    from backend.services.geospatial import (
+        _DEFAULT_BRAZIL_POLYGON,
+        _build_polygon_geometry,
+        _normalize_polygon_coords,
+    )
+
+    assert _normalize_polygon_coords([]) == _DEFAULT_BRAZIL_POLYGON
+    assert _normalize_polygon_coords(None) == _DEFAULT_BRAZIL_POLYGON
+
+    # Pares (lat, lon) invertidos são corrigidos para (lon, lat)
+    corrigido = _normalize_polygon_coords(
+        [(-15.0, -47.0), (-15.5, -47.5), (-16.0, -46.5)]
+    )
+    assert corrigido == [(-47.0, -15.0), (-47.5, -15.5), (-46.5, -16.0)]
+
+    # Polígonos com 1 ou 2 pontos geram geometria válida com área > 0
+    geom_1 = _build_polygon_geometry([(-47.0, -15.0)])
+    geom_2 = _build_polygon_geometry([(-47.0, -15.0), (-47.1, -15.1)])
+    assert geom_1.is_valid and geom_1.area > 0
+    assert geom_2.is_valid and geom_2.area > 0
+
+    # Polígono amplo cobre células da grade e usa clip espacial
+    poligono_amplo = [
+        {"lat": -16.0, "lng": -48.0},
+        {"lat": -16.0, "lng": -47.0},
+        {"lat": -15.0, "lng": -47.0},
+        {"lat": -15.0, "lng": -48.0},
+    ]
+    m = provider.extract_field_metrics(poligono_amplo)
+    assert m["data_quality"] == "clip"
+    assert m["avg_precipitation_gpm"] > 0
+
+
+def test_generate_synthetic_netcdf_idempotente_e_regera_faltante(tmp_path):
+    msg1 = generate_synthetic_netcdf(str(tmp_path), force=False)
+    assert "sucesso" in msg1
+    for fname in (SMAP_FILE, ECOSTRESS_FILE, GPM_FILE):
+        assert (tmp_path / fname).exists()
+
+    smap_mtime_before = (tmp_path / SMAP_FILE).stat().st_mtime_ns
+    msg2 = generate_synthetic_netcdf(str(tmp_path), force=False)
+    assert "já existentes" in msg2
+    assert (tmp_path / SMAP_FILE).stat().st_mtime_ns == smap_mtime_before
+
+    # Se um dos arquivos estiver faltando, regera o conjunto completo
+    (tmp_path / GPM_FILE).unlink()
+    msg3 = generate_synthetic_netcdf(str(tmp_path), force=False)
+    assert "sucesso" in msg3
+    assert (tmp_path / GPM_FILE).exists()
+
+
+def test_simulador_pratica_atual_customizada_e_normalizacao_seta():
+    sim = CropSimulator()
+    est_custom = sim.simulate_rotation_strategies(
+        SECO, {"pratica_atual": "Algodão -> Girassol"}
+    )
+    assert len(est_custom) == 3
+    atuais = [e for e in est_custom if "(Atual)" in e["strategy"]]
+    assert len(atuais) == 1
+    assert atuais[0]["strategy"] == "Algodão -> Girassol (Atual)"
+
+    # Seta unicode "→" deve casar com item do catálogo sem duplicar
+    est_seta = sim.simulate_rotation_strategies(
+        UMIDO, {"pratica_atual": "Sorgo → Feijão-caupi"}
+    )
+    assert len(est_seta) == 3
+    sorgo_items = [e for e in est_seta if "sorgo" in e["strategy"].lower()]
+    assert len(sorgo_items) == 1
+    assert "(Atual)" in sorgo_items[0]["strategy"]
+
+
+def test_simulador_no_data_e_predict_sem_requisitos():
+    sim = CropSimulator()
+
+    # Quando data_quality == "no_data", ignora zeros do provider e usa fallback
+    no_data_com_fallback = {
+        "data_quality": "no_data",
+        "avg_soil_moisture_smap": 0.0,
+        "avg_surface_temp_ecostress": 0.0,
+        "avg_precipitation_gpm": 0.0,
+        "umidade_solo_estimada": 0.40,
+        "temperatura_media_c": 26.0,
+        "precipitacao_estimada_mm": 1200.0,
+    }
+    no_data_sem_fallback = {
+        "data_quality": "no_data",
+        "avg_soil_moisture_smap": 0.0,
+        "avg_surface_temp_ecostress": 0.0,
+        "avg_precipitation_gpm": 0.0,
+    }
+    m_fb = sim._read_metrics(no_data_com_fallback)
+    m_def = sim._read_metrics(no_data_sem_fallback)
+    assert m_fb["moisture"] == pytest.approx(0.40)
+    assert m_def["moisture"] == pytest.approx(0.25)
+
+    # predict_rotation_viability com 2 argumentos delega para simulate_rotation_strategies
+    res_lista = sim.predict_rotation_viability(UMIDO, {"agua": "escassa"})
+    assert isinstance(res_lista, list)
+    assert len(res_lista) == 3
+
+
+# ---- A4: RotationExplainerAgent ------------------------------------------
+
+
+def test_llm_generate_explanation_garante_disclaimer_sem_duplicar():
+    fake_llm = FakeListLLM(
+        responses=[
+            "Essa rotação ajuda a segurar a umidade no solo.",
+            f"Essa rotação ajuda no manejo.\n\n{DISCLAIMER}",
+        ]
+    )
+    agent = RotationExplainerAgent(llm=fake_llm)
+
+    sem_aviso = agent.generate_explanation(
+        crop="Sorgo -> Feijão-caupi",
+        benefits="Segura mais água",
+        risks="Risco baixo",
+    )
+    assert "decisão final" in sem_aviso.lower()
+    assert sem_aviso.endswith(DISCLAIMER)
+
+    com_aviso = agent.generate_explanation(
+        crop="Milho -> Soja",
+        benefits="Mercado fácil",
+        risks="Pede mais água",
+    )
+    assert com_aviso.lower().count("decisão final") == 1
+
+
+def test_llm_explain_strategies_uma_chamada_tres_explicacoes_com_disclaimer(monkeypatch):
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    estrategias = CropSimulator().simulate_rotation_strategies(SECO, {"agua": "escassa"})
+    agent = RotationExplainerAgent()
+
+    with patch.object(agent.llm, "_call", wraps=agent.llm._call) as spy_call:
+        explicacoes = agent.explain_strategies(
+            estrategias,
+            field_metrics=SECO,
+            farmer_priorities={"agua": "escassa"},
+        )
+
+    assert spy_call.call_count == 1
+    assert len(explicacoes) == 3
+    assert len(set(explicacoes)) == 3
+    for estrategia, texto in zip(estrategias, explicacoes):
+        assert estrategia["strategy"] in texto
+        assert "decisão final" in texto.lower()
+        assert texto.endswith(DISCLAIMER)
+
+
+def test_llm_explain_strategies_parseia_blocos_estruturados_e_lista_vazia():
+    estrategias = CropSimulator().simulate_rotation_strategies(UMIDO, {})
+    resposta_llm = (
+        f"A estratégia {estrategias[0]['strategy']} aproveita bem a chuva do terreno.\n"
+        f"{STRATEGY_SEPARATOR}\n"
+        "Segunda explicação simples sem repetir o título.\n"
+        f"{STRATEGY_SEPARATOR}\n"
+        f"Na opção {estrategias[2]['strategy']}, observe o manejo do solo. "
+        "A decisão final é sempre sua."
+    )
+    fake_llm = FakeListLLM(responses=[resposta_llm])
+    agent = RotationExplainerAgent(llm=fake_llm)
+
+    with patch.object(agent.llm, "_call", wraps=agent.llm._call) as spy_call:
+        assert agent.explain_strategies([]) == []
+        assert spy_call.call_count == 0
+
+        explicacoes = agent.explain_strategies(estrategias)
+
+    assert spy_call.call_count == 1
+    assert len(explicacoes) == 3
+    assert "aproveita bem a chuva" in explicacoes[0]
+    assert explicacoes[0].endswith(DISCLAIMER)
+    assert estrategias[1]["strategy"] in explicacoes[1]
+    assert "Segunda explicação simples" in explicacoes[1]
+    assert explicacoes[1].endswith(DISCLAIMER)
+    assert estrategias[2]["strategy"] in explicacoes[2]
+    assert explicacoes[2].lower().count("decisão final") == 1
+
+    # Também aceita modelos Pydantic (EstrategiaRotacaoSugerida)
+    modelos = [
+        EstrategiaRotacaoSugerida(
+            strategy=e["strategy"],
+            viability=e["viability"],
+            water_risk=e["water_risk"],
+            benefits=e["benefits"],
+        )
+        for e in estrategias
+    ]
+    explicacoes_modelos = agent.explain_strategies(modelos)
+    assert len(explicacoes_modelos) == 3
+    assert all("decisão final" in t.lower() for t in explicacoes_modelos)
