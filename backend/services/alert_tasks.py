@@ -1,14 +1,98 @@
 import asyncio
 from contextlib import asynccontextmanager
+import importlib
+import logging
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
+
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 from backend.db import models
 from backend.db.database import SessionLocal
 
+logger = logging.getLogger(__name__)
+
 TIPOS_CHUVA = {"chuva_intensa", "tempestade", "heavy_rain"}
 TIPOS_CALOR_SECA = {"onda_de_calor", "seca", "heatwave", "drought"}
+
+
+def obter_intervalo_monitoramento_horas(default: int = 6) -> int:
+    """Lê ALERT_MONITOR_INTERVAL_HOURS do ambiente com fallback seguro."""
+    bruto = os.getenv("ALERT_MONITOR_INTERVAL_HOURS", str(default))
+    try:
+        return max(1, int(bruto))
+    except (TypeError, ValueError):
+        return default
+
+
+def obter_cooldown_alerta_horas(default: int = 24) -> int:
+    """Lê ALERT_COOLDOWN_HOURS do ambiente (0 desativa janela de cooldown)."""
+    bruto = os.getenv("ALERT_COOLDOWN_HOURS", str(default))
+    try:
+        return max(0, int(bruto))
+    except (TypeError, ValueError):
+        return default
+
+
+def get_nasa_provider(data_path: str = "data") -> Optional[Any]:
+    """Instancia o provedor NASA (INASADataProvider) via geospatial.py."""
+    try:
+        geo_module = importlib.import_module("backend.services.geospatial")
+        provider_cls = getattr(geo_module, "MockNASADataProvider", None) or getattr(
+            geo_module, "NasaDataProcessor", None
+        )
+        if provider_cls is None:
+            return None
+        return provider_cls(data_path=data_path)
+    except Exception:
+        return None
+
+
+def buscar_alerta_duplicado(
+    db: Session,
+    terreno_id: int,
+    tipo_evento: str,
+    data_evento: date,
+    cooldown_horas: Optional[int] = None,
+) -> Optional[models.AlertaClimatico]:
+    """
+    Verifica se já existe alerta equivalente para evitar duplicidade:
+    - mesmo terreno + mesmo tipo_evento + mesma data_evento, ou
+    - mesmo terreno + mesmo tipo_evento criado dentro da janela de cooldown.
+    """
+    tipo_norm = tipo_evento.strip().lower()
+    existentes = (
+        db.query(models.AlertaClimatico)
+        .filter(
+            models.AlertaClimatico.terreno_id == terreno_id,
+            func.lower(models.AlertaClimatico.tipo_evento) == tipo_norm,
+        )
+        .order_by(models.AlertaClimatico.id.desc())
+        .all()
+    )
+    if not existentes:
+        return None
+
+    horas_cooldown = (
+        obter_cooldown_alerta_horas() if cooldown_horas is None else max(0, cooldown_horas)
+    )
+    agora_naive = datetime.now(timezone.utc).replace(tzinfo=None)
+    limite_cooldown = agora_naive - timedelta(hours=horas_cooldown)
+
+    for alerta in existentes:
+        if alerta.data_evento == data_evento:
+            return alerta
+        if horas_cooldown > 0 and alerta.criado_em is not None:
+            criado = (
+                alerta.criado_em.replace(tzinfo=None)
+                if alerta.criado_em.tzinfo is not None
+                else alerta.criado_em
+            )
+            if criado >= limite_cooldown:
+                return alerta
+    return None
 
 
 def processar_alerta_e_adaptar_calendario(
@@ -196,39 +280,87 @@ def coletar_dados_climaticos_sinteticos(output_dir: str = "data") -> Dict[str, A
         }
 
 
-def _avaliar_anomalia_climatica(dados_sinteticos: Dict[str, Any]) -> Dict[str, Any]:
-    """Aciona ClimateAnomalyDetector com interpretação determinística de limiares."""
+def coletar_dados_climaticos_terreno(
+    terreno: models.Terreno,
+    output_dir: str = "data",
+    nasa_provider: Optional[Any] = None,
+) -> Dict[str, Any]:
+    """
+    Coleta métricas climáticas específicas do polígono do terreno via INASADataProvider,
+    com fallback para o gerador sintético caso o provider falhe ou retorne no_data.
+    """
+    provider = nasa_provider if nasa_provider is not None else get_nasa_provider(output_dir)
+    if provider is not None:
+        try:
+            metricas = provider.extract_field_metrics(
+                terreno.coordenadas_poligono, dataset=None
+            )
+            if isinstance(metricas, dict) and metricas.get("data_quality") != "no_data":
+                return {
+                    "origem": "nasa_geospatial_provider",
+                    "data_quality": metricas.get("data_quality", "clip"),
+                    "soil_moisture": metricas.get("avg_soil_moisture_smap"),
+                    "surface_temp_c": metricas.get("avg_surface_temp_ecostress"),
+                    "precipitation_mm": metricas.get("avg_precipitation_gpm"),
+                    "is_bare_field_period": metricas.get("is_bare_field_period"),
+                    "time_series": metricas.get("time_series") or [],
+                }
+        except Exception as exc:
+            logger.warning(
+                "Falha ao extrair métricas NASA para terreno %s: %s",
+                terreno.id,
+                exc,
+            )
+
+    return coletar_dados_climaticos_sinteticos(output_dir=output_dir)
+
+
+def _avaliar_anomalia_climatica(dados_climaticos: Dict[str, Any]) -> Dict[str, Any]:
+    """Aciona ClimateAnomalyDetector sobre série do terreno (ou ponto) respeitando anomaly_detected."""
     resultado_ml: Any = None
     origem_detector = "limiar_sintetico"
+    entrada_detector: Any = (
+        dados_climaticos["time_series"]
+        if isinstance(dados_climaticos.get("time_series"), list)
+        and dados_climaticos["time_series"]
+        else dados_climaticos
+    )
 
     try:
         from backend.services.ml_models import ClimateAnomalyDetector
 
         detector = ClimateAnomalyDetector()
-        resultado_ml = detector.detect_extremes(dados_sinteticos)
+        resultado_ml = detector.detect_extremes(entrada_detector)
         origem_detector = "climate_anomaly_detector"
     except Exception as exc:
         resultado_ml = {"erro_detector": str(exc)}
 
     if isinstance(resultado_ml, dict) and "anomaly_detected" in resultado_ml:
         anomalia = bool(resultado_ml["anomaly_detected"])
-        tipo_evento = str(resultado_ml.get("tipo_evento", "onda_de_calor"))
-        severidade = str(resultado_ml.get("severidade", "alta"))
+        tipo_evento = str(resultado_ml.get("tipo_evento", "nenhum"))
+        severidade = str(resultado_ml.get("severidade", "baixa"))
     else:
-        anomalia = bool(dados_sinteticos.get("anomaly_detected", True))
-        precip = float(dados_sinteticos.get("precipitation_mm", 0.0))
-        temp = float(dados_sinteticos.get("surface_temp_c", 25.0))
-        umidade = float(dados_sinteticos.get("soil_moisture", 0.3))
+        precip = float(dados_climaticos.get("precipitation_mm") or 0.0)
+        temp = float(dados_climaticos.get("surface_temp_c") or 25.0)
+        umidade_val = dados_climaticos.get("soil_moisture")
+        umidade = float(umidade_val) if umidade_val is not None else 0.3
 
         if precip >= 60.0:
+            anomalia = True
             tipo_evento = "chuva_intensa"
             severidade = "alta"
-        elif temp >= 35.0 or umidade <= 0.2:
+        elif temp >= 35.0:
+            anomalia = True
             tipo_evento = "onda_de_calor"
             severidade = "alta"
+        elif umidade <= 0.15:
+            anomalia = True
+            tipo_evento = "seca"
+            severidade = "alta"
         else:
-            tipo_evento = "onda_de_calor"
-            severidade = "media"
+            anomalia = False
+            tipo_evento = "nenhum"
+            severidade = "baixa"
 
     return {
         "origem_detector": origem_detector,
@@ -241,19 +373,21 @@ def _avaliar_anomalia_climatica(dados_sinteticos: Dict[str, Any]) -> Dict[str, A
 
 def executar_ciclo_monitoramento_alertas(
     terreno_id: Optional[int] = None,
-    intervalo_horas: int = 6,
+    intervalo_horas: Optional[int] = None,
     output_dir: str = "data",
     session_factory=None,
+    cooldown_horas: Optional[int] = None,
 ) -> List[int]:
     """
-    Executa um ciclo de monitoramento climático em segundo plano:
-    consulta o gerador sintético/ClimateAnomalyDetector e persiste Alertas no banco.
+    Executa um ciclo de monitoramento climático em segundo plano por terreno:
+    extrai métricas via INASADataProvider, avalia ClimateAnomalyDetector e
+    persiste Alertas deduplicados (terreno + tipo + data e cooldown).
     """
-    dados_sinteticos = coletar_dados_climaticos_sinteticos(output_dir=output_dir)
-    avaliacao = _avaliar_anomalia_climatica(dados_sinteticos)
-    if not avaliacao["anomaly_detected"]:
-        return []
-
+    intervalo_efetivo = (
+        obter_intervalo_monitoramento_horas()
+        if intervalo_horas is None
+        else max(1, int(intervalo_horas))
+    )
     factory = session_factory or SessionLocal
     db = factory()
     alertas_gerados: List[int] = []
@@ -265,16 +399,42 @@ def executar_ciclo_monitoramento_alertas(
         if not terrenos:
             return []
 
+        nasa_provider = get_nasa_provider(data_path=output_dir)
         data_prevista = date.today() + timedelta(days=1)
-        tipo_evento = avaliacao["tipo_evento"]
-        severidade = avaliacao["severidade"]
 
         for terreno in terrenos:
+            dados_terreno = coletar_dados_climaticos_terreno(
+                terreno=terreno,
+                output_dir=output_dir,
+                nasa_provider=nasa_provider,
+            )
+            avaliacao = _avaliar_anomalia_climatica(dados_terreno)
+            if not avaliacao["anomaly_detected"]:
+                continue
+
+            tipo_evento = avaliacao["tipo_evento"]
+            severidade = avaliacao["severidade"]
+
+            if buscar_alerta_duplicado(
+                db=db,
+                terreno_id=terreno.id,
+                tipo_evento=tipo_evento,
+                data_evento=data_prevista,
+                cooldown_horas=cooldown_horas,
+            ):
+                logger.info(
+                    "Alerta duplicado/em cooldown ignorado para terreno=%s tipo=%s data=%s",
+                    terreno.id,
+                    tipo_evento,
+                    data_prevista.isoformat(),
+                )
+                continue
+
             alerta = models.AlertaClimatico(
                 terreno_id=terreno.id,
                 tipo_evento=tipo_evento,
                 severidade=severidade,
-                titulo=f"Monitoramento automático ({intervalo_horas}h): {tipo_evento.replace('_', ' ')}",
+                titulo=f"Monitoramento automático ({intervalo_efetivo}h): {tipo_evento.replace('_', ' ')}",
                 mensagem=(
                     f"Anomalia climática detectada ({tipo_evento}) para o terreno "
                     f"'{terreno.nome_propriedade}' em {data_prevista.isoformat()}."
@@ -282,8 +442,8 @@ def executar_ciclo_monitoramento_alertas(
                 data_evento=data_prevista,
                 origem_gatilho="periodic_synthetic_monitor",
                 dados_gatilho={
-                    "intervalo_horas": intervalo_horas,
-                    "dados_climaticos": dados_sinteticos,
+                    "intervalo_horas": intervalo_efetivo,
+                    "dados_climaticos": dados_terreno,
                     "detector": avaliacao,
                 },
                 processado_background=False,
@@ -308,7 +468,7 @@ def executar_ciclo_monitoramento_alertas(
 
 
 async def iniciar_monitoramento_periodico(
-    intervalo_horas: int = 6,
+    intervalo_horas: Optional[int] = None,
     max_ciclos: Optional[int] = 1,
     terreno_id: Optional[int] = None,
     session_factory=None,
@@ -317,17 +477,22 @@ async def iniciar_monitoramento_periodico(
     """
     Orquestra ciclos periódicos de verificação climática (ex: a cada 6 ou 12 horas).
     """
+    intervalo_efetivo = (
+        obter_intervalo_monitoramento_horas()
+        if intervalo_horas is None
+        else max(1, int(intervalo_horas))
+    )
     todos_alertas: List[int] = []
     ciclos_executados = 0
 
     if aguardar_inicio:
-        await asyncio.sleep(max(0, intervalo_horas) * 3600)
+        await asyncio.sleep(intervalo_efetivo * 3600)
 
     while max_ciclos is None or ciclos_executados < max_ciclos:
         try:
             gerados = executar_ciclo_monitoramento_alertas(
                 terreno_id=terreno_id,
-                intervalo_horas=intervalo_horas,
+                intervalo_horas=intervalo_efetivo,
                 session_factory=session_factory,
             )
             todos_alertas.extend(gerados)
@@ -339,7 +504,7 @@ async def iniciar_monitoramento_periodico(
         if max_ciclos is not None and ciclos_executados >= max_ciclos:
             break
 
-        await asyncio.sleep(max(0, intervalo_horas) * 3600)
+        await asyncio.sleep(intervalo_efetivo * 3600)
 
     return todos_alertas
 
@@ -347,7 +512,7 @@ async def iniciar_monitoramento_periodico(
 @asynccontextmanager
 async def lifespan_monitoramento_alertas(app):
     """Inicia a rotina periódica de monitoramento climático no startup do FastAPI."""
-    intervalo_horas = int(os.getenv("ALERT_MONITOR_INTERVAL_HOURS", "6"))
+    intervalo_horas = obter_intervalo_monitoramento_horas()
     task = asyncio.create_task(
         iniciar_monitoramento_periodico(
             intervalo_horas=intervalo_horas,
