@@ -96,6 +96,7 @@
       "previousCropLabel": "PREVIOUS CROP (OPTIONAL)",
       "searchPlaceholder": "Search crop...",
       "searchInputPlaceholder": "E.g.: Cassava, corn, bean...",
+      "loadingCrops": "Loading crops...",
       "emptySearch": "No crop found for \"{{query}}\". Choose an option from the list or try another common name.",
       "inProgressLabel": "This last crop is still planted in the field",
       "inProgressHint": "Check if you have already planted and will harvest later.",
@@ -181,6 +182,7 @@
       "targetPestLabel": "WHICH PEST OR DISEASE DO YOU WANT TO CONTROL?",
       "targetPestSearch": "Search pest or disease...",
       "targetPestPlaceholder": "E.g.: Armyworm, ant, nematode...",
+      "loadingPests": "Loading pests...",
       "targetPestEmpty": "No pest found for \"{{query}}\". Choose an option from the list or try another common name.",
       "finish": "See planting paths",
       "options": {
