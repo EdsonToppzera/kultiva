@@ -216,16 +216,21 @@ export function RecommendationsStep({
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:items-start">
-                {localScenarios.map((scenario) => (
-                  <RecommendationCard
-                    key={scenario.id}
-                    scenario={scenario}
-                    onSelectPlan={isSubmittingPlan ? undefined : onSelectPlan}
-                    onOpenDetails={(item) => setActiveScenarioId(item.id)}
-                    onSwapTrackStep={handleSwapTrackStep}
-                  />
-                ))}
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:items-start">
+                  {localScenarios.map((scenario) => (
+                    <RecommendationCard
+                      key={scenario.id}
+                      scenario={scenario}
+                      onSelectPlan={isSubmittingPlan ? undefined : onSelectPlan}
+                      onOpenDetails={(item) => setActiveScenarioId(item.id)}
+                      onSwapTrackStep={handleSwapTrackStep}
+                    />
+                  ))}
+                </div>
+                <p className="mx-auto max-w-2xl text-center text-xs leading-relaxed text-[#6D6960]">
+                  {t("simulation.decisionDisclaimer")}
+                </p>
               </div>
             )}
           </main>

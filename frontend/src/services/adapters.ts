@@ -232,6 +232,8 @@ function resolveVariant(
   const riskLower = (item.water_risk || "").toLowerCase();
   if (
     item.viability < 0.48 ||
+    riskLower.includes("high") ||
+    riskLower.includes("critical") ||
     riskLower.includes("alto") ||
     riskLower.includes("critico") ||
     riskLower.includes("crítico")
@@ -242,49 +244,172 @@ function resolveVariant(
   return "standard";
 }
 
-const EN_BENEFIT_PHRASES: Array<[string, string]> = [
+const PT_FARMER_SIMPLIFICATIONS: Array<[RegExp, string]> = [
   [
-    "Mercado estabelecido e cadeia de comercialização consolidada",
-    "Established market and consolidated supply chain",
+    /Aptidão FAO GAEZ v5(?:\s*\([^)]+\))?\s+de\s+\d+%\s*\((?:produtividade atingível média\s*)?(~?\d+\s*kg\/ha)\)\s*(?:com\s+fixação biológica de nitrogênio)?/gi,
+    "Combina bem com a terra da região (pode render perto de $1) e ajuda a adubar o solo naturalmente",
   ],
   [
-    "Alta tolerância à seca, fixa nitrogênio",
-    "High drought tolerance, fixes nitrogen",
-  ],
-  ["Melhora a estrutura do solo", "Improves soil structure"],
-  [
-    "Rústica, cobre o solo e controla nematoides",
-    "Hardy crop, covers the soil and helps control nematodes",
+    /Aptidão FAO GAEZ v5(?:\s*\([^)]+\))?\s+de\s+\d+%/gi,
+    "Combina bem com a terra da região",
   ],
   [
-    "Feijão fixa nitrogênio para o milho seguinte",
-    "Beans fix nitrogen for the following corn crop",
+    /\(GAEZ v5:\s*aptidão\s*\d+%,\s*(~?\d+\s*kg\/ha)\)/gi,
+    "— pode render perto de $1 na região",
   ],
-  ["Prática atual do produtor", "Current farm practice"],
+  [/com fixação biológica de nitrogênio/gi, "e ajuda a adubar a terra naturalmente"],
+  [/fixação biológica de nitrogênio/gi, "ajuda a adubar a terra"],
+  [/fixa nitrogênio/gi, "ajuda a adubar a terra"],
   [
-    "Rotação preferencial cadastrada pelo produtor",
-    "Preferred rotation registered by the farmer",
+    /Mercado estabelecido e cadeia de comercialização consolidada/gi,
+    "Tem boa saída e venda fácil na região",
+  ],
+  [/Melhora a estrutura do solo/gi, "Deixa a terra mais fofa e fértil"],
+  [
+    /Rústica, cobre o solo e controla nematoides/gi,
+    "Planta forte, cobre bem o chão e protege as raízes",
+  ],
+  [
+    /Aproveitamento dos dados ambientais para manejo preventivo de recursos/gi,
+    "Usa os dados de chuva e solo da sua área para evitar perdas na safra",
+  ],
+  [
+    /Terreno com prioridade hídrica '([^']+)' frente ao consumo estimado de (\d+)\s*mm/gi,
+    "Sua área tem pouca água e essa opção pede mais rega (cerca de $2 mm)",
   ],
 ];
 
+const EN_BENEFIT_PHRASES: Array<[string, string]> = [
+  [
+    "Tem boa saída e venda fácil na região",
+    "Easy to sell with steady demand in the region",
+  ],
+  [
+    "Mercado estabelecido e cadeia de comercialização consolidada",
+    "Easy to sell with steady demand in the region",
+  ],
+  [
+    "Aguenta bem a seca e ajuda a adubar a terra",
+    "Handles drought well and naturally enriches the soil",
+  ],
+  [
+    "Alta tolerância à seca, ajuda a adubar a terra",
+    "Handles drought well and naturally enriches the soil",
+  ],
+  [
+    "Alta tolerância à seca, fixa nitrogênio",
+    "Handles drought well and naturally enriches the soil",
+  ],
+  ["Deixa a terra mais fofa e fértil", "Makes the soil looser and healthier"],
+  ["Melhora a estrutura do solo", "Makes the soil looser and healthier"],
+  [
+    "Planta forte, cobre bem o chão e protege as raízes",
+    "Hardy crop that covers the ground and protects roots",
+  ],
+  [
+    "Rústica, cobre o solo e controla nematoides",
+    "Hardy crop that covers the ground and protects roots",
+  ],
+  [
+    "O feijão aduba a terra para o milho que vem depois",
+    "Beans enrich the soil for the corn planted next",
+  ],
+  [
+    "Feijão fixa nitrogênio para o milho seguinte",
+    "Beans enrich the soil for the corn planted next",
+  ],
+  ["Prática atual do produtor", "Your current farm practice"],
+  [
+    "Rotação preferencial cadastrada pelo produtor",
+    "Preferred rotation saved by you",
+  ],
+  [
+    "Combina bem com a terra da região",
+    "Fits your local soil and weather well",
+  ],
+];
+
+function stripRawMarkdownAndFluff(text: string, strategyName = ""): string {
+  if (!text) return "";
+  let out = text
+    .replace(/\*\*(.+?)\*\*/gs, "$1")
+    .replace(/__(.+?)__/gs, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+    .replace(/\*{2,}/g, "")
+    .trim();
+
+  // Remove saudação longa gerada por LLM quando há explicação substantiva após ela
+  const withoutGreeting = out
+    .replace(
+      /^(?:(?:olá|oi|bom dia|boa tarde|boa noite|hello|hi)\b[^.!?\n]*[.!?]\s*)(?:(?:que bom|vamos dar uma olhada|confira abaixo|aqui estão|let's look|here are)[^.!?\n]*[.!?]\s*)*/i,
+      ""
+    )
+    .trim();
+  if (withoutGreeting.length >= 25) {
+    out = withoutGreeting;
+  }
+
+  // Remove prefixo literal "Estratégia: ..." sem perder a leitura
+  out = out.replace(/^(?:estratégia|strategy|opção|option)\s*:\s*/i, "").trim();
+  if (strategyName) {
+    const lower = out.toLowerCase();
+    const targetLower = strategyName.toLowerCase();
+    if (lower.startsWith(targetLower)) {
+      const rest = out.slice(strategyName.length).replace(/^[\s:—-]+/, "").trim();
+      if (rest && rest.toLowerCase().includes(targetLower)) {
+        out = rest;
+      }
+    }
+  }
+
+  // Remove aviso repetitivo de "decisão final" de dentro de cada card (fica uma única vez no rodapé)
+  out = out
+    .replace(
+      /\s*(?:Lembre-se(?:\s+que|\s*:)?[^.!?\n]*(?:decisão final[^.!?\n]*[.!?]|experiência local[^.!?\n]*[.!?])\s*(?:A decisão final é sempre sua\.?)?)/gi,
+      ""
+    )
+    .replace(/\s*A decisão final é sempre sua\.?\s*/gi, "")
+    .replace(
+      /\s*(?:Remember(?:\s*:)?[^.!?\n]*(?:final decision[^.!?\n]*[.!?]|local experience[^.!?\n]*[.!?])\s*(?:The final decision is always yours\.?)?)/gi,
+      ""
+    )
+    .replace(/\s*The final decision is always yours\.?\s*/gi, "");
+
+  return out.replace(/[ \t]{2,}/g, " ").trim();
+}
+
 function translateKnownBenefit(benefit: string, isEnglish: boolean): string {
-  if (!isEnglish || !benefit) return benefit;
-  let translated = benefit;
+  if (!benefit) return benefit;
+  let simplified = stripRawMarkdownAndFluff(benefit);
+  for (const [pattern, replacement] of PT_FARMER_SIMPLIFICATIONS) {
+    simplified = simplified.replace(pattern, replacement);
+  }
+  if (!isEnglish) return simplified;
+
+  let translated = simplified;
   for (const [pt, en] of EN_BENEFIT_PHRASES) {
     if (translated.includes(pt)) {
       translated = translated.replace(pt, en);
     }
   }
   return translated
-    .replace(
-      /Aptidão FAO GAEZ v5(\s*\([^)]+\))?\s+de\s+/gi,
-      "FAO GAEZ v5 suitability$1 of "
-    )
-    .replace(/Aptidão FAO GAEZ v5/gi, "FAO GAEZ v5 suitability")
-    .replace(/produtividade atingível média/gi, "avg attainable yield")
-    .replace(/com fixação biológica de nitrogênio/gi, "with biological nitrogen fixation")
-    .replace(/fixação biológica de nitrogênio/gi, "biological nitrogen fixation")
-    .replace(/GAEZ v5:\s*aptidão/gi, "GAEZ v5: suitability");
+    .replace(/pode render perto de\s*(~?\d+\s*kg\/ha)/gi, "expected harvest around $1")
+    .replace(/rende perto de\s*(~?\d+\s*kg\/ha)/gi, "expected harvest around $1")
+    .replace(/na região/gi, "in your region")
+    .replace(/e ajuda a adubar o solo naturalmente/gi, "and naturally enriches the soil")
+    .replace(/e ajuda a adubar a terra naturalmente/gi, "and naturally enriches the soil")
+    .replace(/ajuda a adubar a terra/gi, "helps enrich the soil")
+    .replace(/—/g, "-");
+}
+
+function readBreakdownNumber(
+  breakdown: Record<string, unknown> | null | undefined,
+  key: string
+): number | null {
+  if (!breakdown) return null;
+  const value = breakdown[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 function buildProsAndCons(
@@ -295,41 +420,121 @@ function buildProsAndCons(
 ): { pros: string[]; cons: string[] } {
   const pros: string[] = [];
   const cons: string[] = [];
+  const pushPro = (text: string) => {
+    const clean = text.trim();
+    if (clean && !pros.includes(clean) && pros.length < 3) {
+      pros.push(clean);
+    }
+  };
+  const pushCon = (text: string) => {
+    const clean = text.trim();
+    if (clean && !cons.includes(clean) && cons.length < 2) {
+      cons.push(clean);
+    }
+  };
 
   if (item.benefits) {
-    pros.push(translateKnownBenefit(item.benefits, isEnglish));
+    pushPro(localizeCropNamesInText(translateKnownBenefit(item.benefits, isEnglish), isEnglish));
   }
-  for (const beneficio of response.beneficios_esperados.slice(0, 2)) {
-    const localized = localizeCropNamesInText(beneficio, isEnglish);
-    if (!pros.includes(localized)) {
-      pros.push(localized);
-    }
-  }
-  if (pros.length === 0) {
-    pros.push(
+
+  const waterFit = readBreakdownNumber(item.score_breakdown, "water_fit");
+  const heatFit = readBreakdownNumber(item.score_breakdown, "heat_fit");
+  const soilBenefit = readBreakdownNumber(item.score_breakdown, "soil_benefit");
+
+  if (waterFit !== null && waterFit >= 0.72) {
+    pushPro(
       isEnglish
-        ? "Helps balance the soil and reduce crop losses."
-        : "Ajuda a equilibrar o solo e reduzir perdas na lavoura."
+        ? "Fits the rain and water available on your land"
+        : "Combina bem com a quantidade de chuva e água da sua área"
+    );
+  }
+  if (
+    soilBenefit !== null &&
+    soilBenefit >= 0.75 &&
+    !pros.some((p) => /solo|terra|soil|adub|enrich/i.test(p))
+  ) {
+    pushPro(
+      isEnglish
+        ? "Helps protect and restore soil strength"
+        : "Ajuda a proteger e dar mais força para a terra"
+    );
+  }
+  if (
+    heatFit !== null &&
+    heatFit >= 0.75 &&
+    !pros.some((p) => /calor|seca|heat|drought/i.test(p))
+  ) {
+    pushPro(
+      isEnglish
+        ? "Handles warm days in your region well"
+        : "Aguenta bem os dias mais quentes da região"
     );
   }
 
-  if (variant === "risk") {
-    cons.push(
+  for (const beneficio of response.beneficios_esperados) {
+    if (pros.length >= 2) break;
+    // Pula frases técnicas com siglas (ECOCROP/CMIP6/GAEZ) na leitura rápida do card
+    if (/\b(GAEZ|ECOCROP|CMIP6|AGROFIT|FAO|LRLM)\b/i.test(beneficio)) continue;
+    pushPro(translateKnownBenefit(localizeCropNamesInText(beneficio, isEnglish), isEnglish));
+  }
+  if (pros.length === 0) {
+    pushPro(
       isEnglish
-        ? `Water risk (${translateWaterRisk(item.water_risk, true)}) for the forecasted period.`
-        : `Risco hídrico ${translateWaterRisk(item.water_risk, false)} para o período previsto.`
+        ? "Helps balance the soil and reduce crop losses."
+        : "Ajuda a cuidar da terra e diminuir perdas na roça."
     );
   }
-  for (const risco of response.riscos_identificados.slice(0, 2)) {
-    if (!cons.includes(risco)) {
-      cons.push(risco);
-    }
-  }
-  if (cons.length === 0) {
-    cons.push(
+
+  // Avisos reais desta opção específica (evita misturar risco alto global em opções médias/baixas)
+  const riskLower = (item.water_risk || "").trim().toLowerCase();
+  if (
+    variant === "risk" ||
+    riskLower === "high" ||
+    riskLower === "alto" ||
+    riskLower === "critical" ||
+    riskLower === "crítico"
+  ) {
+    pushCon(
       isEnglish
-        ? "Requires periodic monitoring of soil moisture and pests."
-        : "Requer acompanhamento periódico de umidade e pragas."
+        ? "Warning: high risk of water shortage — needs more watering if rain fails."
+        : "Atenção: risco alto de faltar água — pede mais rega se falhar chuva."
+    );
+  } else if (
+    riskLower === "medium" ||
+    riskLower === "moderate" ||
+    riskLower === "médio" ||
+    riskLower === "medio"
+  ) {
+    pushCon(
+      isEnglish
+        ? "Moderate dry-spell risk: keep mulch on the ground and water in cooler hours."
+        : "Risco médio de faltar água: mantenha palhada no chão e regue cedo ou à tardinha."
+    );
+  }
+
+  if (item.score_breakdown?.same_family_as_history === true) {
+    pushCon(
+      isEnglish
+        ? "Same plant family as your last crop — watch leaves closely for pests."
+        : "Mesma família do último cultivo — olhe as folhas toda semana para evitar pragas."
+    );
+  }
+
+  for (const risco of response.riscos_identificados) {
+    if (cons.length >= 2) break;
+    // Evita repetir ou contradizer o risco hídrico específico da opção já exibido acima
+    if (/risco hídrico|water risk|risco (?:alto|médio|baixo) de faltar água|chance of (?:water shortage|dry spells)/i.test(risco)) {
+      continue;
+    }
+    if (/\b(ECOCROP|CMIP6|AGROFIT|GAEZ|z=)\b/i.test(risco)) continue;
+    pushCon(translateKnownBenefit(localizeCropNamesInText(risco, isEnglish), isEnglish));
+  }
+
+  if (cons.length === 0) {
+    pushCon(
+      isEnglish
+        ? "Keep checking soil moisture and crop leaves each week."
+        : "Vale conferir a umidade da terra e olhar as folhas toda semana."
     );
   }
 
@@ -503,12 +708,15 @@ export function adaptSimulacaoToScenarios(
       steps,
       aiJustification: translateKnownBenefit(
         localizeCropNamesInText(
-          item.explicacao ||
-            response.explicacao_ia ||
-            response.explicacao_textual ||
-            (isEnglish
-              ? "Rotation calculated from your plot history and climate conditions."
-              : "Rotação calculada com base no histórico da área e condições climáticas."),
+          stripRawMarkdownAndFluff(
+            item.explicacao ||
+              response.explicacao_ia ||
+              response.explicacao_textual ||
+              (isEnglish
+                ? "Suggested based on what you planted before and local weather."
+                : "Sugestão feita pelo que você plantou antes e pelo tempo da região."),
+            item.strategy
+          ),
           isEnglish
         ),
         isEnglish

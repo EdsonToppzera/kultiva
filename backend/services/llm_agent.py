@@ -21,10 +21,13 @@ class StrategyExplanationItem(BaseModel):
 
     estrategia: str = Field(description="Nome exato da estratégia avaliada")
     resumo: str = Field(
-        description="Explicação simples e direta em 2 frases sem jargões"
+        description=(
+            "1 ou 2 frases bem curtas e simples para pequeno agricultor familiar "
+            "(palavras do dia a dia, sem siglas, sem jargões técnicos, sem saudações e sem Markdown)"
+        )
     )
     acao_pratica: str = Field(
-        description="1 orientação prática imediata para o produtor fazer no campo"
+        description="1 dica curta e prática no campo, em linguagem simples"
     )
 
 
@@ -152,6 +155,48 @@ def _ensure_disclaimer(text: str, idioma: str = "pt") -> str:
     if "decisão final" not in lowered and "final decision" not in lowered:
         return f"{cleaned}\n\n{disclaimer}"
     return cleaned
+
+
+_GREETING_PREFIX_RE = re.compile(
+    r"^(?:(?:ol[aá]|oi|bom dia|boa tarde|boa noite|hello|hi)\b[^.!?\n]*[.!?]\s*)"
+    r"(?:(?:que bom|vamos dar uma olhada|confira abaixo|aqui est[aã]o|let's look|here are)[^.!?\n]*[.!?]\s*)*",
+    flags=re.IGNORECASE,
+)
+_STRATEGY_LABEL_RE = re.compile(
+    r"^(?:estrat[eé]gia|strategy|op[cç][aã]o|option)\s*:\s*",
+    flags=re.IGNORECASE,
+)
+
+
+def _clean_farmer_text(text: str, strategy_name: str = "") -> str:
+    """Remove Markdown bruto, saudações longas e rótulos repetitivos do texto do card."""
+    cleaned = str(text or "").strip()
+    if not cleaned:
+        return ""
+
+    cleaned = re.sub(r"\*\*(.+?)\*\*", r"\1", cleaned, flags=re.DOTALL)
+    cleaned = re.sub(r"__(.+?)__", r"\1", cleaned, flags=re.DOTALL)
+    cleaned = re.sub(r"`([^`]+)`", r"\1", cleaned)
+    cleaned = re.sub(r"(?m)^\s{0,3}#{1,6}\s+", "", cleaned)
+    cleaned = re.sub(r"\*{2,}", "", cleaned)
+
+    without_greeting = _GREETING_PREFIX_RE.sub("", cleaned).strip()
+    if without_greeting and len(without_greeting) >= 25:
+        cleaned = without_greeting
+
+    without_label = _STRATEGY_LABEL_RE.sub("", cleaned).strip()
+    if without_label:
+        cleaned = without_label
+        if strategy_name:
+            low = cleaned.lower()
+            if low.startswith(strategy_name.lower()):
+                rest = cleaned[len(strategy_name) :].lstrip(" :—-\n")
+                if rest and strategy_name.lower() in rest.lower():
+                    cleaned = rest
+
+    cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
 
 
 def _extract_text(response: Any) -> str:
@@ -656,61 +701,60 @@ def _build_simple_fallback_explanation(
     farmer_priorities: dict[str, Any] | None = None,
     idioma: str = "pt",
 ) -> str:
-    """Gera explicação individualizada em linguagem simples quando o LLM não delimita os blocos."""
+    """Gera explicação curta e acessível para agricultor familiar quando o LLM não delimita os blocos."""
     lang = _normalize_lang(idioma)
     name = item["strategy"]
     is_current = "(atual)" in name.lower() or "(current)" in name.lower()
     risk_txt = _translate_risk(item["water_risk"], lang)
     viab = item["viability"]
+    bd = item.get("score_breakdown") or {}
+    yield_kg = _to_float(bd.get("attainable_yield_kg_ha"))
+    clean_benefit = _clean_farmer_text(item.get("benefits") or "", name).rstrip(".")
+
     if lang == "en":
         viab_txt = f"{round(viab * 100)}%" if viab is not None else "good"
         if is_current:
-            intro = f"The option {name} shows the expected outcome when keeping your current farm practice."
+            intro = f"{name} is what you already plant on this area."
         elif is_best and current_name:
-            intro = (
-                f"The option {name} stands out as a safer alternative for your plot "
-                f"compared to {current_name}."
-            )
+            intro = f"{name} stands out as the safest choice for your land right now."
         else:
-            intro = f"The option {name} is a rotation alternative evaluated for your plot."
+            intro = f"{name} is a solid alternative to vary what you plant."
 
         details = [
-            f"It had an estimated success chance of {viab_txt} and {risk_txt} water-deficit risk."
+            f"Estimated {viab_txt} chance of doing well, with {risk_txt} risk of dry spells hurting the crop."
         ]
-        if item["benefits"]:
-            details.append(f"In practice, it helps because: {item['benefits']}.")
-
-        breakdown_txt = _format_breakdown_highlights(item["score_breakdown"], "en")
-        if breakdown_txt:
-            details.append(f"Key field highlights: {breakdown_txt}.")
+        if clean_benefit:
+            details.append(f"Why it helps: {clean_benefit}.")
+        if yield_kg is not None and yield_kg > 0 and "kg/ha" not in " ".join(details).lower():
+            details.append(f"Expected harvest around {round(yield_kg)} kg/ha.")
 
         return f"{intro} {' '.join(details)}"
 
     viab_txt = f"{round(viab * 100)}%" if viab is not None else "boa"
 
     if is_current:
-        intro = f"A opção {name} mostra como fica o resultado mantendo a prática atual da propriedade."
+        intro = f"{name} mostra como fica se você mantiver o plantio atual."
     elif is_best and current_name:
-        intro = (
-            f"A opção {name} se destaca como uma alternativa mais segura para o terreno "
-            f"em comparação com {current_name}."
-        )
+        intro = f"{name} é a opção mais segura e indicada para a sua terra hoje."
     else:
-        intro = f"A opção {name} é uma alternativa de rotação avaliada para o seu terreno."
+        intro = f"{name} também é uma boa opção para alternar o plantio."
 
     details = [
-        f"Ela teve chance estimada de dar certo de {viab_txt} e risco de falta de água {risk_txt}."
+        f"Tem cerca de {viab_txt} de chance de dar certo, com risco {risk_txt} de faltar água."
     ]
-    if item["benefits"]:
-        details.append(f"Na prática, ajuda porque traz: {item['benefits']}.")
-
-    breakdown_txt = _format_breakdown_highlights(item["score_breakdown"], "pt")
-    if breakdown_txt:
-        details.append(f"Pontos observados para a lavoura: {breakdown_txt}.")
+    if clean_benefit:
+        lowered_ben = (
+            clean_benefit[0].lower() + clean_benefit[1:]
+            if len(clean_benefit) > 1 and not clean_benefit[:2].isupper()
+            else clean_benefit
+        )
+        details.append(f"No dia a dia, {lowered_ben}.")
+    if yield_kg is not None and yield_kg > 0 and "kg/ha" not in " ".join(details).lower():
+        details.append(f"Pode render perto de {round(yield_kg)} kg/ha.")
 
     cross = synthesize_cross_insights(item, field_metrics, farmer_priorities)
-    if cross["resumo_cruzado"]:
-        details.append(cross["resumo_cruzado"])
+    if cross["acoes_praticas"]:
+        details.append(cross["acoes_praticas"][0])
 
     return f"{intro} {' '.join(details)}"
 
@@ -1183,31 +1227,35 @@ class RotationExplainerAgent:
         self.strategies_prompt = PromptTemplate(
             input_variables=["strategies", "context"],
             template=(
-                "Você é um assistente amigo do pequeno produtor rural e da agricultura familiar.\n"
+                "Você conversa direto com um pequeno produtor da agricultura familiar.\n"
                 "Contexto do terreno e prioridades: {context}\n\n"
-                "Estratégias de rotação avaliadas (na ordem):\n"
+                "Opções de plantio avaliadas (na ordem):\n"
                 "{strategies}\n\n"
-                "Explique CADA estratégia acima em linguagem bem simples, clara e prática (sem jargões), "
-                "comparando as alternativas com a prática marcada como (Atual) quando ela estiver na lista. "
-                "Cite apenas números e fatos presentes nos dados acima.\n"
-                "REGRAS DE FORMATO:\n"
-                f"1. Escreva todas as explicações nesta única resposta, na mesma ordem, separando cada "
-                f"estratégia exatamente com {STRATEGY_SEPARATOR} em uma linha própria.\n"
-                "2. Em cada explicação, cite o nome da estratégia, o risco de água e o benefício prático no campo.\n"
-                "3. Termine CADA explicação lembrando que a ferramenta apoia a decisão, mas a decisão final "
-                "é sempre do produtor."
+                "Explique CADA opção em palavras bem simples do dia a dia da roça, como se estivesse "
+                "conversando na beira do terreiro (curto, claro e acolhedor).\n"
+                "REGRAS OBRIGATÓRIAS:\n"
+                f"1. Escreva todas as explicações nesta resposta, na mesma ordem, separando cada opção "
+                f"exatamente com {STRATEGY_SEPARATOR} em uma linha própria.\n"
+                "2. NÃO escreva saudação ('Olá, amigo produtor', 'Que bom...') nem texto antes da primeira opção.\n"
+                "3. NÃO use Markdown (nunca use **, *, # ou traços de lista). Escreva só texto simples.\n"
+                "4. Use NO MÁXIMO 2 a 3 frases curtas por opção (fácil de ler no celular): "
+                "diga com o nome das plantas por que ela ajuda (ou pede cuidado com água) no objetivo do produtor "
+                "e dê 1 dica prática de campo. Traduza números e siglas em palavras simples "
+                "(nunca cite GAEZ, ECOCROP, CMIP6, AGROFIT, LRLM, z-score ou 'fixação biológica').\n"
+                "5. Termine CADA bloco exatamente com uma frase curta: 'A decisão final é sempre sua.'"
             ),
         )
         self.structured_strategies_prompt = PromptTemplate(
             input_variables=["strategies", "context"],
             template=(
-                "Você é um assistente amigo do pequeno produtor rural e da agricultura familiar.\n"
+                "Você conversa direto com um pequeno produtor da agricultura familiar.\n"
                 "Contexto do terreno e prioridades: {context}\n\n"
-                "Estratégias avaliadas (mantenha exatamente esta ordem):\n"
+                "Opções avaliadas (mantenha exatamente esta ordem):\n"
                 "{strategies}\n\n"
-                "Para cada estratégia, gere `resumo` (2 frases simples comparando com a prática (Atual) "
-                "quando houver) e `acao_pratica` (1 ação direta no campo). "
-                "Use apenas números e fatos informados acima, sem inventar métricas."
+                "Para cada opção, escreva em palavras bem simples da roça (sem saudações, sem Markdown ** ou *, "
+                "e sem siglas técnicas como GAEZ, ECOCROP, CMIP6, AGROFIT ou LRLM):\n"
+                "- `resumo`: 1 ou 2 frases curtas dizendo o que esperar dela e do risco de faltar água.\n"
+                "- `acao_pratica`: 1 dica curta e direta do que fazer no campo."
             ),
         )
         self.alert_prompt = PromptTemplate(
@@ -1435,7 +1483,7 @@ class RotationExplainerAgent:
             name = item["strategy"]
             base_name = name.replace("(Atual)", "").replace("(atual)", "").strip()
             if blocks is not None:
-                text = blocks[idx].strip()
+                text = _clean_farmer_text(blocks[idx], name)
                 if not text:
                     is_best = best_viability is not None and item["viability"] == best_viability
                     text = _build_simple_fallback_explanation(

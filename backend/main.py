@@ -114,28 +114,28 @@ def seed_culturas(db: Optional[Session] = None):
                     culturas=["Milho", "Soja"],
                     preferencial=False,
                     is_seed=True,
-                    beneficios="Mercado estabelecido e cadeia de comercialização consolidada",
+                    beneficios="Tem boa saída e venda fácil na região",
                 ),
                 models.RotacaoProdutor(
                     nome="Sorgo -> Feijão-caupi",
                     culturas=["Sorgo", "Feijão-caupi"],
                     preferencial=False,
                     is_seed=True,
-                    beneficios="Alta tolerância à seca, fixa nitrogênio",
+                    beneficios="Aguenta bem a seca e ajuda a adubar a terra",
                 ),
                 models.RotacaoProdutor(
                     nome="Milheto -> Amendoim",
                     culturas=["Milheto", "Amendoim"],
                     preferencial=False,
                     is_seed=True,
-                    beneficios="Melhora a estrutura do solo",
+                    beneficios="Deixa a terra mais fofa e fértil",
                 ),
                 models.RotacaoProdutor(
                     nome="Mandioca -> Crotalária",
                     culturas=["Mandioca", "Crotalária"],
                     preferencial=False,
                     is_seed=True,
-                    beneficios="Rústica, cobre o solo e controla nematoides",
+                    beneficios="Planta forte, cobre bem o chão e protege as raízes",
                 ),
             ]
             session.add_all(rotacoes_iniciais)
