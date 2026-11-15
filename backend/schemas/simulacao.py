@@ -62,6 +62,7 @@ class EstrategiaRotacaoSugerida(BaseModel):
     benefits: Optional[str] = None
     score_breakdown: Optional[Dict[str, Any]] = None
     explicacao: Optional[str] = None
+    evidencias_numericas: Optional[Dict[str, Any]] = None
 
 
 class SimulacaoResponse(BaseModel):
@@ -81,3 +82,4 @@ class SimulacaoResponse(BaseModel):
     fallback_usado: bool = False
     rotacoes_sugeridas: List[EstrategiaRotacaoSugerida]
     plano_rotacao: List[EtapaRotacaoSimulada]
+    evidencias_estruturadas: Optional[Dict[str, Any]] = None

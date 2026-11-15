@@ -481,7 +481,7 @@ def coletar_dados_climaticos_terreno(
                 terreno.coordenadas_poligono, dataset=None
             )
             if isinstance(metricas, dict) and metricas.get("data_quality") != "no_data":
-                return {
+                dados = {
                     "origem": "nasa_geospatial_provider",
                     "data_quality": metricas.get("data_quality", "clip"),
                     "soil_moisture": metricas.get("avg_soil_moisture_smap"),
@@ -490,6 +490,11 @@ def coletar_dados_climaticos_terreno(
                     "is_bare_field_period": metricas.get("is_bare_field_period"),
                     "time_series": metricas.get("time_series") or [],
                 }
+                if isinstance(metricas.get("baseline_climatology"), dict):
+                    dados["baseline_climatology"] = metricas["baseline_climatology"]
+                if isinstance(metricas.get("z_scores"), dict):
+                    dados["z_scores"] = metricas["z_scores"]
+                return dados
         except Exception as exc:
             logger.warning(
                 "Falha ao extrair métricas NASA para terreno %s: %s",
@@ -515,7 +520,11 @@ def _avaliar_anomalia_climatica(dados_climaticos: Dict[str, Any]) -> Dict[str, A
         from backend.services.ml_models import ClimateAnomalyDetector
 
         detector = ClimateAnomalyDetector()
-        resultado_ml = detector.detect_extremes(entrada_detector)
+        baseline = dados_climaticos.get("baseline_climatology")
+        resultado_ml = detector.detect_extremes(
+            entrada_detector,
+            baseline=baseline if isinstance(baseline, dict) else None,
+        )
         origem_detector = "climate_anomaly_detector"
     except Exception as exc:
         resultado_ml = {"erro_detector": str(exc)}
@@ -524,7 +533,14 @@ def _avaliar_anomalia_climatica(dados_climaticos: Dict[str, Any]) -> Dict[str, A
         anomalia = bool(resultado_ml["anomaly_detected"])
         tipo_evento = str(resultado_ml.get("tipo_evento", "nenhum"))
         severidade = str(resultado_ml.get("severidade", "baixa"))
+        detalhes_ml = resultado_ml.get("detalhes")
+        z_scores_ml = (
+            detalhes_ml.get("z_scores")
+            if isinstance(detalhes_ml, dict) and isinstance(detalhes_ml.get("z_scores"), dict)
+            else dados_climaticos.get("z_scores")
+        )
     else:
+        z_scores_ml = dados_climaticos.get("z_scores")
         precip = float(dados_climaticos.get("precipitation_mm") or 0.0)
         temp = float(dados_climaticos.get("surface_temp_c") or 25.0)
         umidade_val = dados_climaticos.get("soil_moisture")
@@ -553,6 +569,7 @@ def _avaliar_anomalia_climatica(dados_climaticos: Dict[str, Any]) -> Dict[str, A
         "tipo_evento": tipo_evento,
         "severidade": severidade,
         "resultado_ml": resultado_ml,
+        "z_scores": z_scores_ml,
     }
 
 

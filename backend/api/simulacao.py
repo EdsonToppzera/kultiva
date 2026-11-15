@@ -709,9 +709,19 @@ def _gerar_explicacoes_estrategias(
     prioridades: Dict[str, Any],
     rotation_explainer: Optional[Any],
 ) -> Tuple[List[EstrategiaRotacaoSugerida], bool]:
-    """Popula `explicacao` individual para cada estratégia via explain_strategies (A4) com fallback."""
+    """Popula `explicacao` individual e `evidencias_numericas` para cada estratégia."""
     if not rotacoes_sugeridas:
         return rotacoes_sugeridas, False
+
+    try:
+        from backend.services.llm_agent import build_strategy_evidence
+
+        for estrategia in rotacoes_sugeridas:
+            estrategia.evidencias_numericas = build_strategy_evidence(
+                estrategia, metricas_geoespaciais
+            )
+    except Exception:
+        pass
 
     if rotation_explainer is not None and hasattr(rotation_explainer, "explain_strategies"):
         try:
@@ -1044,6 +1054,16 @@ def _processar_simulacao(
     else:
         origem = "misto_com_fallback"
 
+    evidencias_estruturadas: Optional[Dict[str, Any]] = None
+    try:
+        from backend.services.llm_agent import build_simulation_evidence
+
+        evidencias_estruturadas = build_simulation_evidence(
+            metricas_geoespaciais, rotacoes_sugeridas
+        )
+    except Exception:
+        evidencias_estruturadas = None
+
     return SimulacaoResponse(
         terreno_id=terreno_id_resp,
         nome_propriedade=nome_propriedade,
@@ -1061,6 +1081,7 @@ def _processar_simulacao(
         fallback_usado=fallback_usado,
         rotacoes_sugeridas=rotacoes_sugeridas,
         plano_rotacao=plano_rotacao,
+        evidencias_estruturadas=evidencias_estruturadas,
     )
 
 
