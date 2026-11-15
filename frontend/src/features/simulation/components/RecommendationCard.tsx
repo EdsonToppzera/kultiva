@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
   ArrowRight,
@@ -36,6 +37,7 @@ export function RecommendationCard({
   onSwapTrackStep,
   className,
 }: RecommendationCardProps) {
+  const { t } = useTranslation();
   const variant = scenario.variant ?? "standard";
   const isRecommended = variant === "recommended";
   const isRisk = variant === "risk";
@@ -74,7 +76,7 @@ export function RecommendationCard({
           )}
         >
           <HelpCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          <span>Ver detalhes técnicos</span>
+          <span>{t("simulation.seeDetails")}</span>
         </button>
       </div>
 
@@ -156,7 +158,7 @@ export function RecommendationCard({
           onClick={() => onSelectPlan?.(scenario)}
           className="w-full"
         >
-          <span>{scenario.ctaLabel ?? "Escolher este plano"}</span>
+          <span>{scenario.ctaLabel ?? t("simulation.choosePlan")}</span>
           <ArrowRight className="h-5 w-5" aria-hidden="true" />
         </Button>
       </div>

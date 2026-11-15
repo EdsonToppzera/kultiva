@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ArrowRight,
   Bug,
@@ -103,14 +104,14 @@ export const PRIORITY_OPTIONS: PriorityOption[] = [
 const NETWORK_BADGE_CONFIG: Record<
   NetworkSyncStatus,
   {
-    label: string;
+    labelKey: string;
     variant: "saved" | "offline" | "outline";
     icon: React.ComponentType<{ className?: string }>;
   }
 > = {
-  salvo: { label: "Salvo", variant: "saved", icon: Wifi },
-  sincronizando: { label: "Salvando", variant: "outline", icon: RefreshCw },
-  offline: { label: "Sem internet", variant: "offline", icon: WifiOff },
+  salvo: { labelKey: "network.saved", variant: "saved", icon: Wifi },
+  sincronizando: { labelKey: "network.saving", variant: "outline", icon: RefreshCw },
+  offline: { labelKey: "network.offline", variant: "offline", icon: WifiOff },
 };
 
 interface CropThumbnailProps {
@@ -173,6 +174,7 @@ function TargetCropCombobox({
   onOpenChange,
   onSelectCrop,
 }: TargetCropComboboxProps) {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = React.useState("");
   const inputRef = React.useRef<HTMLInputElement>(null);
   const filteredCrops = useCatalogSearch(
@@ -207,7 +209,7 @@ function TargetCropCombobox({
         htmlFor="cultura-especifica-trigger"
         className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-[#6D6960]"
       >
-        QUAL CULTURA VOCÊ QUER PLANTAR?
+        {t("onboarding.priorities.targetCropLabel")}
       </label>
 
       <Popover open={open} onOpenChange={onOpenChange}>
@@ -257,7 +259,7 @@ function TargetCropCombobox({
                   className="h-5 w-5 shrink-0 text-[#511D4E]"
                   aria-hidden="true"
                 />
-                <span>Buscar cultivo...</span>
+                <span>{t("onboarding.priorities.targetCropSearch")}</span>
               </span>
               <ChevronRight
                 className="h-5 w-5 shrink-0 text-[#6D6960]"
@@ -275,14 +277,15 @@ function TargetCropCombobox({
           >
             <CommandInput
               ref={inputRef}
-              placeholder="Ex: Macaxeira, milho, feijão..."
-              aria-label="Buscar cultura desejada"
+              placeholder={t("onboarding.priorities.targetCropPlaceholder")}
+              aria-label={t("onboarding.priorities.targetCropSearch")}
             />
 
             <CommandList>
               <CommandEmpty>
-                Nenhum cultivo encontrado para &ldquo;{searchQuery}&rdquo;. Escolha
-                uma opção da lista ou tente outro nome regional.
+                {t("onboarding.priorities.targetCropEmpty", {
+                  query: searchQuery,
+                })}
               </CommandEmpty>
 
               <CommandGroup>
@@ -348,6 +351,7 @@ function TargetPestCombobox({
   onOpenChange,
   onSelectPest,
 }: TargetPestComboboxProps) {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = React.useState("");
   const inputRef = React.useRef<HTMLInputElement>(null);
   const filteredPests = useCatalogSearch(
@@ -379,7 +383,7 @@ function TargetPestCombobox({
         htmlFor="praga-especifica-trigger"
         className="text-[11px] font-semibold uppercase tracking-wider text-[#6D6960]"
       >
-        QUAL PRAGA OU DOENÇA QUER COMBATER?
+        {t("onboarding.priorities.targetPestLabel")}
       </label>
 
       <Popover open={open} onOpenChange={onOpenChange}>
@@ -431,7 +435,7 @@ function TargetPestCombobox({
                   className="h-5 w-5 shrink-0 text-[#511D4E]"
                   aria-hidden="true"
                 />
-                <span>Buscar praga ou doença...</span>
+                <span>{t("onboarding.priorities.targetPestSearch")}</span>
               </span>
               <ChevronRight
                 className="h-5 w-5 shrink-0 text-[#6D6960]"
@@ -449,14 +453,15 @@ function TargetPestCombobox({
           >
             <CommandInput
               ref={inputRef}
-              placeholder="Ex: Lagarta, formiga, nematoide..."
-              aria-label="Buscar praga ou doença"
+              placeholder={t("onboarding.priorities.targetPestPlaceholder")}
+              aria-label={t("onboarding.priorities.targetPestSearch")}
             />
 
             <CommandList>
               <CommandEmpty>
-                Nenhuma praga encontrada para &ldquo;{searchQuery}&rdquo;. Escolha
-                uma opção da lista ou tente outro nome popular.
+                {t("onboarding.priorities.targetCropEmpty", {
+                  query: searchQuery,
+                })}
               </CommandEmpty>
 
               <CommandGroup>
@@ -542,6 +547,7 @@ export function PrioritiesStep({
   onBack,
   onContinue,
 }: PrioritiesStepProps) {
+  const { t } = useTranslation();
   const [isOnline, setIsOnline] = React.useState<boolean>(() =>
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
@@ -664,24 +670,26 @@ export function PrioritiesStep({
                   )}
                   aria-hidden="true"
                 />
-                <span>{badgeInfo.label}</span>
+                <span>{t(badgeInfo.labelKey)}</span>
               </Badge>
               <LanguageSelector />
             </div>
           </header>
 
           {/* Indicador de Progresso */}
-          <section aria-label="Progresso do cadastro" className="mt-6">
+          <section aria-label={t("onboarding.yourArea")} className="mt-6">
             <div className="flex items-center justify-between text-xs">
               <span className="font-semibold uppercase tracking-wider text-[#6D6960]">
-                SUA ÁREA
+                {t("onboarding.yourArea")}
               </span>
-              <span className="font-medium text-[#511D4E]">Passo 4 de 4</span>
+              <span className="font-medium text-[#511D4E]">
+                {t("common.stepOf", { current: 4, total: 4 })}
+              </span>
             </div>
 
             <div
               role="progressbar"
-              aria-label="Passo 4 de 4"
+              aria-label={t("common.stepOf", { current: 4, total: 4 })}
               aria-valuemin={1}
               aria-valuemax={4}
               aria-valuenow={4}
@@ -697,15 +705,14 @@ export function PrioritiesStep({
           {/* Conteúdo Principal */}
           <main className="mt-8">
             <h1 className="text-[26px] font-bold leading-tight tracking-tight text-[#511D4E] sm:text-[28px]">
-              Prioridades
+              {t("onboarding.priorities.title")}
             </h1>
             <p className="mt-1.5 text-sm text-[#6D6960] sm:text-base">
-              Escolha sua prioridade. Vamos comparar caminhos possíveis para sua
-              área.
+              {t("onboarding.priorities.subtitle")}
             </p>
 
             <RadioGroup
-              aria-label="Prioridades"
+              aria-label={t("onboarding.priorities.title")}
               value={selectedId}
               onValueChange={handlePriorityChange}
               className="mt-6 flex flex-col gap-3"
@@ -747,10 +754,16 @@ export function PrioritiesStep({
                                   checked ? "text-[#511D4E]" : "text-[#1F1C18]"
                                 )}
                               >
-                                {option.title}
+                                {t(
+                                  `onboarding.priorities.options.${option.id}.title`,
+                                  { defaultValue: option.title }
+                                )}
                               </p>
                               <p className="mt-0.5 text-xs leading-snug text-[#6D6960] sm:text-sm">
-                                {option.subtitle}
+                                {t(
+                                  `onboarding.priorities.options.${option.id}.subtitle`,
+                                  { defaultValue: option.subtitle }
+                                )}
                               </p>
                             </div>
                           </div>
@@ -807,7 +820,7 @@ export function PrioritiesStep({
             disabled={!canContinue || isSaving}
             className="w-full"
           >
-            <span>Continuar</span>
+            <span>{t("common.continue")}</span>
             <ArrowRight className="h-5 w-5" aria-hidden="true" />
           </Button>
 
@@ -818,7 +831,7 @@ export function PrioritiesStep({
             className="w-full max-w-[200px] text-sm font-semibold text-[#511D4E]"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-            <span>Voltar</span>
+            <span>{t("common.back")}</span>
           </Button>
         </footer>
       </form>

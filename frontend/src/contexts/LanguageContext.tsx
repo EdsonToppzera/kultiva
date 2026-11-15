@@ -1,4 +1,5 @@
 import * as React from "react";
+import i18n from "../i18n";
 
 export type AppLanguage = "pt" | "en";
 
@@ -25,6 +26,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const setLanguage = React.useCallback((lang: AppLanguage) => {
     setLanguageState(lang);
+    void i18n.changeLanguage(lang);
     if (typeof window !== "undefined") {
       window.localStorage.setItem(STORAGE_KEY, lang);
     }

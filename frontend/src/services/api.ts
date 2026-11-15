@@ -844,7 +844,12 @@ export async function buscarCulturasCatalogo(
     });
     const response = await fetch(
       `${API_BASE_URL}/culturas/catalogo/buscar?${params.toString()}`,
-      { signal }
+      {
+        signal,
+        headers: {
+          "Accept-Language": lang === "en" ? "en-US,en;q=0.9" : "pt-BR,pt;q=0.9",
+        },
+      }
     );
     if (!response.ok) {
       return filterLocalCrops(query);

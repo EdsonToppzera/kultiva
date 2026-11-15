@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeftRight,
   Bug,
@@ -191,14 +192,14 @@ const REPORT_OPTIONS: FieldReportOption[] = [
 const NETWORK_BADGE_CONFIG: Record<
   NetworkSyncStatus,
   {
-    label: string;
+    labelKey: string;
     variant: "saved" | "offline" | "outline";
     icon: React.ComponentType<{ className?: string }>;
   }
 > = {
-  salvo: { label: "Salvo", variant: "saved", icon: Wifi },
-  sincronizando: { label: "Salvando", variant: "outline", icon: RefreshCw },
-  offline: { label: "Sem internet", variant: "offline", icon: WifiOff },
+  salvo: { labelKey: "network.saved", variant: "saved", icon: Wifi },
+  sincronizando: { labelKey: "network.saving", variant: "outline", icon: RefreshCw },
+  offline: { labelKey: "network.offline", variant: "offline", icon: WifiOff },
 };
 
 export function AreaDashboardPage({
@@ -214,15 +215,17 @@ export function AreaDashboardPage({
   onSubmitReport,
   onBack,
 }: AreaDashboardPageProps) {
+  const { t, i18n } = useTranslation();
   const todayIso = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
   const resolvedDateLabel = React.useMemo(() => {
     if (dateLabel) return dateLabel;
-    return new Date().toLocaleDateString("pt-BR", {
+    const locale = i18n.language.startsWith("en") ? "en-US" : "pt-BR";
+    return new Date().toLocaleDateString(locale, {
       weekday: "long",
       day: "numeric",
       month: "long",
     });
-  }, [dateLabel]);
+  }, [dateLabel, i18n.language]);
 
   const [isOnline, setIsOnline] = React.useState<boolean>(() =>
     typeof navigator !== "undefined" ? navigator.onLine : true
@@ -311,8 +314,9 @@ export function AreaDashboardPage({
     return PERIOD_ORDER.map((period) => {
       const items = effectiveActivities.filter((item) => item.period === period);
       if (items.length === 0) return null;
-      const periodLabel =
-        items[0].periodLabel ?? PERIOD_CONFIG[period].defaultLabel;
+      const periodLabel = t(`dashboard.periods.${period}`, {
+        defaultValue: items[0].periodLabel ?? PERIOD_CONFIG[period].defaultLabel,
+      });
       return {
         period,
         label: periodLabel,
@@ -379,7 +383,7 @@ export function AreaDashboardPage({
             <div className="flex items-center gap-2">
               <Badge variant={badgeConfig.variant} aria-live="polite">
                 <StatusIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span>{badgeConfig.label}</span>
+                <span>{t(badgeConfig.labelKey)}</span>
               </Badge>
               <LanguageSelector />
             </div>
@@ -446,7 +450,7 @@ export function AreaDashboardPage({
                   {effectiveCropProgress.dayLabel}
                 </p>
                 <p className="text-xs text-[#5A594E]">
-                  Ver calendário completo
+                  {t("dashboard.viewFullCalendar")}
                 </p>
               </div>
             </div>
@@ -458,9 +462,9 @@ export function AreaDashboardPage({
           </button>
 
           {/* Atividades do dia (cards informativos por período) */}
-          <section className="mt-6" aria-label="Atividades recomendadas para hoje">
+          <section className="mt-6" aria-label={t("dashboard.yourDayTitle")}>
             <h1 className="text-[22px] font-bold tracking-tight text-[#511D4E]">
-              Seu dia na área
+              {t("dashboard.yourDayTitle")}
             </h1>
 
             {reportSavedNotice && (
@@ -468,21 +472,20 @@ export function AreaDashboardPage({
                 role="status"
                 className="mt-3 rounded-2xl border border-[#CAD17A] bg-[#FCF59B]/60 px-3.5 py-2.5 text-xs font-semibold text-[#1F1C18]"
               >
-                Relato salvo! Vamos considerar sua observação nas próximas
-                orientações.
+                {t("dashboard.reportSuccess")}
               </p>
             )}
 
             <div className="mt-4 space-y-5">
               {isLoadingDashboard && groupedActivities.length === 0 && (
                 <p className="rounded-2xl border border-[#E6E4DA] bg-white px-4 py-4 text-xs text-[#6D6960]">
-                  Carregando atividades da área...
+                  {t("dashboard.loadingActivities")}
                 </p>
               )}
 
               {!isLoadingDashboard && groupedActivities.length === 0 && (
                 <p className="rounded-2xl border border-[#E6E4DA] bg-white px-4 py-4 text-xs text-[#6D6960]">
-                  Nenhuma atividade programada para esta área ainda.
+                  {t("dashboard.noActivitiesScheduled")}
                 </p>
               )}
 
@@ -561,8 +564,12 @@ export function AreaDashboardPage({
                                 onClick={() => void handleToggleActivity(item)}
                                 aria-label={
                                   item.completed
-                                    ? `Desmarcar ${item.title}`
-                                    : `Concluir ${item.title}`
+                                    ? t("dashboard.uncheckTask", {
+                                        title: item.title,
+                                      })
+                                    : t("dashboard.completeTask", {
+                                        title: item.title,
+                                      })
                                 }
                                 className={cn(
                                   "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors",
@@ -593,7 +600,7 @@ export function AreaDashboardPage({
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#FCF59B] px-5 py-3.5 text-sm font-bold text-[#1F1C18] shadow-xs transition-colors hover:bg-[#F5EC7D] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#511D4E]"
           >
             <ArrowLeftRight className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span>Aconteceu diferente</span>
+            <span>{t("dashboard.happenedDifferently")}</span>
           </button>
 
           {onBack && (
@@ -604,7 +611,7 @@ export function AreaDashboardPage({
               className="w-full max-w-[200px] text-sm font-semibold text-[#511D4E]"
             >
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-              <span>Voltar</span>
+              <span>{t("common.back")}</span>
             </Button>
           )}
         </footer>
@@ -616,10 +623,10 @@ export function AreaDashboardPage({
           <DrawerHeader>
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] font-bold tracking-[0.08em] text-[#6D6960] uppercase">
-                SUA EXPERIÊNCIA CONTA
+                {t("dashboard.yourExperienceCounts")}
               </span>
               <DrawerClose
-                aria-label="Fechar"
+                aria-label={t("common.close")}
                 className="flex h-8 w-8 items-center justify-center rounded-full text-[#511D4E] hover:bg-[#EFECE3]"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
@@ -627,16 +634,16 @@ export function AreaDashboardPage({
             </div>
 
             <DrawerTitle className="mt-2 text-2xl font-bold text-[#511D4E]">
-              Aconteceu diferente?
+              {t("dashboard.happenedDifferentlyQuestion")}
             </DrawerTitle>
             <DrawerDescription className="mt-1 text-sm text-[#6D6960]">
-              Conte o que mudou na sua área.
+              {t("dashboard.tellWhatChanged")}
             </DrawerDescription>
           </DrawerHeader>
 
           <div
             role="radiogroup"
-            aria-label="O que mudou na sua área"
+            aria-label={t("dashboard.tellWhatChanged")}
             className="mt-4 space-y-2.5"
           >
             {REPORT_OPTIONS.map((option) => {
@@ -663,7 +670,9 @@ export function AreaDashboardPage({
                       aria-hidden="true"
                     />
                     <span className="text-sm font-semibold text-[#1F1C18]">
-                      {option.label}
+                      {t(`dashboard.reportOptions.${option.id}`, {
+                        defaultValue: option.label,
+                      })}
                     </span>
                   </div>
 
@@ -691,7 +700,7 @@ export function AreaDashboardPage({
               onClick={handleSaveReport}
               className="w-full"
             >
-              Salvar relato
+              {t("dashboard.saveReport")}
             </Button>
           </DrawerFooter>
         </DrawerContent>

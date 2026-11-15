@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Check, ChevronDown, Globe } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   Popover,
   PopoverContent,
@@ -14,6 +15,7 @@ const LANGUAGE_OPTIONS: { code: AppLanguage; shortLabel: string; label: string }
 ];
 
 export function LanguageSelector({ className }: { className?: string }) {
+  const { t } = useTranslation();
   const { language, setLanguage } = useLanguage();
   const [open, setOpen] = React.useState(false);
 
@@ -25,7 +27,7 @@ export function LanguageSelector({ className }: { className?: string }) {
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label="Selecionar idioma"
+          aria-label={t("common.selectLanguage")}
           aria-expanded={open}
           className={cn(
             "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-[#E6E4DA] bg-white px-2.5 py-1 text-xs font-semibold text-[#511D4E] shadow-2xs transition-colors hover:border-[#511D4E]/50 hover:bg-[#F7F6F0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#511D4E]",
@@ -50,7 +52,7 @@ export function LanguageSelector({ className }: { className?: string }) {
         style={{ width: "max-content", minWidth: "190px" }}
         className="rounded-2xl border border-[#E6E4DA] bg-white p-1.5 shadow-md"
       >
-        <div role="menu" aria-label="Idiomas disponíveis" className="flex flex-col gap-0.5">
+        <div role="menu" aria-label={t("common.availableLanguages")} className="flex flex-col gap-0.5">
           {LANGUAGE_OPTIONS.map((opt) => {
             const isActive = opt.code === language;
             return (

@@ -1051,6 +1051,24 @@ def _processar_simulacao(
         for aviso in (top_bd.get("phytosanitary_warnings") or [])[:2]:
             if isinstance(aviso, str) and aviso not in riscos:
                 riscos.append(aviso)
+        try:
+            from backend.services.llm_agent import synthesize_cross_insights
+
+            cross = synthesize_cross_insights(
+                strategy=rotacoes_sugeridas[0],
+                field_metrics=metricas_geoespaciais,
+                farmer_priorities=prioridades_finais,
+            )
+            for item_pos in cross.get("pontos_positivos", [])[:2]:
+                if item_pos not in beneficios:
+                    beneficios.append(item_pos)
+            for item_alerta in (
+                cross.get("alertas_manejo", [])[:2] + cross.get("acoes_praticas", [])[:1]
+            ):
+                if item_alerta not in riscos:
+                    riscos.append(item_alerta)
+        except Exception:
+            pass
     firms_info = metricas_geoespaciais.get("firms")
     if (
         isinstance(firms_info, dict)

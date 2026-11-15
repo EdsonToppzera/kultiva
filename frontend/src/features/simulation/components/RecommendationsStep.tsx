@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
   Bug,
@@ -447,14 +448,14 @@ export function buildRecommendationsFromOnboarding({
 const NETWORK_BADGE_CONFIG: Record<
   NetworkSyncStatus,
   {
-    label: string;
+    labelKey: string;
     variant: "saved" | "offline" | "outline";
     icon: React.ComponentType<{ className?: string }>;
   }
 > = {
-  salvo: { label: "Salvo", variant: "saved", icon: Wifi },
-  sincronizando: { label: "Salvando", variant: "outline", icon: RefreshCw },
-  offline: { label: "Sem internet", variant: "offline", icon: WifiOff },
+  salvo: { labelKey: "network.saved", variant: "saved", icon: Wifi },
+  sincronizando: { labelKey: "network.saving", variant: "outline", icon: RefreshCw },
+  offline: { labelKey: "network.offline", variant: "offline", icon: WifiOff },
 };
 
 export interface RecommendationsStepProps {
@@ -481,6 +482,7 @@ export function RecommendationsStep({
   onSelectPlan,
   onBack,
 }: RecommendationsStepProps) {
+  const { t } = useTranslation();
   const [isOnline, setIsOnline] = React.useState<boolean>(() =>
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
@@ -564,7 +566,7 @@ export function RecommendationsStep({
                   )}
                   aria-hidden="true"
                 />
-                <span>{badgeInfo.label}</span>
+                <span>{t(badgeInfo.labelKey)}</span>
               </Badge>
               <LanguageSelector />
             </div>
@@ -579,10 +581,10 @@ export function RecommendationsStep({
           {/* Títulos */}
           <section className="mt-4">
             <h1 className="text-[28px] font-bold leading-tight tracking-tight text-[#511D4E] sm:text-3xl">
-              Recomendações
+              {t("simulation.title")}
             </h1>
             <p className="mt-1.5 text-sm text-[#6D6960] sm:text-base">
-              Essas são as recomendações com base nas informações obtidas.
+              {t("simulation.subtitle")}
             </p>
           </section>
 
@@ -591,7 +593,7 @@ export function RecommendationsStep({
             {isLoading ? (
               <div className="flex items-center justify-center gap-3 rounded-3xl border border-[#E6E4DA] bg-white px-6 py-12 text-sm font-semibold text-[#511D4E]">
                 <RefreshCw className="h-5 w-5 animate-spin" aria-hidden="true" />
-                <span>Calculando recomendações para a sua área...</span>
+                <span>{t("simulation.calculating")}</span>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:items-start">
@@ -618,7 +620,7 @@ export function RecommendationsStep({
             className="w-full max-w-[200px] text-sm font-semibold text-[#511D4E]"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-            <span>Voltar</span>
+            <span>{t("common.back")}</span>
           </Button>
         </footer>
       </div>
@@ -651,11 +653,10 @@ export function RecommendationsStep({
                 </div>
 
                 <DrawerTitle className="mt-1">
-                  Detalhes Técnicos da Rotação
+                  {t("simulation.drawerTitle")}
                 </DrawerTitle>
                 <DrawerDescription>
-                  Cruzamento de clima (NASA) e recomendações fitossanitárias
-                  (AGROFIT).
+                  {t("simulation.drawerSubtitle")}
                 </DrawerDescription>
               </DrawerHeader>
 
@@ -664,7 +665,7 @@ export function RecommendationsStep({
                 <div className="rounded-2xl border border-[#E6E4DA] bg-white p-3">
                   <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#6D6960]">
                     <Clock className="h-3.5 w-3.5 text-[#511D4E]" aria-hidden="true" />
-                    <span>Ciclo estimado</span>
+                    <span>{t("simulation.estimatedCycle")}</span>
                   </div>
                   <p className="mt-1 text-sm font-bold text-[#1F1C18]">
                     {activeScenario.technicalDetails.cycleDurationDays}
@@ -677,7 +678,7 @@ export function RecommendationsStep({
                       className="h-3.5 w-3.5 text-[#511D4E]"
                       aria-hidden="true"
                     />
-                    <span>Água necessária</span>
+                    <span>{t("simulation.waterNeeded")}</span>
                   </div>
                   <p className="mt-1 text-sm font-bold text-[#1F1C18]">
                     {activeScenario.technicalDetails.waterDemandMm}
@@ -700,7 +701,7 @@ export function RecommendationsStep({
                   ) : (
                     <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
                   )}
-                  <span>Análise Climática (NASA)</span>
+                  <span>{t("simulation.nasaAnalysis")}</span>
                 </div>
                 <p>{activeScenario.technicalDetails.nasaClimateNote}</p>
               </div>
@@ -708,15 +709,21 @@ export function RecommendationsStep({
               {/* Tabela NPK */}
               <div className="mt-4">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#6D6960]">
-                  Necessidades e Balanço de NPK
+                  {t("simulation.npkTitle")}
                 </h3>
                 <div className="mt-2 overflow-hidden rounded-2xl border border-[#E6E4DA] bg-white">
                   <table className="w-full text-left text-xs">
                     <thead className="border-b border-[#E6E4DA] bg-[#F7F6F0] text-[#6D6960]">
                       <tr>
-                        <th className="px-3 py-2 font-semibold">Nutriente</th>
-                        <th className="px-3 py-2 font-semibold">Exigência</th>
-                        <th className="px-3 py-2 font-semibold">Efeito</th>
+                        <th className="px-3 py-2 font-semibold">
+                          {t("simulation.nutrient")}
+                        </th>
+                        <th className="px-3 py-2 font-semibold">
+                          {t("simulation.requirement")}
+                        </th>
+                        <th className="px-3 py-2 font-semibold">
+                          {t("simulation.effect")}
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#E6E4DA]">
@@ -754,7 +761,7 @@ export function RecommendationsStep({
               <div className="mt-4">
                 <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#6D6960]">
                   <Bug className="h-3.5 w-3.5 text-[#511D4E]" aria-hidden="true" />
-                  <span>Histórico e Alertas de Pragas (AGROFIT)</span>
+                  <span>{t("simulation.pestAlerts")}</span>
                 </h3>
                 <ul className="mt-2 flex flex-col gap-2">
                   {activeScenario.technicalDetails.agrofitAlerts.map((alert) => (
@@ -771,7 +778,7 @@ export function RecommendationsStep({
               <DrawerFooter>
                 <DrawerClose asChild>
                   <Button type="button" variant="primary" className="w-full">
-                    Fechar detalhes
+                    {t("simulation.closeDetails")}
                   </Button>
                 </DrawerClose>
               </DrawerFooter>

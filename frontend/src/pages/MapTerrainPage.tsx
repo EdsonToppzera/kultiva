@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
@@ -157,6 +158,7 @@ function MapController({
 }
 
 export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
+  const { t } = useTranslation();
   // Gestão clara do estado de coordenadas do polígono
   const [nomePropriedade, setNomePropriedade] = React.useState("");
   const [points, setPoints] = React.useState<MapCoordinate[]>([]);
@@ -286,10 +288,10 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
 
           <section className="mt-6">
             <h1 className="text-[30px] font-bold tracking-tight text-[#511D4E] leading-tight">
-              Mapear Terreno
+              {t("map.title")}
             </h1>
             <p className="mt-1.5 text-[15px] leading-snug text-[#6D6960]">
-              Adicione os pontos que formam o contorno da sua área.
+              {t("map.subtitle")}
             </p>
           </section>
 
@@ -298,14 +300,14 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
               htmlFor="nome-propriedade-input"
               className="block text-[11px] font-bold tracking-[0.08em] text-[#6D6960] uppercase"
             >
-              Nome da propriedade / talhão
+              {t("map.propertyNameLabel")}
             </label>
             <input
               id="nome-propriedade-input"
               type="text"
               value={nomePropriedade}
               onChange={(event) => setNomePropriedade(event.target.value)}
-              placeholder="Ex: Sítio Boa Esperança - Talhão 1"
+              placeholder={t("map.propertyNamePlaceholder")}
               className="mt-1.5 w-full rounded-2xl border border-[#D5D1C5] bg-white px-4 py-3 text-[15px] text-[#1F1C18] placeholder:text-[#9A958A] focus:border-[#511D4E] focus:outline-none focus:ring-2 focus:ring-[#511D4E]/15"
             />
           </section>
@@ -369,7 +371,7 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
 
               {/* Canto superior esquerdo: Badge SATÉLITE */}
               <div className="pointer-events-none absolute top-3 left-3 z-[1000] rounded-full bg-[#1F1C18]/75 px-3 py-1 text-[10px] font-bold tracking-[0.08em] text-white uppercase backdrop-blur-xs">
-                SATÉLITE
+                {t("map.satellite")}
               </div>
 
               {/* Canto superior direito: Botão expandir/fullscreen */}
@@ -377,7 +379,7 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
                 type="button"
                 onClick={() => setIsMapExpanded((prev) => !prev)}
                 aria-label={
-                  isMapExpanded ? "Minimizar mapa" : "Expandir mapa"
+                  isMapExpanded ? t("map.minimizeMap") : t("map.expandMap")
                 }
                 className="absolute top-3 right-3 z-[1000] flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[#1F1C18] shadow-md transition-colors hover:bg-[#F7F6F0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#511D4E]"
               >
@@ -413,7 +415,7 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
 
               {/* Base centro: Tag branca flutuante */}
               <div className="pointer-events-none absolute bottom-5 left-1/2 z-[1000] -translate-x-1/2 rounded-xl bg-white px-4 py-2 text-xs font-medium whitespace-nowrap text-[#1F1C18] shadow-md">
-                Mova o mapa para posicionar
+                {t("map.moveMap")}
               </div>
             </div>
           </section>
@@ -432,9 +434,7 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
                 className="h-4 w-4 text-[#511D4E]"
                 aria-hidden="true"
               />
-              {isLocating
-                ? "Localizando GPS..."
-                : "Usar minha localização atual (GPS)"}
+              {isLocating ? t("map.locatingGps") : t("map.useGps")}
             </Button>
 
             {gpsError && (
@@ -449,7 +449,7 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
               className="w-full"
             >
               <Plus className="h-4 w-4" aria-hidden="true" />
-              Marcar ponto no Alfinete
+              {t("map.markPin")}
             </Button>
           </section>
 
@@ -457,10 +457,13 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
           <section className="mt-6">
             <div className="flex items-center justify-between">
               <h2 className="text-[15px] font-bold text-[#1F1C18]">
-                Pontos adicionados
+                {t("map.addedPoints")}
               </h2>
               <span className="text-[13px] font-medium text-[#6D6960]">
-                {points.length} {points.length === 1 ? "ponto" : "pontos"}
+                {points.length}{" "}
+                {points.length === 1
+                  ? t("map.pointSingle")
+                  : t("map.pointPlural")}
               </span>
             </div>
 
@@ -472,13 +475,13 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
                     className="flex items-center justify-between py-2 text-[13px] text-[#6D6960]"
                   >
                     <span>
-                      Ponto {index + 1}: Lat {point.lat.toFixed(4)}, Lon{" "}
-                      {point.lng.toFixed(4)}
+                      {t("map.pointLabel", { index: index + 1 })}: Lat{" "}
+                      {point.lat.toFixed(4)}, Lon {point.lng.toFixed(4)}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleRemovePoint(point.id)}
-                      aria-label={`Remover ponto ${index + 1}`}
+                      aria-label={t("map.removePoint", { index: index + 1 })}
                       className="flex h-7 w-7 items-center justify-center rounded-lg text-[#6D6960] transition-colors hover:bg-[#EFECE3] hover:text-[#1F1C18]"
                     >
                       <X className="h-4 w-4" aria-hidden="true" />
@@ -488,8 +491,7 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
               </ul>
             ) : (
               <p className="mt-2.5 text-[13px] text-[#6D6960]">
-                Nenhum ponto marcado ainda. Adicione pelo menos 3 pontos para
-                formar a área.
+                {t("map.emptyPoints")}
               </p>
             )}
           </section>
@@ -526,12 +528,10 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
               />
               <div>
                 <AlertTitle className="text-[15px] font-bold text-[#7A520B]">
-                  Área muito grande
+                  {t("map.largeAreaWarningTitle")}
                 </AlertTitle>
                 <AlertDescription className="mt-1 text-[13px] leading-relaxed text-[#7A520B]">
-                  O tamanho calculado desta área é muito grande. Para a análise
-                  da NASA ser precisa, recomendamos que você divida e cadastre
-                  este terreno como duas áreas separadas.
+                  {t("map.largeAreaWarningDesc")}
                 </AlertDescription>
               </div>
             </Alert>
@@ -556,7 +556,7 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
             onClick={() => void handleSave()}
             className="w-full"
           >
-            {isSaving ? "Salvando Área..." : "Salvar Área"}
+            {isSaving ? t("map.savingArea") : t("map.saveArea")}
           </Button>
 
           <Button
@@ -567,7 +567,7 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
             className="w-full max-w-[200px] text-sm font-semibold text-[#511D4E]"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-            <span>Voltar</span>
+            <span>{t("common.back")}</span>
           </Button>
         </footer>
       </div>
