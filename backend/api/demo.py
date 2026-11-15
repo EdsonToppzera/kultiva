@@ -1,5 +1,6 @@
 from datetime import date, datetime, timedelta, timezone
 import logging
+import tempfile
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -10,7 +11,7 @@ from backend.api.terreno import limpar_dependencias_terreno
 from backend.db import models
 from backend.db.database import get_db
 from backend.schemas.demo import DemoSeedResponse
-from backend.services.geospatial import calcular_geometria_terreno
+from backend.services.geospatial import MockNASADataProvider, calcular_geometria_terreno
 from backend.services.llm_agent import DISCLAIMER
 from backend.services.metrics_service import persistir_metricas_terreno
 
@@ -73,7 +74,7 @@ _DEMO_TERRENOS = [
             "foco_mercado": "regional",
             "conservacao_solo": True,
         },
-        "perfil": "chuva",
+        "perfil": "chuva_extrema",
         "rotacao_custom": None,
         "alerta": {
             "tipo_evento": "chuva_intensa",
@@ -88,9 +89,9 @@ _DEMO_TERRENOS = [
                 "Adubação em cobertura adiada em 2 dias para evitar perda por enxurrada."
             ),
             "dados_gatilho": {
-                "min_soil_moisture": 0.24,
-                "max_surface_temp_c": 29.0,
-                "max_precipitation_mm": 64.5,
+                "min_soil_moisture": 0.35,
+                "max_surface_temp_c": 27.5,
+                "max_precipitation_mm": 85.0,
             },
         },
     },
@@ -114,30 +115,44 @@ def _garantir_usuario_demo(db: Session) -> models.Usuario:
     return usuario
 
 
-def _gerar_serie_demo(perfil: str, hoje: date) -> List[Dict[str, Any]]:
-    serie: List[Dict[str, Any]] = []
-    for passo in range(10):
-        dt = hoje - timedelta(days=9 - passo)
-        if perfil == "seca":
-            umidade = round(max(0.09, 0.20 - passo * 0.011), 4)
-            temp = round(31.2 + passo * 0.55, 2)
-            precip = 1.5 if passo < 2 else 0.0
-            bare = umidade < 0.12 and temp >= 33.0
-        else:
-            umidade = round(min(0.34, 0.22 + passo * 0.01), 4)
-            temp = round(29.0 - passo * 0.35, 2)
-            precip = 64.5 if passo == 8 else (6.0 + passo * 0.8)
-            bare = False
-        serie.append(
+def _extrair_field_metrics_perfil_demo(
+    perfil: str,
+    coordenadas_poligono: List[Dict[str, float]],
+    hoje: date,
+) -> Dict[str, Any]:
+    """Extrai métricas reais dos NetCDFs A9 em diretório temporário e alinha datas até hoje."""
+    with tempfile.TemporaryDirectory(prefix="kultiva_demo_") as tmp_dir:
+        provider = MockNASADataProvider(data_path=tmp_dir, profile=perfil)
+        extraido = provider.extract_field_metrics(coordenadas_poligono)
+
+    serie_bruta = extraido.get("time_series") or []
+    total_dias = len(serie_bruta)
+    serie_ajustada: List[Dict[str, Any]] = []
+
+    for idx, ponto in enumerate(serie_bruta):
+        dt = hoje - timedelta(days=total_dias - 1 - idx)
+        umidade = round(float(ponto["soil_moisture"]), 4)
+        temp = round(float(ponto["surface_temp_c"]), 2)
+        precip = round(float(ponto["precipitation_mm"]), 2)
+        bare = (
+            umidade < provider.BARE_MOISTURE_MAX
+            and temp >= provider.BARE_TEMP_MIN_C
+        )
+        serie_ajustada.append(
             {
                 "data": dt.isoformat(),
                 "soil_moisture": umidade,
                 "surface_temp_c": temp,
-                "precipitation_mm": round(precip, 2),
+                "precipitation_mm": precip,
                 "is_bare_field_period": bare,
             }
         )
-    return serie
+
+    return {
+        **extraido,
+        "origem": f"demo_seed:{perfil}",
+        "time_series": serie_ajustada,
+    }
 
 
 def _gerar_explicacao_alerta_demo(
@@ -241,16 +256,16 @@ def _popular_terreno_demo(
         .count()
         == 0
     ):
-        serie = _gerar_serie_demo(spec["perfil"], hoje)
+        field_metrics = _extrair_field_metrics_perfil_demo(
+            spec["perfil"],
+            spec["coordenadas_poligono"],
+            hoje,
+        )
         persistir_metricas_terreno(
             db=db,
             terreno_id=terreno.id,
-            field_metrics={
-                "data_quality": "clip",
-                "origem": "demo_seed",
-                "time_series": serie,
-            },
-            origem="demo_seed",
+            field_metrics=field_metrics,
+            origem=str(field_metrics.get("origem") or f"demo_seed:{spec['perfil']}"),
             data_referencia=hoje,
             commit=False,
         )
