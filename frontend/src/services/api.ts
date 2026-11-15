@@ -1,4 +1,4 @@
-import { CROPS_DICTIONARY } from "../data/cropsDictionary";
+import { CROPS_DICTIONARY, capitalizeLabel } from "../data/cropsDictionary";
 import { PESTS_DICTIONARY, type PestOption } from "../data/pestsDictionary";
 import type { CropHistoryData, CropOption } from "../features/onboarding/types/cropHistory.types";
 import type { PriorityId } from "../features/onboarding/types/priority.types";
@@ -855,8 +855,8 @@ export async function buscarCulturasCatalogo(
     }
     return data.map((item) => ({
       id: item.id,
-      officialName: item.official_name,
-      popularNames: item.popular_names,
+      officialName: capitalizeLabel(item.official_name),
+      popularNames: item.popular_names.map(capitalizeLabel),
       imageUrl: item.image_url ?? null,
     }));
   } catch (err) {
@@ -887,8 +887,8 @@ export async function buscarPragasCatalogo(
     }
     return data.map((item) => ({
       id: item.id,
-      officialName: item.official_name,
-      popularNames: item.popular_names,
+      officialName: capitalizeLabel(item.official_name),
+      popularNames: item.popular_names.map(capitalizeLabel),
       category: item.category ?? "Praga / Doença",
     }));
   } catch (err) {

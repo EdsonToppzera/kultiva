@@ -79,6 +79,15 @@ export const CROPS_DICTIONARY: CropOption[] = [
 ];
 
 /**
+ * Capitaliza a primeira letra de um nome popular ou oficial (ex.: `"quiabo"` -> `"Quiabo"`).
+ */
+export function capitalizeLabel(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return "";
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
+/**
  * Formata a lista de nomes populares entre aspas em português (ex.: `"Mandioca", "Macaxeira" e "Aipim"`).
  * Quando houver mais de `maxItems` nomes, limita a exibição e adiciona reticências (`...`).
  */
@@ -88,7 +97,7 @@ export function formatPopularNames(
 ): string {
   if (popularNames.length === 0) return "";
   const visible = popularNames.slice(0, maxItems);
-  const quoted = visible.map((name) => `"${name}"`);
+  const quoted = visible.map((name) => `"${capitalizeLabel(name)}"`);
   if (popularNames.length > maxItems) {
     return `${quoted.join(", ")}, ...`;
   }
