@@ -234,13 +234,14 @@ export function AreaDashboardPage({
 
       if (atividadesRes.status === "fulfilled") {
         setLiveActivities(
-          adaptAtividadesToDashboardItems(atividadesData, todayIso)
+          adaptAtividadesToDashboardItems(atividadesData, todayIso, isEnglish)
         );
         setLiveCropProgress(
           adaptAtividadesToCropProgress(
             atividadesData,
             todayIso,
-            cropNameFallback
+            cropNameFallback,
+            isEnglish
           )
         );
       }
@@ -415,7 +416,7 @@ export function AreaDashboardPage({
 
           {/* Card Roxo de Clima */}
           <section
-            aria-label="Previsão do tempo e ajustes do dia"
+            aria-label={t("dashboard.weatherSectionAria")}
             className="mt-3 rounded-3xl bg-[#511D4E] p-5 text-white shadow-sm"
           >
             <div className="flex items-start gap-3.5">
@@ -468,7 +469,7 @@ export function AreaDashboardPage({
                 <p className="truncate text-sm font-bold text-[#1F1C18]">
                   {effectiveCropProgress
                     ? `${effectiveCropProgress.cropName} · ${effectiveCropProgress.dayLabel}`
-                    : cropNameFallback || "Sem cultivo ativo"}
+                    : cropNameFallback || t("dashboard.noActiveCrop")}
                 </p>
                 <p className="text-xs text-[#5A594E]">
                   {t("dashboard.viewFullCalendar")}

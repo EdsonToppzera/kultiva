@@ -569,23 +569,36 @@ export function buildGerarCronogramaPayload(
   };
 }
 
-function inferActivityPeriod(tipoAtividade: string): {
+function inferActivityPeriod(
+  tipoAtividade: string,
+  isEnglish = false
+): {
   period: ActivityPeriodId;
   periodLabel: string;
 } {
   const tipo = tipoAtividade.trim().toLowerCase();
   if (tipo === "inspecao" || tipo === "plantio" || tipo === "adubacao" || tipo === "colheita") {
-    return { period: "manha", periodLabel: "Manhã cedo" };
+    return {
+      period: "manha",
+      periodLabel: isEnglish ? "Early morning" : "Manhã cedo",
+    };
   }
   if (tipo === "irrigacao") {
-    return { period: "tarde", periodLabel: "Fim de tarde" };
+    return {
+      period: "tarde",
+      periodLabel: isEnglish ? "Late afternoon" : "Fim de tarde",
+    };
   }
-  return { period: "qualquer-momento", periodLabel: "Qualquer momento" };
+  return {
+    period: "qualquer-momento",
+    periodLabel: isEnglish ? "Anytime" : "Qualquer momento",
+  };
 }
 
 export function adaptAtividadesToDashboardItems(
   atividades: AtividadeCalendarioResponse[],
-  todayIso: string
+  todayIso: string,
+  isEnglish = false
 ): AreaActivityItem[] {
   if (atividades.length === 0) return [];
 
@@ -601,20 +614,25 @@ export function adaptAtividadesToDashboardItems(
 
   return finalItems.map((atividade) => {
     const { period, periodLabel } = inferActivityPeriod(
-      atividade.tipo_atividade
+      atividade.tipo_atividade,
+      isEnglish
     );
     return {
       id: String(atividade.id),
       backendId: atividade.id,
       period,
       periodLabel,
-      title: atividade.titulo,
-      description:
-        atividade.descricao ||
-        `Atividade de ${atividade.tipo_atividade} (${atividade.data_programada}).`,
+      title: localizeCalendarActivityText(atividade.titulo, isEnglish),
+      description: atividade.descricao
+        ? localizeCalendarActivityText(atividade.descricao, isEnglish)
+        : isEnglish
+          ? `${atividade.tipo_atividade} activity (${atividade.data_programada}).`
+          : `Atividade de ${atividade.tipo_atividade} (${atividade.data_programada}).`,
       completed: atividade.concluida,
       paused: atividade.ajustada_por_alerta && !atividade.concluida,
-      pausedReason: atividade.motivo_ajuste ?? undefined,
+      pausedReason: atividade.motivo_ajuste
+        ? localizeCalendarActivityText(atividade.motivo_ajuste, isEnglish)
+        : undefined,
     };
   });
 }
@@ -634,6 +652,22 @@ const EN_ALERT_TEXT_MAP: Array<[RegExp, string]> = [
   [
     /O produtor identificou sinais de praga na área\.\s*Priorizar inspeção e manejo fitossanitário\.?/gi,
     "Producer identified signs of pests in the area. Prioritize inspection and phytosanitary management.",
+  ],
+  [
+    /Manter o planejamento de rotação atual com monitoramento semanal do calendário\.?/gi,
+    "Maintain the current rotation plan with weekly calendar monitoring.",
+  ],
+  [
+    /Priorizar cobertura morta e culturas rústicas resistentes à seca\/calor\.?/gi,
+    "Prioritize mulch and hardy crops resistant to drought/heat.",
+  ],
+  [
+    /Acompanhar alertas diários e reforçar irrigação suplementar em horários amenos\.?/gi,
+    "Follow daily alerts and reinforce supplemental irrigation during cooler hours.",
+  ],
+  [
+    /O calendário adaptou automaticamente (\d+) atividade\(s\) frente a eventos climáticos no período\.?/gi,
+    "The calendar automatically adapted $1 activity(ies) in response to weather events during this period.",
   ],
 ];
 
@@ -681,10 +715,13 @@ export function adaptRelatorioAndAlertasToWeather(
   return {
     headline,
     details: `${tempStr} · ${rainStr}`,
-    weatherNotice:
+    weatherNotice: localizeAlertText(
       latestAlert?.orientacao_pratica ||
-      latestAlert?.resumo_adaptacao ||
-      relatorio?.recomendacoes_manejo[0],
+        latestAlert?.resumo_adaptacao ||
+        relatorio?.recomendacoes_manejo[0] ||
+        "",
+      isEnglish
+    ) || undefined,
     sourceLabel: relatorio?.origem_dados
       ? `${isEnglish ? "Source" : "Fonte"}: ${relatorio.origem_dados}`
       : undefined,
@@ -694,12 +731,15 @@ export function adaptRelatorioAndAlertasToWeather(
 export function adaptAtividadesToCropProgress(
   atividades: AtividadeCalendarioResponse[],
   todayIso: string,
-  fallbackCropName = "Cultivo em andamento"
+  fallbackCropName?: string,
+  isEnglish = false
 ): AreaCropProgress {
+  const resolvedFallback =
+    fallbackCropName || (isEnglish ? "Active crop" : "Cultivo em andamento");
   if (atividades.length === 0) {
     return {
-      cropName: fallbackCropName,
-      dayLabel: "Sem cronograma",
+      cropName: translateCropStepName(resolvedFallback, isEnglish),
+      dayLabel: isEnglish ? "No schedule" : "Sem cronograma",
     };
   }
 
@@ -711,12 +751,20 @@ export function adaptAtividadesToCropProgress(
   const todayMs = new Date(`${todayIso}T12:00:00`).getTime();
   const diffDays = Math.max(1, Math.round((todayMs - startMs) / 86400000) + 1);
 
-  const stageMatch = sorted[0].titulo.match(/\[Etapa\s+\d+\s*-\s*([^\]]+)\]/i);
-  const cropName = stageMatch?.[1]?.trim() || fallbackCropName;
+  const stageMatch = sorted[0].titulo.match(/\[(?:Etapa|Stage)\s+\d+\s*-\s*([^\]]+)\]/i);
+  const rawCropName = stageMatch?.[1]?.trim() || resolvedFallback;
+  const cropName = translateCropStepName(rawCropName, isEnglish);
 
   return {
     cropName,
-    dayLabel: todayIso < firstDate ? `Inicia em ${firstDate}` : `Dia ${diffDays}`,
+    dayLabel:
+      todayIso < firstDate
+        ? isEnglish
+          ? `Starts ${firstDate}`
+          : `Inicia em ${firstDate}`
+        : isEnglish
+          ? `Day ${diffDays}`
+          : `Dia ${diffDays}`,
   };
 }
 
@@ -1083,12 +1131,14 @@ export function buildSimulatedDashboardAndCalendar(
   const firstCropName = etapas[0]?.cultura ?? scenario.focusTag;
   const activities = adaptAtividadesToDashboardItems(
     syntheticAtividades,
-    todayIso
+    todayIso,
+    isEnglish
   );
   const cropProgress = adaptAtividadesToCropProgress(
     syntheticAtividades,
     todayIso,
-    firstCropName
+    firstCropName,
+    isEnglish
   );
   const calendarData = adaptAtividadesToCalendarData(
     areaName,
@@ -1101,11 +1151,11 @@ export function buildSimulatedDashboardAndCalendar(
 
   const headline =
     scenario.variant === "risk"
-      ? `Atenção hídrica · ${scenario.focusTag}`
+      ? `${isEnglish ? "Water attention" : "Atenção hídrica"} · ${scenario.focusTag}`
       : `${scenario.optionBadge} · ${scenario.focusTag}`;
   const detailsParts = [
-    `Ciclo: ${scenario.technicalDetails.cycleDurationDays}`,
-    `Água: ${scenario.technicalDetails.waterDemandMm}`,
+    `${isEnglish ? "Cycle" : "Ciclo"}: ${scenario.technicalDetails.cycleDurationDays}`,
+    `${isEnglish ? "Water" : "Água"}: ${scenario.technicalDetails.waterDemandMm}`,
   ];
   if (simulacao?.consumo_agua_mm) {
     detailsParts.push(`${Math.round(simulacao.consumo_agua_mm)} mm`);
