@@ -20,10 +20,12 @@ from backend.services.ml_models import (
     get_fallback_rotation_strategies,
 )
 from backend.services.mock_nasa_data import (
+    CLIMATE_PROFILES,
     ECOSTRESS_FILE,
     GPM_FILE,
     SMAP_FILE,
     generate_synthetic_netcdf,
+    normalize_climate_profile,
 )
 
 POLIGONO_SP = [
@@ -758,3 +760,87 @@ def test_explainer_explain_alert_e_report_com_disclaimer(monkeypatch):
     assert r1.endswith(DISCLAIMER)
     assert "O solo manteve boa umidade" in r2
     assert r2.endswith(DISCLAIMER)
+
+
+# ---- A9: Perfis climáticos simuláveis -------------------------------------
+
+
+def test_perfis_climaticos_mock_geram_cenarios_distintos_e_acionam_detector(
+    tmp_path, geospatial_mod
+):
+    detector = ClimateAnomalyDetector()
+    sim = CropSimulator()
+    resultados: dict[str, dict] = {}
+
+    for perfil in CLIMATE_PROFILES:
+        pasta_perfil = tmp_path / perfil
+        msg = generate_synthetic_netcdf(str(pasta_perfil), force=True, profile=perfil)
+        assert perfil in msg
+
+        prov = geospatial_mod.get_nasa_data_provider(
+            data_path=str(pasta_perfil), profile=perfil
+        )
+        metricas = prov.extract_field_metrics(POLIGONO_SP)
+        resultados[perfil] = metricas
+
+    # Seca: solo exposto, umidade crítica e disparo de evento "seca"
+    seca = resultados["seca"]
+    assert seca["is_bare_field_period"] is True
+    assert seca["avg_soil_moisture_smap"] < resultados["normal"]["avg_soil_moisture_smap"]
+    det_seca = detector.detect_extremes(seca["time_series"])
+    assert det_seca["anomaly_detected"] is True
+    assert det_seca["tipo_evento"] == "seca"
+
+    # Seca reduz viabilidade da prática atual sedenta ("Milho -> Soja") frente ao normal
+    viab_seca = next(
+        e["viability"]
+        for e in sim.simulate_rotation_strategies(seca, {"agua": "escassa"})
+        if "(Atual)" in e["strategy"]
+    )
+    viab_normal = next(
+        e["viability"]
+        for e in sim.simulate_rotation_strategies(resultados["normal"], {})
+        if "(Atual)" in e["strategy"]
+    )
+    assert viab_seca < viab_normal
+
+    # Chuva extrema: precipitação >= 60 mm/dia e evento "chuva_intensa"
+    chuva = resultados["chuva_extrema"]
+    assert chuva["avg_precipitation_gpm"] >= detector.HEAVY_RAIN_MM
+    assert chuva["avg_soil_moisture_smap"] > seca["avg_soil_moisture_smap"]
+    det_chuva = detector.detect_extremes(chuva["time_series"])
+    assert det_chuva["anomaly_detected"] is True
+    assert det_chuva["tipo_evento"] == "chuva_intensa"
+
+    # Onda de calor: temperatura >= 35 °C e evento "onda_de_calor"
+    calor = resultados["onda_de_calor"]
+    assert calor["avg_surface_temp_ecostress"] >= detector.HEAT_C
+    det_calor = detector.detect_extremes(calor["time_series"])
+    assert det_calor["anomaly_detected"] is True
+    assert det_calor["tipo_evento"] == "onda_de_calor"
+
+
+def test_perfil_climatico_aliases_env_e_erro_perfil_invalido(
+    monkeypatch, tmp_path, geospatial_mod
+):
+    assert normalize_climate_profile("chuva_intensa") == "chuva_extrema"
+    assert normalize_climate_profile("estiagem") == "seca"
+    assert normalize_climate_profile("calor") == "onda_de_calor"
+    assert normalize_climate_profile("padrao") == "normal"
+
+    with pytest.raises(ValueError, match="Perfil climático inválido"):
+        normalize_climate_profile("nevasca_polar")
+
+    # Via variável de ambiente NASA_MOCK_PROFILE
+    monkeypatch.setenv("NASA_MOCK_PROFILE", "chuva_intensa")
+    assert normalize_climate_profile() == "chuva_extrema"
+
+    prov = geospatial_mod.MockNASADataProvider(data_path=str(tmp_path))
+    m_chuva = prov.extract_field_metrics(POLIGONO_SP)
+    assert m_chuva["avg_precipitation_gpm"] >= 60.0
+
+    # Alternar perfil na mesma pasta sem force=True regenera automaticamente
+    monkeypatch.setenv("NASA_MOCK_PROFILE", "seca")
+    m_seca = prov.extract_field_metrics(POLIGONO_SP)
+    assert m_seca["avg_soil_moisture_smap"] <= 0.10
+    assert m_seca["is_bare_field_period"] is True

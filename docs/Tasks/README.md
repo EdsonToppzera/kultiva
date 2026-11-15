@@ -59,7 +59,7 @@
 | A6 | ✅ | Testes unitários de `MockNASADataProvider`, `CropSimulator`, `ClimateAnomalyDetector` e `RotationExplainerAgent` | `backend/tests/` | `pytest` verde |
 | A7 | ✅ | Cálculo geoespacial de área (`area_hectares`) e centroide do polígono; `CropSimulator` considerando `historico_cultivos` (penaliza monocultura, bonifica quebra de ciclo) e fallback dinâmico | `geospatial.py`, `ml_models.py` | Área/centroide calculados do polígono; histórico altera ranking do simulador |
 | A8 | ✅ | Expandir `RotationExplainerAgent` com `explain_alert` (orientações práticas de manejo para `[M5]`) e `explain_report` (resumo em linguagem simples para `[M6]`), mantendo `DISCLAIMER` e mock offline | `llm_agent.py` | Alertas e relatórios geram explicação acessível sempre com disclaimer |
-| A9 | ⬜ | Perfis climáticos simuláveis (`normal`, `seca`, `chuva_extrema`, `onda_de_calor`) em `mock_nasa_data.py` para testes de estresse/demo + testes unitários de `A7–A9` | `mock_nasa_data.py`, `backend/tests/test_data_ml.py` | Perfis geram cenários distintos e `pytest` verde |
+| A9 | ✅ | Perfis climáticos simuláveis (`normal`, `seca`, `chuva_extrema`, `onda_de_calor`) em `mock_nasa_data.py` para testes de estresse/demo + testes unitários de `A7–A9` | `mock_nasa_data.py`, `backend/tests/test_data_ml.py` | Perfis geram cenários distintos e `pytest` verde |
 
 ## Dev B — Catálogo, relatórios, terrenos e infra/demo
 
@@ -69,9 +69,9 @@
 | B2 | ✅ | **[M6]** Serviço e endpoints de relatório: histórico de umidade/temperatura, vigor, vulnerabilidade, adaptações (`ajustada_por_alerta`) | `services/relatorio_service.py`, `api/relatorios.py` | `GET` de relatório por terreno e período; usa `field_metrics` |
 | B3 | ✅ | Persistir métricas históricas (tabela + migração/Alembic) para alimentar o M6 | `services/metrics_service.py`, `alembic/` | Série por terreno consultável |
 | B4 | ✅ | Testes de API para M2/M6 e CI rodando `pytest` | `backend/tests/test_b1_b2_b3.py`, `.github/workflows/ci.yml` | CI verde no PR |
-| B5 | ⬜ | Configurar `CORSMiddleware` para o frontend (`localhost:5173`), seed de `Usuario` padrão no startup e completar `PUT`/`DELETE /api/v1/terrenos/{terreno_id}` com cálculo automático de área/centroide (A7) | `main.py`, `api/terreno.py`, `schemas/terreno.py` | Frontend conecta sem CORS; terreno criado/editado/removido calcula área quando omitida |
-| B6 | ⬜ | Enriquecer relatório `[M6]` com resumo interpretativo da IA (`explain_report` da A8 com fallback determinístico) e comparação entre início/fim do período | `services/relatorio_service.py`, `schemas/relatorio.py`, `api/relatorios.py` | `GET /api/v1/relatorios/...` inclui resumo acessível e comparativo do período |
-| B7 | ⬜ | Endpoint/rotina de seed de demonstração (`POST /api/v1/demo/seed` com usuário, terrenos, métricas, atividades e alertas), atualização de `docs/Specs/README.md` e testes de `B5–B7` | `api/`, `docs/Specs/README.md`, `backend/tests/` | Demo populada em 1 chamada; specs e testes atualizados e verdes |
+| B5 | ✅ | Configurar `CORSMiddleware` para o frontend (`localhost:5173`), seed de `Usuario` padrão no startup e completar `PUT`/`DELETE /api/v1/terrenos/{terreno_id}` com cálculo automático de área/centroide (A7) | `main.py`, `api/terreno.py`, `schemas/terreno.py` | Frontend conecta sem CORS; terreno criado/editado/removido calcula área quando omitida |
+| B6 | ✅ | Enriquecer relatório `[M6]` com resumo interpretativo da IA (`explain_report` da A8 com fallback determinístico) e comparação entre início/fim do período | `services/relatorio_service.py`, `schemas/relatorio.py`, `api/relatorios.py` | `GET /api/v1/relatorios/...` inclui resumo acessível e comparativo do período |
+| B7 | ✅ | Endpoint/rotina de seed de demonstração (`POST /api/v1/demo/seed` com usuário, terrenos, métricas, atividades e alertas), atualização de `docs/Specs/README.md` e testes de `B5–B7` | `api/`, `docs/Specs/README.md`, `backend/tests/` | Demo populada em 1 chamada; specs e testes atualizados e verdes |
 
 ## Dev C — Simulação, alertas e calendário
 
@@ -82,16 +82,15 @@
 | C3 | ✅ | Deduplicar alertas (mesmo terreno + tipo + data), cooldown; intervalo por env | `alert_tasks.py`, `api/alertas.py` | Dois ciclos seguidos não duplicam |
 | C4 | ✅ | Calendário gerado a partir da estratégia escolhida no M3 (`[M1]→[M3]→[M4]`); regras de ajuste pós-alerta testáveis | `api/calendario.py` | Fluxo ponta a ponta coberto por teste |
 | C5 | ✅ | Datetimes com timezone e schemas Pydantic em `ConfigDict` | `api/calendario.py`, `schemas/` | `pytest` sem DeprecationWarning do projeto |
-| C6 | ⬜ | Expor `score_breakdown` e `explicacao` individual em `EstrategiaRotacaoSugerida` (usando `explain_strategies` da A4, mantendo `explicacao_ia`/`explicacao_textual`) e fallback dinâmico | `schemas/simulacao.py`, `api/simulacao.py` | Cada uma das 3 estratégias traz `score_breakdown` e `explicacao` com disclaimer |
-| C7 | ⬜ | Aceitar `historico_cultivos` no `SimulacaoRequest` (integrando onboarding + A7) e permitir gerar/atualizar cronograma `[M4]` direto pela estratégia escolhida na simulação | `schemas/simulacao.py`, `api/simulacao.py`, `api/calendario.py` | Simulação usa histórico do produtor e gera calendário direto da estratégia escolhida |
-| C8 | ⬜ | Integrar `explain_alert` (A8 com fallback) nos alertas `[M5]`, adicionar resumo de alertas não lidos por terreno para o painel e testes de `C6–C8` | `api/alertas.py`, `services/alert_tasks.py`, `schemas/alerta.py`, `backend/tests/` | Alertas trazem orientação prática acessível; contagem de não lidos e testes verdes |
+| C6 | ✅ | Expor `score_breakdown` e `explicacao` individual em `EstrategiaRotacaoSugerida` (usando `explain_strategies` da A4, mantendo `explicacao_ia`/`explicacao_textual`) e fallback dinâmico | `schemas/simulacao.py`, `api/simulacao.py` | Cada uma das 3 estratégias traz `score_breakdown` e `explicacao` com disclaimer |
+| C7 | ✅ | Aceitar `historico_cultivos` no `SimulacaoRequest` (integrando onboarding + A7) e permitir gerar/atualizar cronograma `[M4]` direto pela estratégia escolhida na simulação | `schemas/simulacao.py`, `api/simulacao.py`, `api/calendario.py` | Simulação usa histórico do produtor e gera calendário direto da estratégia escolhida |
+| C8 | ✅ | Integrar `explain_alert` (A8 com fallback) nos alertas `[M5]`, adicionar resumo de alertas não lidos por terreno para o painel e testes de `C6–C8` | `api/alertas.py`, `services/alert_tasks.py`, `schemas/alerta.py`, `backend/tests/` | Alertas trazem orientação prática acessível; contagem de não lidos e testes verdes |
 
 ## Ordem e dependências
 
 1. ✅ **Rodada 1 concluída:** `A1–A6` · `B1–B4` · `C1–C5`.
-2. **Rodada 2 — Agora, em paralelo:** `A7` ✅, `A8` ✅ · `B5` · `C6` ✅.
-3. **Rodada 2 — Em seguida:** `A9` · `B6` (depende de `A8`) · `B7` (depende de `B5`) · `C7` (depende de `A7`) · `C8` (depende de `A8`).
-4. **Por último:** Integração completa com o `frontend/` e ensaio da demo do Hackathon.
+2. ✅ **Rodada 2 — Concluída:** `A7–A9` · `B5–B7` · `C6–C8`.
+3. **Por último:** Integração completa com o `frontend/` e ensaio da demo do Hackathon.
 
 ## Regras de trabalho
 
