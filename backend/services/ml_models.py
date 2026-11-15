@@ -2,7 +2,7 @@ from typing import Any
 import unicodedata
 
 import numpy as np
-from sklearn.ensemble import IsolationForest
+from sklearn.ensemble import IsolationForest, RandomForestRegressor
 
 # ---------------------------------------------------------------------------
 # Utilitários
@@ -261,17 +261,170 @@ def _compute_history_adjustment(
     return round(_clamp(adj, -0.25, 0.18), 4)
 
 
+_VIABILITY_RF_MODEL: RandomForestRegressor | None = None
+
+
+def _get_viability_rf_model() -> RandomForestRegressor:
+    """
+    Treina e armazena em cache um RandomForestRegressor determinístico para
+    prever viabilidade agronômica considerando interações não-lineares de déficit
+    hídrico, estresse térmico, estabilidade temporal e prioridades do produtor.
+    """
+    global _VIABILITY_RF_MODEL
+    if _VIABILITY_RF_MODEL is not None:
+        return _VIABILITY_RF_MODEL
+
+    rng = np.random.default_rng(42)
+    n_samples = 400
+    moisture = rng.uniform(0.05, 0.48, n_samples)
+    temp_c = rng.uniform(19.0, 43.0, n_samples)
+    rain_idx = rng.uniform(0.10, 1.20, n_samples)
+    water_demand = rng.uniform(0.25, 0.95, n_samples)
+    heat_tolerance = rng.uniform(0.35, 0.95, n_samples)
+    soil_benefit = rng.uniform(0.35, 0.95, n_samples)
+    market = rng.uniform(0.45, 0.98, n_samples)
+    water_priority = rng.integers(0, 2, n_samples).astype(float)
+    temporal_stability = rng.uniform(0.30, 1.00, n_samples)
+
+    x_train = np.column_stack(
+        [
+            moisture,
+            temp_c,
+            rain_idx,
+            water_demand,
+            heat_tolerance,
+            soil_benefit,
+            market,
+            water_priority,
+            temporal_stability,
+        ]
+    )
+
+    moist_idx = np.clip(moisture / 0.35, 0.0, 1.0)
+    rain_clipped = np.clip(rain_idx, 0.0, 1.0)
+    supply = 0.6 * moist_idx + 0.4 * rain_clipped
+    gap = water_demand - supply
+    water_fit = np.clip(1.0 - np.maximum(gap, 0.0) * 1.8, 0.0, 1.0)
+    heat_stress = np.clip((temp_c - 28.0) / 12.0, 0.0, 1.0)
+    heat_fit = 1.0 - heat_stress * (1.0 - heat_tolerance)
+
+    w_water = np.where(water_priority > 0.5, 0.60, 0.45)
+    w_heat = np.where(water_priority > 0.5, 0.20, 0.25)
+    w_soil = np.where(water_priority > 0.5, 0.15, 0.20)
+    w_market = np.where(water_priority > 0.5, 0.05, 0.10)
+
+    # Penalidade não-linear quando ocorre déficit hídrico severo junto com calor extremo
+    combined_stress = 0.12 * np.maximum(gap, 0.0) * heat_stress
+    stability_adj = (temporal_stability - 0.75) * 0.12
+    y_train = np.clip(
+        w_water * water_fit
+        + w_heat * heat_fit
+        + w_soil * soil_benefit
+        + w_market * market
+        - combined_stress
+        + stability_adj,
+        0.0,
+        1.0,
+    )
+
+    model = RandomForestRegressor(
+        n_estimators=50,
+        max_depth=8,
+        min_samples_leaf=2,
+        random_state=42,
+    )
+    model.fit(x_train, y_train)
+    _VIABILITY_RF_MODEL = model
+    return model
+
+
 class CropSimulator:
-    """Simulador de rotações [M3]: calcula viabilidade a partir das métricas do talhão."""
+    """Simulador de rotações [M3]: combina modelo RandomForest + features temporais da NASA."""
 
     # Pesos do score (somam 1.0). Com prioridade hídrica a água pesa mais.
     _WEIGHTS = {"water": 0.45, "heat": 0.25, "soil": 0.20, "market": 0.10}
     _WEIGHTS_WATER_PRIORITY = {"water": 0.60, "heat": 0.20, "soil": 0.15, "market": 0.05}
 
     def __init__(self):
-        pass
+        self.ml_model = _get_viability_rf_model()
 
     # -- leitura robusta das métricas (provider real/mock ou fallback da API) --
+
+    @staticmethod
+    def _extract_temporal_features(
+        field_metrics: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        """Extrai indicadores dinâmicos de estabilidade, tendência hídrica e veranico da série."""
+        default_features = {
+            "temporal_stability": 0.75,
+            "moisture_trend": 0.0,
+            "dry_spell_max": 0,
+            "heat_days_ratio": 0.0,
+        }
+        m = field_metrics or {}
+        if m.get("data_quality") == "no_data":
+            return default_features
+
+        ts = m.get("time_series")
+        if not isinstance(ts, list) or len(ts) < 2:
+            return default_features
+
+        moist: list[float] = []
+        temps: list[float] = []
+        precips: list[float] = []
+        for point in ts:
+            if not isinstance(point, dict):
+                continue
+            mv = _to_float(point.get("soil_moisture", point.get("umidade_solo")))
+            tv = _to_float(point.get("surface_temp_c", point.get("temperatura_media_c")))
+            pv = _to_float(point.get("precipitation_mm", point.get("precipitacao_mm")))
+            if mv is not None:
+                moist.append(mv)
+            if tv is not None:
+                temps.append(tv)
+            if pv is not None:
+                precips.append(pv)
+
+        moisture_trend = 0.0
+        moist_cv = 0.0
+        if len(moist) >= 2:
+            x_idx = np.arange(len(moist), dtype=float)
+            if float(np.ptp(moist)) > 0:
+                moisture_trend = float(np.polyfit(x_idx, np.array(moist, dtype=float), 1)[0])
+            moist_cv = float(np.std(moist) / max(float(np.mean(moist)), 0.05))
+
+        precip_cv = 0.0
+        dry_spell_max = 0
+        if precips:
+            precip_cv = float(np.std(precips) / max(float(np.mean(precips)), 2.0))
+            current_dry = 0
+            for pv in precips:
+                if pv < 1.0:
+                    current_dry += 1
+                    dry_spell_max = max(dry_spell_max, current_dry)
+                else:
+                    current_dry = 0
+
+        heat_days_ratio = (
+            sum(1 for tv in temps if tv >= 33.0) / len(temps) if temps else 0.0
+        )
+        trend_penalty = min(0.30, abs(moisture_trend) * 12.0) if moisture_trend < 0 else 0.0
+        temporal_stability = _clamp(
+            1.0
+            - 0.30 * min(1.0, moist_cv)
+            - 0.15 * min(1.0, precip_cv)
+            - trend_penalty
+            - 0.15 * heat_days_ratio,
+            0.25,
+            1.0,
+        )
+
+        return {
+            "temporal_stability": round(float(temporal_stability), 3),
+            "moisture_trend": round(float(moisture_trend), 4),
+            "dry_spell_max": int(dry_spell_max),
+            "heat_days_ratio": round(float(heat_days_ratio), 3),
+        }
 
     @staticmethod
     def _read_metrics(field_metrics: dict[str, Any] | None) -> dict[str, float]:
@@ -334,6 +487,8 @@ class CropSimulator:
         market: float,
         water_priority: bool,
         history_adjustment: float = 0.0,
+        temporal_features: dict[str, Any] | None = None,
+        is_bare_field: bool = False,
     ) -> dict[str, Any]:
         supply = self._water_supply(metrics)
         gap = water_demand - supply
@@ -341,13 +496,46 @@ class CropSimulator:
         heat_stress = _clamp((metrics["temp_c"] - 28.0) / 12.0)
         heat_fit = 1.0 - heat_stress * (1.0 - heat_tolerance)
 
+        tf = temporal_features or {}
+        temporal_stability = float(tf.get("temporal_stability", 0.75))
+        moisture_trend = float(tf.get("moisture_trend", 0.0))
+        dry_spell_max = int(tf.get("dry_spell_max", 0))
+
+        rain_idx = _clamp(metrics["annual_rain_mm"] / 1200.0, 0.0, 1.5)
+        features_row = np.array(
+            [
+                [
+                    _clamp(metrics["moisture"], 0.02, 0.50),
+                    _clamp(metrics["temp_c"], 15.0, 45.0),
+                    rain_idx,
+                    _clamp(water_demand),
+                    _clamp(heat_tolerance),
+                    _clamp(soil_benefit),
+                    _clamp(market),
+                    1.0 if water_priority else 0.0,
+                    _clamp(temporal_stability, 0.25, 1.0),
+                ]
+            ],
+            dtype=float,
+        )
+        ml_model_score = float(_clamp(float(self.ml_model.predict(features_row)[0])))
+
         adjusted_soil = _clamp(soil_benefit + history_adjustment)
         w = self._WEIGHTS_WATER_PRIORITY if water_priority else self._WEIGHTS
-        raw_viability = (
+        formula_viability = (
             w["water"] * water_fit
             + w["heat"] * heat_fit
             + w["soil"] * soil_benefit
             + w["market"] * market
+        )
+        temporal_adj = (temporal_stability - 0.75) * 0.10
+        bare_soil_bonus = 0.03 if (is_bare_field and soil_benefit >= 0.75) else 0.0
+
+        raw_viability = (
+            0.65 * formula_viability
+            + 0.35 * ml_model_score
+            + temporal_adj
+            + bare_soil_bonus
         )
         viability = _clamp(raw_viability + history_adjustment)
         return {
@@ -361,6 +549,11 @@ class CropSimulator:
                 "water_supply": round(supply, 3),
                 "water_demand": round(water_demand, 3),
                 "history_adjustment": round(history_adjustment, 4),
+                "ml_model_score": round(ml_model_score, 3),
+                "temporal_stability": round(temporal_stability, 3),
+                "moisture_trend": round(moisture_trend, 4),
+                "dry_spell_max": dry_spell_max,
+                "bare_soil_bonus": round(bare_soil_bonus, 3),
             },
         }
 
@@ -381,6 +574,8 @@ class CropSimulator:
         e inclui a melhor rotação preferencial cadastrada pelo produtor no comparativo.
         """
         metrics = self._read_metrics(field_metrics)
+        temporal_features = self._extract_temporal_features(field_metrics)
+        is_bare_field = bool((field_metrics or {}).get("is_bare_field_period", False))
         water_priority = self._water_priority(farmer_priorities)
         priorities_dict = farmer_priorities or {}
         parsed_history = _parse_crop_history(
@@ -470,6 +665,8 @@ class CropSimulator:
                 item["market"],
                 water_priority,
                 history_adjustment=history_adj,
+                temporal_features=temporal_features,
+                is_bare_field=is_bare_field,
             )
             results.append(
                 {
@@ -497,6 +694,8 @@ class CropSimulator:
                 0.70,
                 water_priority,
                 history_adjustment=history_adj,
+                temporal_features=temporal_features,
+                is_bare_field=is_bare_field,
             )
             current = {
                 "strategy": current_name,
@@ -580,6 +779,8 @@ class CropSimulator:
             )
 
         metrics = self._read_metrics(climate_data)
+        temporal_features = self._extract_temporal_features(climate_data)
+        is_bare_field = bool((climate_data or {}).get("is_bare_field_period", False))
         priorities = (soil_data or {}).get("prioridades_terreno") or {}
         consumo = _to_float(crop_requirements.get("consumo_agua_mm")) or 450.0
         ciclo = _to_float(crop_requirements.get("tempo_colheita_dias")) or 90.0
@@ -606,6 +807,8 @@ class CropSimulator:
             market=0.6,
             water_priority=self._water_priority(priorities),
             history_adjustment=history_adj,
+            temporal_features=temporal_features,
+            is_bare_field=is_bare_field,
         )
         return {
             "viability_score": scored["viability"],
@@ -720,6 +923,44 @@ class ClimateAnomalyDetector:
         indices = sorted({i for _, ev, i in confirmed if ev == tipo})
         return tipo, indices
 
+    def _compute_series_diagnostics(
+        self,
+        series: list[dict],
+        values: dict[str, list[float | None]],
+        temps: list[float],
+        moist: list[float],
+    ) -> dict[str, Any]:
+        """Calcula tendência hídrica, índice de estresse térmico e score IsolationForest."""
+        anomaly_score_min: float | None = None
+        names = [n for n, col in values.items() if all(v is not None for v in col)]
+        if names and len(series) >= self.MIN_POINTS_ML:
+            x = np.array([values[n] for n in names], dtype=float).T
+            scores = self.model.fit(x).decision_function(x)
+            anomaly_score_min = round(float(np.min(scores)), 4)
+
+        moisture_trend_per_day: float | None = None
+        if len(moist) >= 2 and float(np.ptp(moist)) > 0:
+            x_idx = np.arange(len(moist), dtype=float)
+            slope = float(np.polyfit(x_idx, np.array(moist, dtype=float), 1)[0])
+            moisture_trend_per_day = round(slope, 5)
+        elif len(moist) >= 2:
+            moisture_trend_per_day = 0.0
+
+        heat_stress_index = 0.0
+        if temps:
+            max_temp = max(temps)
+            hot_ratio = sum(1 for t in temps if t >= 33.0) / len(temps)
+            heat_stress_index = round(
+                _clamp(0.6 * _clamp((max_temp - 28.0) / 14.0) + 0.4 * hot_ratio),
+                3,
+            )
+
+        return {
+            "anomaly_score_min": anomaly_score_min,
+            "moisture_trend_per_day": moisture_trend_per_day,
+            "heat_stress_index": heat_stress_index,
+        }
+
     def detect_extremes(self, time_series_data: dict | list[dict]) -> dict:
         """Aceita um ponto (dict) ou série (list[dict]); retorna o contrato descrito acima."""
         series = (
@@ -747,6 +988,8 @@ class ClimateAnomalyDetector:
             if tipo_ml != "nenhum":
                 tipo, severidade, metodo = tipo_ml, "media", "isolation_forest"
 
+        diagnostics = self._compute_series_diagnostics(series, values, temps, moist)
+
         return {
             "anomaly_detected": tipo != "nenhum",
             "tipo_evento": tipo,
@@ -758,5 +1001,6 @@ class ClimateAnomalyDetector:
                 "max_precipitation_mm": max_precip,
                 "max_surface_temp_c": max_temp,
                 "min_soil_moisture": min_moist,
+                **diagnostics,
             },
         }

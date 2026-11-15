@@ -1,12 +1,14 @@
+from datetime import date, datetime, timedelta, timezone
 import importlib
+import json
 import logging
 import math
 import os
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import geopandas as gpd
+import httpx
 import numpy as np
 import pandas as pd
 import rioxarray  # noqa: F401 - registra o accessor .rio no xarray
@@ -279,23 +281,61 @@ class MockNASADataProvider(INASADataProvider):
         }
 
 
+def _is_truthy_env(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "sim", "on"}
+
+
 class RealNASADataProvider(INASADataProvider):
     """
-    Provedor real de dados da NASA via NASA Earthdata (`earthaccess`) e `xarray.open_mfdataset`.
-    Mantém o mesmo contrato `field_metrics` do `MockNASADataProvider`.
+    Provedor real de dados da NASA com suporte multi-fonte:
+    1. Arquivos NetCDF/HDF5 reais locais em `{data_path}/real/`
+    2. NASA Earthdata (`earthaccess` + `xarray.open_mfdataset`)
+    3. API agroclimatológica oficial NASA POWER (sem login, com cache em disco)
+
+    Mantém exatamente o mesmo contrato `field_metrics` de 7 chaves do `MockNASADataProvider`.
     """
+
+    POWER_API_URL = "https://power.larc.nasa.gov/api/temporal/daily/point"
+    _REAL_FILE_EXTENSIONS = (".nc", ".nc4", ".h5", ".hdf5")
+    _KEY_PATH_HINTS: dict[str, tuple[str, ...]] = {
+        "soil_moisture": ("soil_moisture", "spl3smp", "smap", "gwettop"),
+        "surface_temp": ("surface_temp", "eco2lste", "ecostress", "lst"),
+        "precipitation": ("precipitation", "gpm", "imerg", "prectot"),
+        "ndvi": ("ndvi", "mod13", "modis"),
+    }
 
     COLLECTIONS: dict[str, tuple[str, tuple[str, ...]]] = {
         "soil_moisture": (
             "SPL3SMP_E",
-            ("soil_moisture", "Soil_Moisture_Retrieval_Data_AM_soil_moisture"),
+            (
+                "soil_moisture",
+                "Soil_Moisture_Retrieval_Data_AM_soil_moisture",
+                "Soil_Moisture_Retrieval_Data_PM_soil_moisture_pm",
+                "sm_surface",
+                "GWETTOP",
+            ),
         ),
-        "surface_temp": ("ECO2LSTE", ("surface_temp", "LST", "SDS_LST")),
+        "surface_temp": (
+            "ECO2LSTE",
+            ("surface_temp", "LST", "SDS_LST", "LST_Day_1km", "TS"),
+        ),
         "precipitation": (
             "GPM_3IMERGDF",
-            ("precipitation", "precipitationCal", "HQprecipitation"),
+            (
+                "precipitation",
+                "precipitationCal",
+                "HQprecipitation",
+                "precipitation_cnt",
+                "PRECTOTCORR",
+            ),
         ),
-        "ndvi": ("MOD13Q1", ("ndvi", "NDVI", "250m_16_days_NDVI")),
+        "ndvi": (
+            "MOD13Q1",
+            ("ndvi", "NDVI", "250m_16_days_NDVI", "_250m_16_days_NDVI"),
+        ),
     }
     _PRIMARY_KEYS = ("soil_moisture", "surface_temp", "precipitation")
     BARE_NDVI_MAX = 0.25
@@ -306,7 +346,8 @@ class RealNASADataProvider(INASADataProvider):
         self,
         credentials: dict[str, Any] | None = None,
         data_path: str = "data",
-        days_back: int = 5,
+        days_back: int | None = None,
+        enable_nasa_power: bool | None = None,
     ):
         if credentials is None:
             credentials = {
@@ -316,7 +357,17 @@ class RealNASADataProvider(INASADataProvider):
             }
         self.credentials = credentials
         self.data_path = data_path
+        if days_back is None:
+            try:
+                days_back = int(os.getenv("NASA_REAL_DAYS_BACK", "5"))
+            except ValueError:
+                days_back = 5
         self.days_back = max(1, int(days_back))
+        self.enable_nasa_power = (
+            bool(enable_nasa_power)
+            if enable_nasa_power is not None
+            else _is_truthy_env("NASA_POWER_FALLBACK", False)
+        )
 
     @staticmethod
     def _load_earthaccess() -> Any | None:
@@ -324,7 +375,7 @@ class RealNASADataProvider(INASADataProvider):
             return importlib.import_module("earthaccess")
         except ImportError:
             logger.warning(
-                "Pacote earthaccess não instalado; RealNASADataProvider sem acesso remoto."
+                "Pacote earthaccess não instalado; usando fontes locais/NASA POWER quando habilitadas."
             )
             return None
 
@@ -350,7 +401,18 @@ class RealNASADataProvider(INASADataProvider):
             return False
 
     @staticmethod
-    def _open_mfdataset(files: list[Any]) -> xr.Dataset:
+    def _open_single_dataset(file_obj: Any) -> xr.Dataset:
+        try:
+            return xr.open_dataset(file_obj)
+        except Exception:
+            if isinstance(file_obj, (str, os.PathLike)) and str(file_obj).lower().endswith(
+                (".h5", ".hdf5", ".nc4")
+            ):
+                return xr.open_dataset(file_obj, engine="h5netcdf")
+            raise
+
+    @classmethod
+    def _open_mfdataset(cls, files: list[Any]) -> xr.Dataset:
         try:
             return xr.open_mfdataset(files, combine="by_coords")
         except ImportError as exc:
@@ -358,7 +420,7 @@ class RealNASADataProvider(INASADataProvider):
                 "xr.open_mfdataset indisponível (%s); usando open_dataset + combine.",
                 exc,
             )
-            opened = [xr.open_dataset(f).load() for f in files]
+            opened = [cls._open_single_dataset(f).load() for f in files]
             try:
                 if len(opened) == 1:
                     return opened[0]
@@ -371,6 +433,39 @@ class RealNASADataProvider(INASADataProvider):
                 for ds in opened:
                     ds.close()
 
+    def _discover_local_real_sources(self) -> dict[str, list[str]]:
+        """Descobre arquivos NetCDF/HDF5 reais locais em `{data_path}/real/`."""
+        real_dir = os.path.join(self.data_path, "real")
+        if not os.path.isdir(real_dir):
+            return {}
+
+        found: dict[str, list[str]] = {k: [] for k in self.COLLECTIONS}
+
+        # 1) Subpastas explícitas por chave ou nome da coleção NASA
+        for key, (short_name, _candidates) in self.COLLECTIONS.items():
+            for sub_name in (key, short_name, short_name.lower()):
+                sub_dir = os.path.join(real_dir, sub_name)
+                if os.path.isdir(sub_dir):
+                    for fname in sorted(os.listdir(sub_dir)):
+                        if fname.lower().endswith(self._REAL_FILE_EXTENSIONS):
+                            found[key].append(os.path.join(sub_dir, fname))
+
+        # 2) Arquivos soltos diretamente em `data/real/` identificados por prefixo/hint
+        for fname in sorted(os.listdir(real_dir)):
+            fpath = os.path.join(real_dir, fname)
+            if not os.path.isfile(fpath) or not fname.lower().endswith(
+                self._REAL_FILE_EXTENSIONS
+            ):
+                continue
+            lower = fname.lower()
+            for key, hints in self._KEY_PATH_HINTS.items():
+                if any(hint in lower for hint in hints):
+                    if fpath not in found[key]:
+                        found[key].append(fpath)
+                    break
+
+        return {k: paths for k, paths in found.items() if paths}
+
     def _open_collection_dataset(
         self,
         key: str,
@@ -380,6 +475,7 @@ class RealNASADataProvider(INASADataProvider):
         dataset: Any,
         ea: Any,
         authenticated: bool,
+        local_sources: dict[str, list[str]] | None = None,
     ) -> tuple[xr.Dataset | None, bool]:
         if isinstance(dataset, xr.Dataset):
             return dataset, False
@@ -393,7 +489,10 @@ class RealNASADataProvider(INASADataProvider):
             return self._open_source(dataset)
 
         if isinstance(dataset, (str, os.PathLike)):
-            return xr.open_dataset(dataset).load(), True
+            return self._open_single_dataset(dataset).load(), True
+
+        if dataset is None and local_sources and local_sources.get(key):
+            return self._open_source(local_sources[key])
 
         if ea is None or not authenticated:
             return None, False
@@ -418,7 +517,7 @@ class RealNASADataProvider(INASADataProvider):
         if isinstance(source, xr.Dataset):
             return source, False
         if isinstance(source, (str, os.PathLike)):
-            return xr.open_dataset(source).load(), True
+            return self._open_single_dataset(source).load(), True
         if isinstance(source, (list, tuple)) and source:
             if all(isinstance(item, xr.Dataset) for item in source):
                 try:
@@ -438,20 +537,41 @@ class RealNASADataProvider(INASADataProvider):
 
         rename_map: dict[str, str] = {}
         if "lat" not in ds.coords and "lat" not in ds.dims:
-            for alt in ("latitude", "y"):
+            for alt in ("latitude", "y", "lat_1"):
                 if alt in ds.coords or alt in ds.dims:
                     rename_map[alt] = "lat"
                     break
         if "lon" not in ds.coords and "lon" not in ds.dims:
-            for alt in ("longitude", "x"):
+            for alt in ("longitude", "x", "lon_1"):
                 if alt in ds.coords or alt in ds.dims:
                     rename_map[alt] = "lon"
                     break
 
         prepared = ds.rename(rename_map) if rename_map else ds
-        prepared.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
-        prepared.rio.write_crs("EPSG:4326", inplace=True)
-        return prepared, var_name
+        da = prepared[var_name]
+
+        # Remove sentinelas inválidas (-9999 / -999 / valores não finitos) típicas de HDF/NetCDF reais
+        da = da.where(np.isfinite(da) & (da > -900.0) & (da < 1e20))
+
+        # Normaliza longitudes 0..360 para -180..180 quando necessário
+        if "lon" in da.coords and float(da["lon"].max()) > 180.0:
+            da = da.assign_coords(lon=(((da["lon"] + 180.0) % 360.0) - 180.0)).sortby(
+                "lon"
+            )
+        if "lat" in da.coords and len(da["lat"]) > 1 and bool(da["lat"][0] > da["lat"][-1]):
+            da = da.sortby("lat")
+
+        # Harmoniza eixos espaciais transpostos (ex.: GPM IMERG vem como (time, lon, lat))
+        if "lat" in da.dims and "lon" in da.dims:
+            non_spatial = [dim for dim in da.dims if dim not in ("lat", "lon")]
+            expected_order = (*non_spatial, "lat", "lon")
+            if tuple(da.dims) != expected_order:
+                da = da.transpose(*expected_order)
+
+        clean_ds = xr.Dataset({var_name: da})
+        clean_ds.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
+        clean_ds.rio.write_crs("EPSG:4326", inplace=True)
+        return clean_ds, var_name
 
     @staticmethod
     def _series_by_date(serie: xr.DataArray, fallback_date: str) -> dict[str, float]:
@@ -464,6 +584,89 @@ class RealNASADataProvider(INASADataProvider):
                 if not np.isnan(v)
             }
         return {fallback_date: float(serie.mean().item())}
+
+    def _fetch_nasa_power_series(
+        self,
+        center_lat: float,
+        center_lng: float,
+        end_dt: date,
+    ) -> list[dict[str, Any]] | None:
+        """
+        Consulta a API pública oficial NASA POWER (sem necessidade de login/token)
+        e armazena cache local em `{data_path}/power_cache/`.
+        Retorna até `self.days_back` observações diárias válidas.
+        """
+        lookback = max(self.days_back + 7, 12)
+        start_dt = end_dt - timedelta(days=lookback)
+        cache_dir = os.path.join(self.data_path, "power_cache")
+        cache_name = (
+            f"power_{center_lat:.2f}_{center_lng:.2f}_"
+            f"{start_dt.strftime('%Y%m%d')}_{end_dt.strftime('%Y%m%d')}.json"
+        )
+        cache_path = os.path.join(cache_dir, cache_name)
+
+        payload: dict[str, Any] | None = None
+        if os.path.exists(cache_path):
+            try:
+                with open(cache_path, encoding="utf-8") as fp:
+                    payload = json.load(fp)
+            except Exception:
+                payload = None
+
+        if payload is None:
+            params = {
+                "parameters": "GWETTOP,TS,PRECTOTCORR",
+                "community": "AG",
+                "longitude": round(center_lng, 4),
+                "latitude": round(center_lat, 4),
+                "start": start_dt.strftime("%Y%m%d"),
+                "end": end_dt.strftime("%Y%m%d"),
+                "format": "JSON",
+            }
+            try:
+                resp = httpx.get(self.POWER_API_URL, params=params, timeout=10.0)
+                resp.raise_for_status()
+                payload = resp.json()
+                os.makedirs(cache_dir, exist_ok=True)
+                with open(cache_path, "w", encoding="utf-8") as fp:
+                    json.dump(payload, fp)
+            except Exception as exc:
+                logger.warning("Falha ao consultar API NASA POWER: %s", exc)
+                return None
+
+        params_data = (
+            (payload or {}).get("properties", {}).get("parameter", {})
+        )
+        gwettop = params_data.get("GWETTOP") or {}
+        ts_map = params_data.get("TS") or {}
+        precip_map = params_data.get("PRECTOTCORR") or {}
+
+        all_dates = sorted(set(gwettop) & set(ts_map) & set(precip_map))
+        valid_points: list[dict[str, Any]] = []
+        for raw_d in all_dates:
+            m_val = float(gwettop[raw_d])
+            t_val = float(ts_map[raw_d])
+            p_val = float(precip_map[raw_d])
+            if m_val <= -900.0 or t_val <= -900.0 or p_val <= -900.0:
+                continue
+            iso_date = (
+                f"{raw_d[:4]}-{raw_d[4:6]}-{raw_d[6:8]}"
+                if len(raw_d) == 8 and raw_d.isdigit()
+                else str(raw_d)
+            )
+            valid_points.append(
+                {
+                    "data": iso_date,
+                    # GWETTOP (0-1 índice de saturação superficial) convertido para m³/m³ (~0.02..0.50)
+                    "soil_moisture": round(max(0.02, min(0.50, m_val * 0.50)), 4),
+                    "surface_temp_c": round(t_val, 2),
+                    "precipitation_mm": round(max(0.0, p_val), 2),
+                }
+            )
+
+        if not valid_points:
+            return None
+        return valid_points[-self.days_back :]
 
     def extract_field_metrics(
         self, polygon_coords: Any, dataset: Any = None, profile: str | None = None
@@ -478,6 +681,8 @@ class RealNASADataProvider(INASADataProvider):
         end_dt = datetime.now(timezone.utc).date()
         start_dt = end_dt - timedelta(days=self.days_back)
         temporal = (start_dt.isoformat(), end_dt.isoformat())
+
+        local_sources = self._discover_local_real_sources() if dataset is None else {}
 
         ea = None
         authenticated = False
@@ -498,6 +703,7 @@ class RealNASADataProvider(INASADataProvider):
                 dataset=dataset,
                 ea=ea,
                 authenticated=authenticated,
+                local_sources=local_sources,
             )
             if ds is None:
                 series[key] = None
@@ -514,15 +720,19 @@ class RealNASADataProvider(INASADataProvider):
                 serie, quality = MockNASADataProvider._reduce_spatial(
                     prepared, var_name, gdf, geom
                 )
-                if serie is None:
+                if serie is None or bool(serie.isnull().all()):
                     series[key] = None
                     qualities[key] = "no_data"
                     continue
 
                 loaded = serie.load()
-                if key == "surface_temp" and float(loaded.mean().item()) > 150.0:
-                    loaded = loaded - 273.15
-                elif key == "ndvi" and abs(float(loaded.mean().item())) > 2.0:
+                mean_val = float(loaded.mean(skipna=True).item())
+                if key == "surface_temp":
+                    if mean_val > 5000.0:
+                        loaded = loaded * 0.02 - 273.15
+                    elif mean_val > 150.0:
+                        loaded = loaded - 273.15
+                elif key == "ndvi" and abs(mean_val) > 2.0:
                     loaded = loaded * 0.0001
 
                 series[key] = loaded
@@ -531,29 +741,75 @@ class RealNASADataProvider(INASADataProvider):
                 if should_close:
                     ds.close()
 
-        def _mean(key: str) -> float:
-            s = series.get(key)
-            return float(s.mean().item()) if s is not None else 0.0
-
         primary_qualities = [qualities[k] for k in self._PRIMARY_KEYS]
-        if "no_data" in primary_qualities:
-            data_quality = "no_data"
+        has_missing_primary = "no_data" in primary_qualities
+        all_primary_missing = all(q == "no_data" for q in primary_qualities)
+
+        power_series: list[dict[str, Any]] | None = None
+        if has_missing_primary and self.enable_nasa_power:
+            c = geom.centroid
+            power_series = self._fetch_nasa_power_series(
+                center_lat=float(c.y),
+                center_lng=float(c.x),
+                end_dt=end_dt,
+            )
+
+        if all_primary_missing and not power_series:
+            return {
+                "coordinates": polygon_coords,
+                "avg_soil_moisture_smap": 0.0,
+                "avg_surface_temp_ecostress": 0.0,
+                "avg_precipitation_gpm": 0.0,
+                "is_bare_field_period": False,
+                "data_quality": "no_data",
+                "time_series": [],
+            }
+
+        def _mean(key: str, power_field: str) -> float:
+            s = series.get(key)
+            if s is not None:
+                return float(s.mean(skipna=True).item())
+            if power_series:
+                return float(np.mean([pt[power_field] for pt in power_series]))
+            return 0.0
+
+        avg_moisture = _mean("soil_moisture", "soil_moisture")
+        avg_temp = _mean("surface_temp", "surface_temp_c")
+        avg_precip = _mean("precipitation", "precipitation_mm")
+
+        if has_missing_primary:
+            data_quality = "nearest_cell"
         elif "nearest_cell" in primary_qualities:
             data_quality = "nearest_cell"
         else:
             data_quality = "clip"
 
-        avg_moisture = _mean("soil_moisture")
-        avg_temp = _mean("surface_temp")
-        avg_precip = _mean("precipitation")
-
         time_series: list[dict[str, Any]] = []
-        if all(series.get(k) is not None for k in self._PRIMARY_KEYS):
+        if all_primary_missing and power_series:
+            time_series = power_series
+        else:
             fallback_date = end_dt.isoformat()
-            m_map = self._series_by_date(series["soil_moisture"], fallback_date)
-            t_map = self._series_by_date(series["surface_temp"], fallback_date)
-            p_map = self._series_by_date(series["precipitation"], fallback_date)
-            for d_str in sorted(set(m_map) | set(t_map) | set(p_map)):
+            power_by_date = (
+                {pt["data"]: pt for pt in power_series} if power_series else {}
+            )
+            m_map = (
+                self._series_by_date(series["soil_moisture"], fallback_date)
+                if series.get("soil_moisture") is not None
+                else {d: pt["soil_moisture"] for d, pt in power_by_date.items()}
+            )
+            t_map = (
+                self._series_by_date(series["surface_temp"], fallback_date)
+                if series.get("surface_temp") is not None
+                else {d: pt["surface_temp_c"] for d, pt in power_by_date.items()}
+            )
+            p_map = (
+                self._series_by_date(series["precipitation"], fallback_date)
+                if series.get("precipitation") is not None
+                else {d: pt["precipitation_mm"] for d, pt in power_by_date.items()}
+            )
+
+            all_dates = sorted(set(m_map) | set(t_map) | set(p_map))
+            for d_str in all_dates:
                 time_series.append(
                     {
                         "data": d_str,
@@ -563,10 +819,8 @@ class RealNASADataProvider(INASADataProvider):
                     }
                 )
 
-        if data_quality == "no_data":
-            is_bare = False
-        elif series.get("ndvi") is not None:
-            is_bare = _mean("ndvi") < self.BARE_NDVI_MAX
+        if series.get("ndvi") is not None:
+            is_bare = float(series["ndvi"].mean(skipna=True).item()) < self.BARE_NDVI_MAX
         else:
             is_bare = (
                 avg_moisture < self.BARE_MOISTURE_MAX
@@ -589,15 +843,28 @@ def get_nasa_data_provider(
     provider_type: str | None = None,
     credentials: dict[str, Any] | None = None,
     profile: str | None = None,
+    enable_nasa_power: bool | None = None,
 ) -> INASADataProvider:
-    """Seleciona MockNASADataProvider (padrão) ou RealNASADataProvider via NASA_PROVIDER."""
+    """Seleciona MockNASADataProvider (padrão) ou RealNASADataProvider via NASA_PROVIDER / profile='real'."""
     selected = (
         provider_type
         if provider_type is not None
         else os.getenv("NASA_PROVIDER", "mock")
     )
-    if str(selected).strip().lower() == "real":
-        return RealNASADataProvider(credentials=credentials, data_path=data_path)
+    selected_norm = str(selected).strip().lower()
+    profile_norm = str(profile).strip().lower() if profile is not None else ""
+
+    if selected_norm == "real" or profile_norm == "real":
+        use_power = (
+            enable_nasa_power
+            if enable_nasa_power is not None
+            else (True if profile_norm == "real" else None)
+        )
+        return RealNASADataProvider(
+            credentials=credentials,
+            data_path=data_path,
+            enable_nasa_power=use_power,
+        )
     return MockNASADataProvider(data_path=data_path, profile=profile)
 
 

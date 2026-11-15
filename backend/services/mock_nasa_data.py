@@ -27,13 +27,28 @@ _PROFILE_ALIASES = {
 }
 
 
-def normalize_climate_profile(profile: str | None = None) -> str:
+_REAL_PROFILE_ALIASES = {
+    "real": "real",
+    "nasa_real": "real",
+    "earthdata": "real",
+    "nasa_power": "real",
+    "power": "real",
+}
+
+
+def normalize_climate_profile(
+    profile: str | None = None,
+    allow_real: bool = False,
+) -> str:
     """Valida e normaliza o perfil climático simulável (parâmetro ou env NASA_MOCK_PROFILE)."""
     raw = profile if profile is not None else os.getenv("NASA_MOCK_PROFILE", "normal")
     key = str(raw or "normal").strip().lower().replace("-", "_").replace(" ", "_")
+    if allow_real and key in _REAL_PROFILE_ALIASES:
+        return "real"
     canonical = _PROFILE_ALIASES.get(key, key)
     if canonical not in CLIMATE_PROFILES:
-        validos = ", ".join(CLIMATE_PROFILES)
+        valid_options = (*CLIMATE_PROFILES, "real") if allow_real else CLIMATE_PROFILES
+        validos = ", ".join(valid_options)
         raise ValueError(
             f"Perfil climático inválido '{raw}'. Opções válidas: {validos}."
         )

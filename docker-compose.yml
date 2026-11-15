@@ -14,6 +14,11 @@ services:
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
       - NASA_PROVIDER=${NASA_PROVIDER:-mock}
       - NASA_MOCK_PROFILE=${NASA_MOCK_PROFILE:-normal}
+      - NASA_POWER_FALLBACK=${NASA_POWER_FALLBACK:-false}
+      - NASA_REAL_DAYS_BACK=${NASA_REAL_DAYS_BACK:-5}
+      - EARTHDATA_TOKEN=${EARTHDATA_TOKEN:-}
+      - EARTHDATA_USERNAME=${EARTHDATA_USERNAME:-}
+      - EARTHDATA_PASSWORD=${EARTHDATA_PASSWORD:-}
     depends_on:
       db:
         condition: service_healthy

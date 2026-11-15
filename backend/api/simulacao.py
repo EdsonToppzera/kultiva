@@ -169,7 +169,7 @@ def _get_cached_service(
 
 
 def get_nasa_processor(profile: Optional[str] = None) -> Optional[Any]:
-    """Provedor de dependência para INASADataProvider (mock ou real via NASA_PROVIDER)."""
+    """Provedor de dependência para INASADataProvider (mock ou real via NASA_PROVIDER/profile)."""
     provider_mode = os.getenv("NASA_PROVIDER", "mock").strip().lower() or "mock"
     active_profile = profile if profile is not None else (os.getenv("NASA_MOCK_PROFILE") or None)
 
@@ -189,7 +189,7 @@ def get_nasa_processor(profile: Optional[str] = None) -> Optional[Any]:
         provider_cls = getattr(geo_module, "MockNASADataProvider", None) or getattr(
             geo_module, "NasaDataProcessor"
         )
-        if active_profile is not None:
+        if active_profile is not None and active_profile != "real":
             try:
                 return provider_cls(data_path="data", profile=active_profile)
             except TypeError:
@@ -637,17 +637,27 @@ def _processar_simulacao(
     perfil_climatico: Optional[str] = None
     if perfil_raw is not None:
         try:
-            perfil_climatico = normalize_climate_profile(str(perfil_raw))
+            perfil_climatico = normalize_climate_profile(str(perfil_raw), allow_real=True)
         except ValueError as exc:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=str(exc),
             ) from exc
 
+    active_nasa_processor = nasa_processor
+    if perfil_climatico == "real" and nasa_processor is not None:
+        try:
+            geo_mod = importlib.import_module("backend.services.geospatial")
+            mock_cls = getattr(geo_mod, "MockNASADataProvider", None)
+            if mock_cls is not None and isinstance(nasa_processor, mock_cls):
+                active_nasa_processor = get_nasa_processor(profile="real")
+        except Exception:
+            pass
+
     metricas_geoespaciais, geo_fallback = _extrair_metricas_geoespaciais(
         coordenadas_poligono,
         dados_climaticos_req,
-        nasa_processor,
+        active_nasa_processor,
         perfil_climatico=perfil_climatico,
     )
     if terreno_id_resp is not None:

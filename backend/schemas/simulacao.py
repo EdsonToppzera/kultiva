@@ -30,7 +30,7 @@ class SimulacaoRequest(BaseModel):
     )
     perfil_climatico: Optional[str] = Field(
         default=None,
-        description="Perfil climático simulável opcional (normal, seca, chuva_extrema, onda_de_calor)",
+        description="Perfil climático opcional (normal, seca, chuva_extrema, onda_de_calor, real)",
     )
     prioridades: Optional[Dict[str, Any]] = Field(
         default=None,
