@@ -5,10 +5,12 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 
 def normalize_database_url(raw_url: str) -> str:
-    """Normaliza prefixos comuns (`postgres://` / `postgresql://`) para psycopg2."""
-    url = raw_url.strip()
+    """Normaliza prefixos comuns (`postgres://`, `postgresql+psycopg://`) para psycopg2."""
+    url = raw_url.strip().strip("'\"")
     if url.startswith("postgres://"):
         return "postgresql+psycopg2://" + url[len("postgres://") :]
+    if url.startswith("postgresql+psycopg://"):
+        return "postgresql+psycopg2://" + url[len("postgresql+psycopg://") :]
     return url
 
 
