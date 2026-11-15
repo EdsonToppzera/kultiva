@@ -323,6 +323,12 @@ export function CropHistoryStep({
   const [naoLembro, setNaoLembro] = React.useState<boolean>(
     initialData?.naoLembro ?? false
   );
+  const [cultivoEmAndamento, setCultivoEmAndamento] = React.useState<boolean>(
+    initialData?.cultivoEmAndamento ?? false
+  );
+  const [dataInicioCultivo, setDataInicioCultivo] = React.useState<string>(
+    initialData?.dataInicioCultivo ?? ""
+  );
   const [openField, setOpenField] = React.useState<
     "ultimo" | "anterior" | null
   >(null);
@@ -347,6 +353,8 @@ export function CropHistoryStep({
     setUltimoCultivo(null);
     setCultivoAnterior(null);
     setNaoLembro(true);
+    setCultivoEmAndamento(false);
+    setDataInicioCultivo("");
     setOpenField(null);
     onDontRemember?.();
   };
@@ -359,6 +367,9 @@ export function CropHistoryStep({
       ultimoCultivo,
       cultivoAnterior,
       naoLembro,
+      cultivoEmAndamento,
+      dataInicioCultivo:
+        cultivoEmAndamento && dataInicioCultivo ? dataInicioCultivo : null,
     };
 
     if (terrenoId != null) {
@@ -371,6 +382,11 @@ export function CropHistoryStep({
             ...(existingPrioridades ?? {}),
             historico_cultivos: historicoCultivos,
             nao_lembra_historico: naoLembro,
+            cultivo_em_andamento: cultivoEmAndamento,
+            data_inicio_cultivo:
+              cultivoEmAndamento && dataInicioCultivo
+                ? dataInicioCultivo
+                : null,
           },
         });
         setSyncState("salvo");
@@ -455,6 +471,63 @@ export function CropHistoryStep({
                 }
                 onSelectCrop={handleSelectUltimo}
               />
+
+              {/* Switch: Cultivo em andamento */}
+              <div className="rounded-2xl border border-[#E6E4DA] bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <label
+                      htmlFor="cultivo-em-andamento-switch"
+                      className="block cursor-pointer text-sm font-bold text-[#1F1C18]"
+                    >
+                      O cultivo está em andamento?
+                    </label>
+                    <p className="mt-0.5 text-xs text-[#6D6960]">
+                      Marque se você já plantou e ainda vai colher.
+                    </p>
+                  </div>
+
+                  <button
+                    id="cultivo-em-andamento-switch"
+                    type="button"
+                    role="switch"
+                    aria-checked={cultivoEmAndamento}
+                    onClick={() => {
+                      setCultivoEmAndamento((prev) => !prev);
+                      setNaoLembro(false);
+                    }}
+                    className={cn(
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#511D4E] focus-visible:ring-offset-2",
+                      cultivoEmAndamento ? "bg-[#511D4E]" : "bg-[#D8D5C9]"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "inline-block h-5 w-5 transform rounded-full bg-white shadow-xs transition-transform",
+                        cultivoEmAndamento ? "translate-x-5" : "translate-x-0.5"
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {cultivoEmAndamento && (
+                  <div className="mt-4 border-t border-[#E6E4DA] pt-3.5">
+                    <label
+                      htmlFor="data-inicio-cultivo"
+                      className="block text-[11px] font-semibold uppercase tracking-wider text-[#6D6960]"
+                    >
+                      DATA DE INÍCIO DO CULTIVO
+                    </label>
+                    <input
+                      id="data-inicio-cultivo"
+                      type="date"
+                      value={dataInicioCultivo}
+                      onChange={(e) => setDataInicioCultivo(e.target.value)}
+                      className="mt-1.5 w-full rounded-xl border border-[#E6E4DA] bg-[#F7F6F0]/60 px-3 py-2.5 text-sm font-medium text-[#1F1C18] focus:border-[#511D4E] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#511D4E]/15"
+                    />
+                  </div>
+                )}
+              </div>
 
               <CropComboboxField
                 id="cultivo-anterior-trigger"

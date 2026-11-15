@@ -9,6 +9,8 @@ export interface CropHistoryData {
   ultimoCultivo: CropOption | null;
   cultivoAnterior: CropOption | null;
   naoLembro: boolean;
+  cultivoEmAndamento?: boolean;
+  dataInicioCultivo?: string | null;
 }
 
 export type NetworkSyncStatus = "salvo" | "sincronizando" | "offline";
