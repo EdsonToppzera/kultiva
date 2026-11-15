@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
+import { KultivaLogo } from "../components/KultivaLogo";
 import { LanguageSelector } from "../components/LanguageSelector";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -165,9 +166,7 @@ export function PlantationsPage({
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-between bg-[#F7F6F0] px-5 pt-7 pb-8 text-[#1F1C18] md:min-h-[820px] md:rounded-[32px] md:border md:border-[#E6E4DA] md:shadow-sm">
         <div>
           <header className="flex items-center justify-between gap-2">
-            <span className="font-['Nunito',ui-rounded,system-ui,sans-serif] text-[24px] font-black tracking-tight text-[#511D4E]">
-              {t("common.appName")}
-            </span>
+            <KultivaLogo />
 
             <div className="flex items-center gap-2">
               <button

@@ -17,6 +17,7 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
+import { KultivaLogo } from "../../../components/KultivaLogo";
 import { LanguageSelector } from "../../../components/LanguageSelector";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
@@ -668,9 +669,7 @@ export function PrioritiesStep({
         <div>
           {/* Header */}
           <header className="flex items-center justify-between gap-4">
-            <span className="text-2xl font-extrabold tracking-tight text-[#511D4E]">
-              Kultiva
-            </span>
+            <KultivaLogo />
 
             <div className="flex items-center gap-2">
               <Badge variant={badgeInfo.variant} aria-live="polite">

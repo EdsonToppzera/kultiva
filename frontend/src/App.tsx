@@ -8,6 +8,7 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
+import { KultivaLogo } from "./components/KultivaLogo";
 import { LanguageSelector } from "./components/LanguageSelector";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
@@ -263,9 +264,7 @@ export function App() {
         <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between bg-[#F7F6F0] px-5 pb-8 pt-6 md:min-h-[680px] md:rounded-3xl md:border md:border-[#E6E4DA] md:px-7 md:py-8 md:shadow-sm">
           <div>
             <header className="flex items-center justify-between gap-4">
-              <span className="text-2xl font-extrabold tracking-tight text-[#511D4E]">
-                Kultiva
-              </span>
+              <KultivaLogo />
 
               <div className="flex items-center gap-2">
                 <Badge

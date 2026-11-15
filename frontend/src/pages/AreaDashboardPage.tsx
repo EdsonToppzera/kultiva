@@ -21,6 +21,7 @@ import {
   WifiOff,
   X,
 } from "lucide-react";
+import { KultivaLogo } from "../components/KultivaLogo";
 import { LanguageSelector } from "../components/LanguageSelector";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -376,9 +377,7 @@ export function AreaDashboardPage({
         <div>
           {/* Header */}
           <header className="flex items-center justify-between gap-3">
-            <span className="font-['Nunito',ui-rounded,system-ui,sans-serif] text-[24px] font-black tracking-tight text-[#511D4E]">
-              Kultiva
-            </span>
+            <KultivaLogo />
 
             <div className="flex items-center gap-2">
               <Badge variant={badgeConfig.variant} aria-live="polite">

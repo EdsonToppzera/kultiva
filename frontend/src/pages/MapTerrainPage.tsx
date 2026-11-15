@@ -20,6 +20,7 @@ import {
   Plus,
   X,
 } from "lucide-react";
+import { KultivaLogo } from "../components/KultivaLogo";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import kinks from "@turf/kinks";
@@ -281,9 +282,7 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-between bg-[#F7F6F0] px-5 pt-7 pb-8 text-[#1F1C18] md:min-h-[820px] md:rounded-[32px] md:border md:border-[#E6E4DA] md:shadow-sm">
         <div>
           <header className="flex items-center justify-between">
-            <span className="font-['Nunito',ui-rounded,system-ui,sans-serif] text-[24px] font-black tracking-tight text-[#511D4E]">
-              Kultiva
-            </span>
+            <KultivaLogo />
           </header>
 
           <section className="mt-6">
