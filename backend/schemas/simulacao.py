@@ -24,9 +24,13 @@ class SimulacaoRequest(BaseModel):
         default=None,
         description="Lista opcional de culturas subsequentes para simular rotação",
     )
-    historico_cultivos: Optional[List[str]] = Field(
+    historico_cultivos: Optional[Any] = Field(
         default=None,
-        description="Histórico recente de cultivos do talhão (ex: ['Milho', 'Milho'])",
+        description="Histórico recente de cultivos do talhão (ex: ['Milho', 'Milho'] ou objeto CropHistoryData)",
+    )
+    perfil_climatico: Optional[str] = Field(
+        default=None,
+        description="Perfil climático simulável opcional (normal, seca, chuva_extrema, onda_de_calor)",
     )
     prioridades: Optional[Dict[str, Any]] = Field(
         default=None,

@@ -2,14 +2,14 @@
 
 **Responsáveis:** **Dev A** = dados, ML e IA · **Dev B** = catálogo, relatórios, terrenos e infra/demo · **Dev C** = simulação, alertas e calendário.
 
-**Legenda:** ✅ feito (mergeado na `dev` / `A9` pronta para PR) · 🔄 em andamento · ⬜ pendente
+**Legenda:** ✅ feito (mergeado na `dev` / `A10` pronta para PR) · 🔄 em andamento · ⬜ pendente
 
-## Estado atual (Rodadas 1 e 2 concluídas · preparando Rodada 3 / Demo)
+## Estado atual (Rodadas 1 e 2 concluídas · Rodada 3 em andamento)
 
-- Suíte `backend/tests`: **verde** (**60 testes passando** cobrindo Rodadas 1 e 2: `A1–A9`, `B1–B7` e `C1–C8`).
+- Suíte `backend/tests`: **verde** (cobrindo Rodadas 1 e 2 e evolução da Rodada 3: `A1–A10`, `B1–B7`, `C1–C9`).
 - **Feito (Rodada 1):** `A1–A6` (Dev A) · `B1–B4` (Dev B) · `C1–C5` (Dev C) · base de infra (`.env.example`, deps, healthcheck do Postgres, Alembic inicial, monitor de alertas ligado ao lifespan, disclaimer garantido no LLM, CI no GitHub Actions).
-- **Feito (Rodada 2):** `A7, A8` (mergeados na `dev`) e `A9` (na branch `feat/A9-perfis-climaticos-mock`) · `B5–B7` (Dev B) · `C6–C8` (Dev C).
-- **Próximos em paralelo (Rodada 3 — Fechamento da Demo e Integração Frontend):** `A10` (Dev A) · `B8` (Dev B) · `C9` (Dev C) + integração completa com `frontend/`.
+- **Feito (Rodada 2):** `A7–A9` (Dev A) · `B5–B7` (Dev B) · `C6–C8` (Dev C).
+- **Rodada 3 (Fechamento da Demo e Integração Frontend):** `A10` ✅ (nesta branch) · `C9` ✅ (mergeado na `dev`) · pendentes: `B8` (Dev B) + integração completa com `frontend/` (`F1–F3`).
 
 ### Resumo do que foi entregue
 
@@ -31,10 +31,8 @@
 
 ### Pontos de atenção para a Rodada 3 (Demo e Integração Frontend)
 
-- `_calcular_metricas_fallback` em `backend/api/simulacao.py` ainda calcula apenas o centroide por média simples e não expõe `area_hectares` calculada por `calcular_geometria_terreno`, além de `get_nasa_processor` usar cache global sem troca dinâmica de `perfil_climatico` em runtime → **A10**.
 - `docker-compose.yml` e `.env.example` ainda não expõem `NASA_MOCK_PROFILE`, `backend/api/demo.py` ainda monta série demo própria em vez de aproveitar os perfis da `A9`, e `docs/index.md` ainda mantém o roadmap das Fases 1–3 como futuro → **B8**.
-- Para demonstração ao vivo do ciclo `[M5] -> [M4]`, falta permitir selecionar o perfil climático simulado (`seca`, `chuva_extrema`, `onda_de_calor`) diretamente na chamada de monitoramento/gatilho em `api/alertas.py` → **C9**.
-- O `frontend/` (`React 19 + Vite + Tailwind v4`) já possui componentes isolados (`MapTerrainPage.tsx`, `PlantationsPage.tsx`, `CropHistoryStep.tsx`), mas ainda faltam `index.html`, `main.tsx`, `App.tsx`, cliente HTTP para `/api/v1` e as telas integradas de `[M3]`, `[M4]`, `[M5]` e `[M6]`.
+- O `frontend/` (`React 19 + Vite + Tailwind v4`) já iniciou componentes e fluxo de onboarding (`MapTerrainPage.tsx`, `PlantationsPage.tsx`, `CropHistoryStep.tsx`, passo 2 de água), faltando conectar `/api/v1` e implementar as telas integradas de `[M3]`, `[M4]`, `[M5]` e `[M6]`.
 
 ## Contratos (não quebrar sem avisar os outros)
 
@@ -60,7 +58,7 @@
 | A7 | ✅ | Cálculo geoespacial de área (`area_hectares`) e centroide do polígono; `CropSimulator` considerando `historico_cultivos` (penaliza monocultura, bonifica quebra de ciclo) e fallback dinâmico | `geospatial.py`, `ml_models.py` | Área/centroide calculados do polígono; histórico altera ranking do simulador |
 | A8 | ✅ | Expandir `RotationExplainerAgent` com `explain_alert` (orientações práticas de manejo para `[M5]`) e `explain_report` (resumo em linguagem simples para `[M6]`), mantendo `DISCLAIMER` e mock offline | `llm_agent.py` | Alertas e relatórios geram explicação acessível sempre com disclaimer |
 | A9 | ✅ | Perfis climáticos simuláveis (`normal`, `seca`, `chuva_extrema`, `onda_de_calor`) em `mock_nasa_data.py` para testes de estresse/demo + testes unitários de `A7–A9` | `mock_nasa_data.py`, `backend/tests/test_data_ml.py` | Perfis geram cenários distintos e `pytest` verde |
-| A10 | ⬜ | Expor `perfil_climatico` em runtime na extração/simulação (`get_nasa_processor` / `extract_field_metrics`) e usar `calcular_geometria_terreno` dentro de `_calcular_metricas_fallback` para incluir `area_hectares` em `metricas_geoespaciais` | `geospatial.py`, `api/simulacao.py`, `schemas/simulacao.py`, `backend/tests/test_data_ml.py` | Simulação aceita perfil climático sob demanda e sempre retorna `area_hectares` calculada do polígono |
+| A10 | ✅ | Expor `perfil_climatico` em runtime na extração/simulação (`get_nasa_processor` / `extract_field_metrics`) e usar `calcular_geometria_terreno` dentro de `_calcular_metricas_fallback` para incluir `area_hectares` em `metricas_geoespaciais` | `geospatial.py`, `api/simulacao.py`, `schemas/simulacao.py`, `backend/tests/test_data_ml.py` | Simulação aceita perfil climático sob demanda e sempre retorna `area_hectares` calculada do polígono |
 
 ## Dev B — Catálogo, relatórios, terrenos e infra/demo
 
@@ -87,7 +85,7 @@
 | C6 | ✅ | Expor `score_breakdown` e `explicacao` individual em `EstrategiaRotacaoSugerida` (usando `explain_strategies` da A4, mantendo `explicacao_ia`/`explicacao_textual`) e fallback dinâmico | `schemas/simulacao.py`, `api/simulacao.py` | Cada uma das 3 estratégias traz `score_breakdown` e `explicacao` com disclaimer |
 | C7 | ✅ | Aceitar `historico_cultivos` no `SimulacaoRequest` (integrando onboarding + A7) e permitir gerar/atualizar cronograma `[M4]` direto pela estratégia escolhida na simulação | `schemas/simulacao.py`, `api/simulacao.py`, `api/calendario.py` | Simulação usa histórico do produtor e gera calendário direto da estratégia escolhida |
 | C8 | ✅ | Integrar `explain_alert` (A8 com fallback) nos alertas `[M5]`, adicionar resumo de alertas não lidos por terreno para o painel e testes de `C6–C8` | `api/alertas.py`, `services/alert_tasks.py`, `schemas/alerta.py`, `backend/tests/` | Alertas trazem orientação prática acessível; contagem de não lidos e testes verdes |
-| C9 | ⬜ | Permitir selecionar `perfil_climatico` (`seca`, `chuva_extrema`, `onda_de_calor`) em `POST /api/v1/alertas/monitorar-clima` para disparar ciclo completo `[M5] -> [M4]` sob demanda na demo + teste | `schemas/alerta.py`, `api/alertas.py`, `services/alert_tasks.py`, `backend/tests/` | Um clique na demo gera alerta com `explain_alert` e adapta atividades do calendário |
+| C9 | ✅ | Permitir selecionar `perfil_climatico` (`seca`, `chuva_extrema`, `onda_de_calor`) em `POST /api/v1/alertas/monitorar-clima` para disparar ciclo completo `[M5] -> [M4]` sob demanda na demo + teste | `schemas/alerta.py`, `api/alertas.py`, `services/alert_tasks.py`, `backend/tests/` | Um clique na demo gera alerta com `explain_alert` e adapta atividades do calendário |
 
 ## Frontend (`frontend/` — Integração Ponta a Ponta)
 
@@ -100,8 +98,8 @@
 ## Ordem e dependências
 
 1. ✅ **Rodada 1 concluída:** `A1–A6` · `B1–B4` · `C1–C5`.
-2. ✅ **Rodada 2 concluída:** `A7–A9` · `B5–B7` · `C6–C8` *(mergear PR da `A9` na `dev`)*.
-3. **Rodada 3 — Em seguida, em paralelo:** `A10` · `B8` · `C9` *(dependem do merge da `A9`)* + `F1, F2, F3` (integração Frontend + ensaio final da demo).
+2. ✅ **Rodada 2 concluída:** `A7–A9` · `B5–B7` · `C6–C8`.
+3. **Rodada 3 — Em andamento:** `A10` ✅ · `C9` ✅ · pendentes: `B8` + `F1, F2, F3` (integração Frontend + ensaio final da demo).
 
 ## Regras de trabalho
 
