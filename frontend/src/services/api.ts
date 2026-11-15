@@ -406,13 +406,6 @@ export function simularRotacao(
   });
 }
 
-export function executarDemoSeed(reset = false): Promise<DemoSeedResponse> {
-  const query = `?reset=${reset ? "true" : "false"}`;
-  return requestJson<DemoSeedResponse>(`/demo/seed${query}`, {
-    method: "POST",
-  });
-}
-
 function buildQueryString(
   params: Record<string, string | number | boolean | undefined | null>
 ): string {

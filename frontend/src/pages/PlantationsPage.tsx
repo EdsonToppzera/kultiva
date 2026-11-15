@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Database, Plus, RefreshCw, Trash2, WifiOff } from "lucide-react";
+import { Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   AlertDialog,
@@ -13,12 +13,10 @@ import {
 } from "../components/ui/alert-dialog";
 import { KultivaLogo } from "../components/KultivaLogo";
 import { LanguageSelector } from "../components/LanguageSelector";
-import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import {
   type CoordenadaApi,
   type TerrenoResponse,
-  executarDemoSeed,
   excluirTerreno,
   formatarAreaHectares,
   listarTerrenos,
@@ -33,19 +31,6 @@ export interface PlantationArea {
   coordenadasPoligono?: CoordenadaApi[];
   prioridades?: Record<string, unknown> | null;
 }
-
-const INITIAL_AREAS: PlantationArea[] = [
-  {
-    id: "area-1",
-    name: "Sítio do Lobato iaiaô",
-    sizeLabel: "2 hectares",
-  },
-  {
-    id: "area-2",
-    name: "Sítio Boa Esperança - Área 1",
-    sizeLabel: "5 hectares",
-  },
-];
 
 function mapTerrenoToArea(terreno: TerrenoResponse): PlantationArea {
   return {
@@ -74,8 +59,6 @@ export function PlantationsPage({
 }: PlantationsPageProps) {
   const [areas, setAreas] = React.useState<PlantationArea[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [isOfflineFallback, setIsOfflineFallback] = React.useState(false);
-  const [isSeedingDemo, setIsSeedingDemo] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [apiError, setApiError] = React.useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
@@ -89,10 +72,13 @@ export function PlantationsPage({
     try {
       const terrenos = await listarTerrenos();
       setAreas(terrenos.map(mapTerrenoToArea));
-      setIsOfflineFallback(false);
-    } catch {
-      setAreas((prev) => (prev.length > 0 ? prev : INITIAL_AREAS));
-      setIsOfflineFallback(true);
+    } catch (error) {
+      setAreas([]);
+      setApiError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível carregar as áreas cadastradas no servidor."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -101,23 +87,6 @@ export function PlantationsPage({
   React.useEffect(() => {
     void fetchAreas();
   }, [fetchAreas]);
-
-  const handleLoadDemo = async () => {
-    setIsSeedingDemo(true);
-    setApiError(null);
-    try {
-      await executarDemoSeed(false);
-      await fetchAreas();
-    } catch (error) {
-      setApiError(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível carregar os dados de demonstração."
-      );
-    } finally {
-      setIsSeedingDemo(false);
-    }
-  };
 
   const handleOpenDeleteModal = (area: PlantationArea) => {
     setAreaToDelete(area);
@@ -182,27 +151,6 @@ export function PlantationsPage({
                 />
               </button>
 
-              {isOfflineFallback ? (
-                <Badge variant="offline">
-                  <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span>{t("network.offlineShort")}</span>
-                </Badge>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleLoadDemo}
-                  disabled={isSeedingDemo || isLoading}
-                  className="border-[#E6E4DA] bg-white text-xs text-[#511D4E]"
-                >
-                  <Database className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span>
-                    {isSeedingDemo ? t("plantations.loadingDemo") : t("plantations.demo")}
-                  </span>
-                </Button>
-              )}
-
               <LanguageSelector />
             </div>
           </header>
@@ -219,12 +167,6 @@ export function PlantationsPage({
               className="mt-4 rounded-2xl border border-[#C42311]/30 bg-[#C42311]/10 px-4 py-3 text-xs font-medium text-[#C42311]"
             >
               {apiError}
-            </div>
-          )}
-
-          {isOfflineFallback && (
-            <div className="mt-4 rounded-2xl border border-[#CAD17A] bg-[#FCF59B]/40 px-4 py-3 text-xs text-[#4A3B12]">
-              {t("plantations.offlineBanner")}
             </div>
           )}
 

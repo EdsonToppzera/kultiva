@@ -19,7 +19,7 @@ import { SoilTypeStep } from "./features/onboarding/components/SoilTypeStep";
 import { WaterDistributionStep } from "./features/onboarding/components/WaterDistributionStep";
 import {
   RecommendationsStep,
-  buildRecommendationsFromOnboarding,
+  buildAreaSummaryFromOnboarding,
 } from "./features/simulation/components/RecommendationsStep";
 import type {
   CropHistoryData,
@@ -160,6 +160,10 @@ export function App() {
   const [simulatedDashboard, setSimulatedDashboard] =
     React.useState<SimulatedDashboardBundle | null>(null);
   const [isSimulating, setIsSimulating] = React.useState(false);
+  const [simulationError, setSimulationError] = React.useState<string | null>(
+    null
+  );
+  const [simulationRetryKey, setSimulationRetryKey] = React.useState(0);
   const [isGeneratingSchedule, setIsGeneratingSchedule] = React.useState(false);
   const [showLoaderPreview, setShowLoaderPreview] = React.useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -233,10 +237,14 @@ export function App() {
   }, [normalSnapshot]);
 
   React.useEffect(() => {
-    if (step !== "recommendations") return;
+    if (step !== "recommendations") {
+      setIsSimulating(false);
+      return;
+    }
 
     let cancelled = false;
     setIsSimulating(true);
+    setSimulationError(null);
     setRemoteScenarios(null);
     setLastSimulacaoResponse(null);
 
@@ -283,8 +291,14 @@ export function App() {
             })
           );
         }
-      } catch {
-        // Fallback offline automático para buildRecommendationsFromOnboarding
+      } catch (error) {
+        if (!cancelled) {
+          setSimulationError(
+            error instanceof Error
+              ? error.message
+              : "Não foi possível gerar recomendações na API."
+          );
+        }
       } finally {
         if (!cancelled) {
           setIsSimulating(false);
@@ -298,6 +312,7 @@ export function App() {
     };
   }, [
     step,
+    simulationRetryKey,
     currentTerreno,
     draftTerrain,
     cropHistory,
@@ -369,7 +384,6 @@ export function App() {
           area_hectares: draftTerrain.area_hectares,
           prioridades: mergedPrioridades,
         });
-        setCurrentTerreno(resolvedTerreno);
         terrenoId = resolvedTerreno.id;
       }
 
@@ -385,6 +399,7 @@ export function App() {
     }
 
     if (resolvedTerreno) {
+      setCurrentTerreno(resolvedTerreno);
       setSelectedArea({
         id: String(resolvedTerreno.id),
         terrenoId: resolvedTerreno.id,
@@ -569,14 +584,13 @@ export function App() {
   }
 
   if (step === "recommendations") {
-    const { areaSummary, scenarios: fallbackScenarios } =
-      buildRecommendationsFromOnboarding({
-        cropHistory,
-        waterDistribution,
-        soilType,
-        priority,
-      });
-    const activeScenarios = remoteScenarios ?? fallbackScenarios;
+    const areaSummary = buildAreaSummaryFromOnboarding({
+      cropHistory,
+      waterDistribution,
+      soilType,
+      priority,
+    });
+    const activeScenarios = remoteScenarios ?? [];
 
     return (
       <>
@@ -604,8 +618,10 @@ export function App() {
           scenarios={activeScenarios}
           isLoading={isSimulating}
           isSubmittingPlan={isGeneratingSchedule}
+          errorMessage={simulationError}
           networkStatus={networkStatus}
           onSelectPlan={(scenario) => void handleSelectPlan(scenario)}
+          onRetry={() => setSimulationRetryKey((prev) => prev + 1)}
           onBack={() => {
             setSelectedPlan(null);
             setStep("summary");

@@ -29,7 +29,6 @@ import {
 import { cn } from "../../../lib/utils";
 import type {
   CropHistoryData,
-  CropOption,
   NetworkSyncStatus,
 } from "../../onboarding/types/cropHistory.types";
 import type { PriorityData } from "../../onboarding/types/priority.types";
@@ -69,198 +68,10 @@ export const COVER_CROP_ALTERNATIVES: RotationAlternativeCrop[] = [
   },
 ];
 
-export const DEFAULT_AREA_SUMMARY: AreaSummaryInfo = {
-  areaName: "Área 1",
-  lastCropName: "Milho",
-  tagsLine: "Chuva · Barro · Recuperar a terra",
-};
-
-export const DEFAULT_RECOMMENDATIONS: RotationScenario[] = [
-  {
-    id: "opcao-1-feijao-porco",
-    optionBadge: "1ª Opção",
-    focusTag: "FOCO NO SOLO",
-    variant: "recommended",
-    steps: [
-      {
-        id: "step-milho",
-        name: "Milho",
-        statusLabel: "Já colhido",
-        imageUrl: "/images/crops/milho.jpg",
-      },
-      {
-        id: "step-feijao-porco",
-        name: "Feijão-de-porco",
-        statusLabel: "A seguir",
-        imageUrl: null,
-        alternatives: COVER_CROP_ALTERNATIVES,
-      },
-      {
-        id: "step-descanso",
-        name: "Descanso",
-        statusLabel: "Depois",
-        isRest: true,
-      },
-    ],
-    aiJustification:
-      "Com menos chuva no período, cobrir a terra ajuda a guardar a umidade.",
-    pros: ["Ajuda a proteger e nutrir a terra."],
-    cons: ["Não gera uma colheita para venda."],
-    technicalDetails: {
-      cycleDurationDays: "90 a 110 dias",
-      waterDemandMm: "280 mm (Baixa)",
-      nasaClimateNote:
-        "Dados de precipitação e umidade do solo (NASA SMAP/POWER) indicam janela mais seca nos próximos 60 dias; a palhada reduz evaporação em até 35%.",
-      npkTable: [
-        {
-          nutrient: "Nitrogênio (N)",
-          requirementLevel: "Baixo",
-          impact: "Fixa até 120 kg/ha no solo",
-        },
-        {
-          nutrient: "Fósforo (P)",
-          requirementLevel: "Médio",
-          impact: "Melhora enraizamento futuro",
-        },
-        {
-          nutrient: "Potássio (K)",
-          requirementLevel: "Baixo",
-          impact: "Recicla nutrientes das camadas fundas",
-        },
-      ],
-      agrofitAlerts: [
-        "Quebra o ciclo da lagarta-do-cartucho após o milho.",
-        "Reduz pressão de nematoides-das-galhas antes do próximo plantio.",
-      ],
-    },
-  },
-  {
-    id: "opcao-2-feijao-corda",
-    optionBadge: "2ª Opção",
-    focusTag: "FOCO NO SOLO",
-    variant: "standard",
-    steps: [
-      {
-        id: "step-milho",
-        name: "Milho",
-        statusLabel: "Já colhido",
-        imageUrl: "/images/crops/milho.jpg",
-      },
-      {
-        id: "step-feijao-corda",
-        name: "Feijão-de-corda",
-        statusLabel: "A seguir",
-        imageUrl: "/images/crops/feijao-caupi.jpg",
-      },
-      {
-        id: "step-descanso",
-        name: "Descanso",
-        statusLabel: "Depois",
-        isRest: true,
-      },
-    ],
-    aiJustification:
-      "O feijão-de-corda lida com períodos secos, mas precisa de água para começar.",
-    pros: ["Pode trazer retorno em um ciclo curto."],
-    cons: ["Precisa de chuva na época certa."],
-    technicalDetails: {
-      cycleDurationDays: "65 a 80 dias",
-      waterDemandMm: "350 mm (Moderada)",
-      nasaClimateNote:
-        "A germinação e o florescimento são sensíveis a veranicos maiores que 10 dias. Acompanhe os avisos de chuva antes da semeadura.",
-      npkTable: [
-        {
-          nutrient: "Nitrogênio (N)",
-          requirementLevel: "Baixo",
-          impact: "Fixação simbiótica parcial",
-        },
-        {
-          nutrient: "Fósforo (P)",
-          requirementLevel: "Médio",
-          impact: "Essencial na formação de vagens",
-        },
-        {
-          nutrient: "Potássio (K)",
-          requirementLevel: "Médio",
-          impact: "Aumenta tolerância ao calor",
-        },
-      ],
-      agrofitAlerts: [
-        "Monitorar pulgão-preto e vaquinha nos primeiros 25 dias (AGROFIT).",
-        "Evitar plantio muito adensado em solo de barro encharcado.",
-      ],
-    },
-  },
-  {
-    id: "opcao-3-mandioca",
-    optionBadge: "3ª Opção",
-    focusTag: "FOCO NO SOLO",
-    variant: "standard",
-    steps: [
-      {
-        id: "step-milho",
-        name: "Milho",
-        statusLabel: "Já colhido",
-        imageUrl: "/images/crops/milho.jpg",
-      },
-      {
-        id: "step-mandioca",
-        name: "Mandioca",
-        statusLabel: "A seguir",
-        imageUrl: "/images/crops/mandioca.jpg",
-      },
-      {
-        id: "step-descanso",
-        name: "Descanso",
-        statusLabel: "Depois",
-        isRest: true,
-      },
-    ],
-    aiJustification:
-      "Depois de pegar, a mandioca tolera períodos com menos chuva.",
-    pros: ["Alimento para a família e os animais."],
-    cons: ["Ocupa a área por mais tempo."],
-    technicalDetails: {
-      cycleDurationDays: "240 a 360 dias",
-      waterDemandMm: "420 mm ao longo do ciclo",
-      nasaClimateNote:
-        "Alta rusticidade após 60 dias do pegamento das manivas. Evite baixar drenagem em períodos de chuva intensa.",
-      npkTable: [
-        {
-          nutrient: "Nitrogênio (N)",
-          requirementLevel: "Baixo",
-          impact: "Exigência baixa na fase inicial",
-        },
-        {
-          nutrient: "Fósforo (P)",
-          requirementLevel: "Baixo",
-          impact: "Aproveita fósforo residual",
-        },
-        {
-          nutrient: "Potássio (K)",
-          requirementLevel: "Alto",
-          impact: "Fundamental para enchimento das raízes",
-        },
-      ],
-      agrofitAlerts: [
-        "Atenção ao mandarová e ácaro-verde em períodos secos prolongados.",
-        "Usar manivas sadias para evitar podridão radicular em barro úmido.",
-      ],
-    },
-  },
-];
-
-const WATER_SENSITIVE_CROPS = new Set([
-  "feijao-carioca",
-  "abobora",
-  "batata-doce",
-  "milho",
-]);
-
 /**
- * Constrói o resumo global e os cenários de recomendação a partir das escolhas do onboarding.
+ * Constrói o resumo da área a partir das escolhas do onboarding.
  */
-export function buildRecommendationsFromOnboarding({
+export function buildAreaSummaryFromOnboarding({
   cropHistory,
   waterDistribution,
   soilType,
@@ -270,181 +81,18 @@ export function buildRecommendationsFromOnboarding({
   waterDistribution: WaterDistributionData | null;
   soilType: SoilTypeData | null;
   priority: PriorityData | null;
-}): {
-  areaSummary: AreaSummaryInfo;
-  scenarios: RotationScenario[];
-} {
+}): AreaSummaryInfo {
   const lastCrop = cropHistory?.ultimoCultivo ?? null;
   const lastCropName = lastCrop?.officialName ?? "Sem histórico";
-  const waterTitle = waterDistribution?.metodoIrrigacao.title ?? "Chuva";
-  const soilTitle = soilType?.tipoSolo.title ?? "Barro";
-  const priorityTitle = priority?.prioridade.title ?? "Recuperar a terra";
+  const waterTitle = waterDistribution?.metodoIrrigacao.title ?? "";
+  const soilTitle = soilType?.tipoSolo.title ?? "";
+  const priorityTitle = priority?.prioridade.title ?? "";
 
-  const areaSummary: AreaSummaryInfo = {
-    areaName: "Área 1",
+  return {
+    areaName: "",
     lastCropName,
-    tagsLine: `${waterTitle} · ${soilTitle} · ${priorityTitle}`,
+    tagsLine: [waterTitle, soilTitle, priorityTitle].filter(Boolean).join(" · "),
   };
-
-  const firstStep = {
-    id: `hist-${lastCrop?.id ?? "area"}`,
-    name: lastCrop?.officialName ?? "Área atual",
-    statusLabel: lastCrop ? "Já colhido" : "Situação inicial",
-    imageUrl: lastCrop?.imageUrl ?? null,
-  };
-
-  const baseScenarios = DEFAULT_RECOMMENDATIONS.map((scenario) => ({
-    ...scenario,
-    focusTag: priorityTitle,
-    steps: [firstStep, ...scenario.steps.slice(1)],
-  }));
-
-  const targetCrop: CropOption | null = priority?.culturaDesejada ?? null;
-  if (
-    priority?.prioridade.id === "plantar_especifico" &&
-    targetCrop !== null
-  ) {
-    const isDryRisk =
-      waterDistribution?.metodoIrrigacao.id === "chuva" &&
-      (WATER_SENSITIVE_CROPS.has(targetCrop.id) ||
-        soilType?.tipoSolo.id === "areia" ||
-        soilType?.tipoSolo.id === "cascalho");
-
-    if (isDryRisk) {
-      const riskScenario: RotationScenario = {
-        id: `risco-${targetCrop.id}`,
-        optionBadge: "Risco Altíssimo",
-        focusTag: "ALERTA DE INVIABILIDADE",
-        variant: "risk",
-        steps: [
-          firstStep,
-          {
-            id: `target-${targetCrop.id}`,
-            name: targetCrop.officialName,
-            statusLabel: "Alto risco",
-            imageUrl: targetCrop.imageUrl ?? null,
-          },
-          {
-            id: "step-descanso-risco",
-            name: "Descanso",
-            statusLabel: "Recuperação",
-            isRest: true,
-          },
-        ],
-        aiJustification:
-          "Risco altíssimo: A NASA prevê seca severa, e esta cultura exige irrigação constante.",
-        pros: [`Atende ao desejo de plantar ${targetCrop.officialName}.`],
-        cons: [
-          `Sem irrigação (${waterTitle}) em solo de ${soilTitle.toLowerCase()}, há alto risco de perda.`,
-        ],
-        ctaLabel: "Escolher mesmo assim",
-        technicalDetails: {
-          cycleDurationDays: "80 a 120 dias",
-          waterDemandMm: "480 a 600 mm (Alta)",
-          nasaClimateNote:
-            "As séries históricas da NASA indicam déficit hídrico crítico para cultivo em sequeiro nesta janela. Recomenda-se cobertura morta prévia ou irrigação suplementar.",
-          npkTable: [
-            {
-              nutrient: "Nitrogênio (N)",
-              requirementLevel: "Alto",
-              impact: "Perda por estresse hídrico",
-            },
-            {
-              nutrient: "Fósforo (P)",
-              requirementLevel: "Médio",
-              impact: "Absorção reduzida sem umidade",
-            },
-            {
-              nutrient: "Potássio (K)",
-              requirementLevel: "Alto",
-              impact: "Crítico para regulação de água",
-            },
-          ],
-          agrofitAlerts: [
-            "Plantas sob estresse hídrico ficam mais vulneráveis a ácaros e mosca-branca (AGROFIT).",
-            "Considere preparar o solo com adubação verde antes de arriscar o plantio principal.",
-          ],
-        },
-      };
-
-      return {
-        areaSummary,
-        scenarios: [riskScenario, baseScenarios[0], baseScenarios[1]],
-      };
-    }
-
-    const preparedScenario: RotationScenario = {
-      id: `plano-preparo-${targetCrop.id}`,
-      optionBadge: "1ª Opção",
-      focusTag: "PREPARO PARA SUA CULTURA",
-      variant: "recommended",
-      steps: [
-        firstStep,
-        {
-          id: "step-crotalaria-preparo",
-          name: "Crotalária",
-          statusLabel: "Preparo",
-          imageUrl: null,
-          alternatives: COVER_CROP_ALTERNATIVES,
-        },
-        {
-          id: `target-${targetCrop.id}`,
-          name: targetCrop.officialName,
-          statusLabel: "Plantio alvo",
-          imageUrl: targetCrop.imageUrl ?? null,
-        },
-        {
-          id: "step-descanso-final",
-          name: "Descanso",
-          statusLabel: "Depois",
-          isRest: true,
-        },
-      ],
-      aiJustification: `Preparar a terra com cobertura verde protege a umidade para receber ${targetCrop.officialName}.`,
-      pros: [
-        `Prepara o solo para colher ${targetCrop.officialName} com mais vigor.`,
-        "Aumenta a proteção contra ervas daninhas.",
-      ],
-      cons: ["Adiciona um ciclo rápido de preparo antes do plantio final."],
-      technicalDetails: {
-        cycleDurationDays: "150 a 190 dias (ciclo completo)",
-        waterDemandMm: "360 mm",
-        nasaClimateNote:
-          "A combinação de cobertura prévia com o manejo hídrico atual mantém a temperatura do solo mais amena no pegamento.",
-        npkTable: [
-          {
-            nutrient: "Nitrogênio (N)",
-            requirementLevel: "Médio",
-            impact: "Suprido pela cobertura anterior",
-          },
-          {
-            nutrient: "Fósforo (P)",
-            requirementLevel: "Médio",
-            impact: "Reforço na linha de plantio",
-          },
-          {
-            nutrient: "Potássio (K)",
-            requirementLevel: "Médio",
-            impact: "Mantém qualidade da colheita",
-          },
-        ],
-        agrofitAlerts: [
-          "Crotalária auxilia no controle natural de nematoides antes da cultura alvo.",
-        ],
-      },
-    };
-
-    return {
-      areaSummary,
-      scenarios: [
-        preparedScenario,
-        { ...baseScenarios[0], optionBadge: "2ª Opção", variant: "standard" },
-        { ...baseScenarios[1], optionBadge: "3ª Opção", variant: "standard" },
-      ],
-    };
-  }
-
-  return { areaSummary, scenarios: baseScenarios };
 }
 
 const NETWORK_BADGE_CONFIG: Record<
@@ -466,8 +114,10 @@ export interface RecommendationsStepProps {
   scenarios?: RotationScenario[];
   isLoading?: boolean;
   isSubmittingPlan?: boolean;
+  errorMessage?: string | null;
   networkStatus?: NetworkSyncStatus;
   onSelectPlan?: (scenario: RotationScenario) => void;
+  onRetry?: () => void;
   onBack?: () => void;
 }
 
@@ -476,12 +126,14 @@ export interface RecommendationsStepProps {
  * Renderiza trilhas dinâmicas (2 a 5 passos), variante crítica de risco/inviabilidade e Drawer técnico.
  */
 export function RecommendationsStep({
-  propertyLocation = "Sítio Boa Esperança - Área 1",
-  scenarios = DEFAULT_RECOMMENDATIONS,
+  propertyLocation = "",
+  scenarios = [],
   isLoading = false,
   isSubmittingPlan = false,
+  errorMessage = null,
   networkStatus,
   onSelectPlan,
+  onRetry,
   onBack,
 }: RecommendationsStepProps) {
   const { t } = useTranslation();
@@ -596,6 +248,31 @@ export function RecommendationsStep({
                   fullscreen={false}
                   label={t("simulation.calculating")}
                 />
+              </div>
+            ) : errorMessage || localScenarios.length === 0 ? (
+              <div
+                role="alert"
+                className="flex flex-col items-center gap-4 rounded-3xl border border-[#C42311]/30 bg-white px-6 py-10 text-center"
+              >
+                <AlertTriangle
+                  className="h-8 w-8 text-[#C42311]"
+                  aria-hidden="true"
+                />
+                <p className="text-sm font-medium text-[#1F1C18]">
+                  {errorMessage ||
+                    "Não foi possível obter recomendações da API no momento."}
+                </p>
+                {onRetry && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={onRetry}
+                  >
+                    <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                    <span>Tentar novamente</span>
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:items-start">

@@ -83,100 +83,6 @@ const WEEKDAY_NAMES_UPPER = [
   "SÁBADO",
 ];
 
-const DEFAULT_CALENDAR_DATA: AreaCalendarData = {
-  areaName: "Área 1",
-  todayDate: "2026-11-14",
-  phases: [
-    {
-      id: "phase-feijao",
-      cropName: "Feijão-de-corda",
-      objectiveLabel: "Plano para colher",
-      startDate: "2026-11-03",
-      endDate: "2026-11-24",
-      dayBgClass: "bg-[#CAD17A]/30 text-[#1F1C18]",
-      legendDotClass: "bg-[#CAD17A]",
-      cardBgClass: "bg-[#CAD17A]/25 border-[#CAD17A]/50",
-      progressFillClass: "bg-[#511D4E]",
-    },
-    {
-      id: "phase-milheto",
-      cropName: "Milheto",
-      objectiveLabel: "Cobertura e palhada",
-      startDate: "2026-11-25",
-      endDate: "2026-12-20",
-      dayBgClass: "bg-[#FCF59B]/55 text-[#1F1C18]",
-      legendDotClass: "bg-[#E6D84A]",
-      cardBgClass: "bg-[#FCF59B]/45 border-[#E6D84A]/60",
-      progressFillClass: "bg-[#511D4E]",
-    },
-    {
-      id: "phase-milho",
-      cropName: "Milho",
-      objectiveLabel: "Safra principal",
-      startDate: "2026-12-21",
-      endDate: "2027-01-25",
-      dayBgClass: "bg-[#91C494]/35 text-[#1F1C18]",
-      legendDotClass: "bg-[#91C494]",
-      cardBgClass: "bg-[#91C494]/25 border-[#91C494]/55",
-      progressFillClass: "bg-[#511D4E]",
-    },
-  ],
-  highlights: {
-    "2026-11-03": {
-      date: "2026-11-03",
-      milestoneType: "plantio",
-      milestoneLabel: "Início do plantio · Feijão-de-corda",
-      weatherHeadline: "Manhã firme com solo úmido",
-      weatherDetails: "23°–30° · Boa janela para semeadura",
-      weatherKind: "sun",
-      importantNotice: "Dia recomendado para plantar o Feijão-de-corda.",
-    },
-    "2026-11-14": {
-      date: "2026-11-14",
-      weatherHeadline: "Chuva no fim da tarde",
-      weatherDetails: "24°–29° · Chance de chuva: 80%",
-      weatherKind: "rain",
-      importantNotice: "A IA pausou a rega de hoje.",
-    },
-    "2026-11-18": {
-      date: "2026-11-18",
-      milestoneType: "manejo",
-      milestoneLabel: "Manejo · Adubação de cobertura",
-      weatherHeadline: "Nublado com vento leve",
-      weatherDetails: "23°–28° · Chance de chuva: 35%",
-      weatherKind: "cloud",
-      importantNotice: "Dia previsto para reforço de cobertura no solo.",
-    },
-    "2026-11-24": {
-      date: "2026-11-24",
-      milestoneType: "colheita",
-      milestoneLabel: "Colheita prevista · Feijão-de-corda",
-      weatherHeadline: "Tempo seco ao longo do dia",
-      weatherDetails: "24°–31° · Chance de chuva: 10%",
-      weatherKind: "sun",
-      importantNotice: "Janela ideal para colheita antes da troca de cultura.",
-    },
-    "2026-11-25": {
-      date: "2026-11-25",
-      milestoneType: "plantio",
-      milestoneLabel: "Início do plantio · Milheto",
-      weatherHeadline: "Sol entre nuvens",
-      weatherDetails: "24°–30° · Chance de chuva: 25%",
-      weatherKind: "cloud",
-      importantNotice: "Início da fase de Milheto para proteger o solo.",
-    },
-    "2026-12-21": {
-      date: "2026-12-21",
-      milestoneType: "plantio",
-      milestoneLabel: "Início do plantio · Milho",
-      weatherHeadline: "Chuva leve pela manhã",
-      weatherDetails: "23°–29° · Chance de chuva: 60%",
-      weatherKind: "rain",
-      importantNotice: "Início do cultivo de Milho na rotação.",
-    },
-  },
-};
-
 const MILESTONE_DOT_CLASS: Record<CalendarMilestoneType, string> = {
   plantio: "bg-[#9AA832]",
   manejo: "bg-[#511D4E]",
@@ -253,8 +159,8 @@ function getCycleStatusKey(percent: number): string {
 
 export function AreaCalendarPage({
   terrenoId,
-  areaLocation = "Sítio Boa Esperança · Área 1",
-  calendarData: propCalendarData = DEFAULT_CALENDAR_DATA,
+  areaLocation = "",
+  calendarData: propCalendarData,
   networkStatus,
   onBack,
 }: AreaCalendarPageProps) {
@@ -327,7 +233,17 @@ export function AreaCalendarPage({
     };
   }, [terrenoId, areaLocation]);
 
-  const calendarData = liveCalendarData ?? propCalendarData;
+  const todayFallback = React.useMemo(
+    () => new Date().toISOString().slice(0, 10),
+    []
+  );
+  const calendarData = liveCalendarData ??
+    propCalendarData ?? {
+      areaName: areaLocation,
+      todayDate: todayFallback,
+      phases: [],
+      highlights: {},
+    };
 
   React.useEffect(() => {
     const handleOnline = () => setIsOnline(true);

@@ -99,8 +99,8 @@ export interface AreaDashboardPageProps {
   cropNameFallback?: string;
   areaLocation?: string;
   dateLabel?: string;
-  weather?: AreaWeatherSummary;
-  cropProgress?: AreaCropProgress;
+  weather?: AreaWeatherSummary | null;
+  cropProgress?: AreaCropProgress | null;
   activities?: AreaActivityItem[];
   networkStatus?: NetworkSyncStatus;
   onStartSimulation?: () => void;
@@ -130,50 +130,6 @@ const PERIOD_ORDER: ActivityPeriodId[] = [
   "tarde",
   "noite",
   "qualquer-momento",
-];
-
-const DEFAULT_WEATHER: AreaWeatherSummary = {
-  headline: "Chuva no fim da tarde",
-  details: "24°–29° · Chance de chuva: 80%",
-  weatherNotice: "A rega de hoje foi pausada.",
-};
-
-const DEFAULT_CROP_PROGRESS: AreaCropProgress = {
-  cropName: "Feijão-de-porco",
-  dayLabel: "Dia 12",
-};
-
-const DEFAULT_ACTIVITIES: AreaActivityItem[] = [
-  {
-    id: "act-1",
-    period: "manha",
-    periodLabel: "Manhã cedo",
-    title: "Conferir a umidade da terra",
-    description: "Veja a terra perto da raiz.",
-  },
-  {
-    id: "act-2",
-    period: "manha",
-    periodLabel: "Manhã cedo",
-    title: "Olhar as folhas novas",
-    description: "Procure manchas ou sinais de pragas.",
-  },
-  {
-    id: "act-3",
-    period: "tarde",
-    periodLabel: "Fim de tarde",
-    title: "Irrigar a área",
-    description: "Rega programada para o fim do dia.",
-    paused: true,
-    pausedReason: "Pausado: chuva prevista para hoje.",
-  },
-  {
-    id: "act-4",
-    period: "qualquer-momento",
-    periodLabel: "Qualquer momento",
-    title: "Conferir a cobertura do solo",
-    description: "Cubra os pontos de terra exposta.",
-  },
 ];
 
 const REPORT_OPTIONS: FieldReportOption[] = [
@@ -211,11 +167,11 @@ export function AreaDashboardPage({
   terrenoId,
   isSimulationMode = false,
   cropNameFallback,
-  areaLocation = "Sítio Boa Esperança · Área 1",
+  areaLocation = "",
   dateLabel,
-  weather = DEFAULT_WEATHER,
-  cropProgress = DEFAULT_CROP_PROGRESS,
-  activities = DEFAULT_ACTIVITIES,
+  weather = null,
+  cropProgress = null,
+  activities = [],
   networkStatus,
   onStartSimulation,
   onFinishSimulation,
@@ -302,10 +258,10 @@ export function AreaDashboardPage({
     void loadDashboardData();
   }, [loadDashboardData]);
 
-  const effectiveWeather = liveWeather ?? weather;
-  const effectiveCropProgress = liveCropProgress ?? cropProgress;
+  const effectiveWeather = liveWeather ?? weather ?? null;
+  const effectiveCropProgress = liveCropProgress ?? cropProgress ?? null;
   const effectiveActivities =
-    liveActivities !== null ? liveActivities : activities;
+    liveActivities !== null ? liveActivities : (activities ?? []);
 
   React.useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -466,15 +422,21 @@ export function AreaDashboardPage({
 
               <div className="min-w-0 flex-1">
                 <h2 className="text-[17px] font-bold leading-snug text-white">
-                  {effectiveWeather.headline}
+                  {effectiveWeather
+                    ? effectiveWeather.headline
+                    : isLoadingDashboard
+                      ? "Carregando previsão..."
+                      : "Dados climáticos indisponíveis"}
                 </h2>
-                <p className="mt-0.5 text-xs text-white/80">
-                  {effectiveWeather.details}
-                </p>
+                {effectiveWeather && (
+                  <p className="mt-0.5 text-xs text-white/80">
+                    {effectiveWeather.details}
+                  </p>
+                )}
               </div>
             </div>
 
-            {effectiveWeather.weatherNotice && (
+            {effectiveWeather?.weatherNotice && (
               <div className="mt-4 flex items-center gap-2.5 rounded-2xl bg-white/10 px-3.5 py-2.5 text-xs font-medium text-white/95">
                 <Info
                   className="h-4 w-4 shrink-0 text-[#FCF59B]"
@@ -498,8 +460,9 @@ export function AreaDashboardPage({
               />
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold text-[#1F1C18]">
-                  {effectiveCropProgress.cropName} ·{" "}
-                  {effectiveCropProgress.dayLabel}
+                  {effectiveCropProgress
+                    ? `${effectiveCropProgress.cropName} · ${effectiveCropProgress.dayLabel}`
+                    : cropNameFallback || "Sem cultivo ativo"}
                 </p>
                 <p className="text-xs text-[#5A594E]">
                   {t("dashboard.viewFullCalendar")}
