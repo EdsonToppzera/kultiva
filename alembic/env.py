@@ -4,7 +4,7 @@ import os
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from backend.db.database import Base
+from backend.db.database import Base, normalize_database_url
 import backend.db.models  # noqa: F401 - registra todos os modelos no metadata
 
 config = context.config
@@ -18,8 +18,8 @@ target_metadata = Base.metadata
 def _resolve_database_url() -> str:
     env_url = os.getenv("DATABASE_URL")
     if env_url:
-        return env_url
-    return config.get_main_option("sqlalchemy.url")
+        return normalize_database_url(env_url)
+    return normalize_database_url(config.get_main_option("sqlalchemy.url"))
 
 
 def run_migrations_offline() -> None:

@@ -323,9 +323,33 @@ export class ApiError extends Error {
   }
 }
 
+const COLD_START_STATUSES = new Set([502, 503, 504]);
+
+async function fetchWithColdStartRetry(
+  url: string,
+  init?: RequestInit
+): Promise<Response> {
+  const method = (init?.method ?? "GET").toUpperCase();
+  const maxRetries = method === "GET" ? 2 : 0;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+    const response = await fetch(url, init);
+    if (!COLD_START_STATUSES.has(response.status) || attempt === maxRetries) {
+      return response;
+    }
+    const online = typeof navigator === "undefined" || navigator.onLine;
+    if (!online || init?.signal?.aborted) {
+      return response;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+  }
+
+  return fetch(url, init);
+}
+
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  const response = await fetch(`${API_BASE_URL}${normalizedPath}`, {
+  const response = await fetchWithColdStartRetry(`${API_BASE_URL}${normalizedPath}`, {
     headers: {
       "Content-Type": "application/json",
       ...(init?.headers ?? {}),

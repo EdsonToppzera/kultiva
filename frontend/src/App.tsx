@@ -13,14 +13,6 @@ import { KultivaLogo } from "./components/KultivaLogo";
 import { LanguageSelector } from "./components/LanguageSelector";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
-import { CropHistoryStep } from "./features/onboarding/components/CropHistoryStep";
-import { PrioritiesStep } from "./features/onboarding/components/PrioritiesStep";
-import { SoilTypeStep } from "./features/onboarding/components/SoilTypeStep";
-import { WaterDistributionStep } from "./features/onboarding/components/WaterDistributionStep";
-import {
-  RecommendationsStep,
-  buildAreaSummaryFromOnboarding,
-} from "./features/simulation/components/RecommendationsStep";
 import type {
   CropHistoryData,
   NetworkSyncStatus,
@@ -28,14 +20,39 @@ import type {
 import type { PriorityData } from "./features/onboarding/types/priority.types";
 import type { SoilTypeData } from "./features/onboarding/types/soilType.types";
 import type { WaterDistributionData } from "./features/onboarding/types/waterDistribution.types";
+import { buildAreaSummaryFromOnboarding } from "./features/simulation/utils/recommendationHelpers";
 import type { RotationScenario } from "./features/simulation/types/recommendations.types";
-import { AreaCalendarPage } from "./pages/AreaCalendarPage";
-import { AreaDashboardPage } from "./pages/AreaDashboardPage";
-import { type MapCoordinate, MapTerrainPage } from "./pages/MapTerrainPage";
+import type { MapCoordinate } from "./pages/MapTerrainPage";
 import {
   PlantationsPage,
   type PlantationArea,
 } from "./pages/PlantationsPage";
+
+const CropHistoryStep = React.lazy(() =>
+  import("./features/onboarding/components/CropHistoryStep").then((m) => ({
+    default: m.CropHistoryStep,
+  }))
+);
+const RecommendationsStep = React.lazy(() =>
+  import("./features/simulation/components/RecommendationsStep").then((m) => ({
+    default: m.RecommendationsStep,
+  }))
+);
+const AreaCalendarPage = React.lazy(() =>
+  import("./pages/AreaCalendarPage").then((m) => ({
+    default: m.AreaCalendarPage,
+  }))
+);
+const AreaDashboardPage = React.lazy(() =>
+  import("./pages/AreaDashboardPage").then((m) => ({
+    default: m.AreaDashboardPage,
+  }))
+);
+const MapTerrainPage = React.lazy(() =>
+  import("./pages/MapTerrainPage").then((m) => ({
+    default: m.MapTerrainPage,
+  }))
+);
 import {
   type SimulatedDashboardBundle,
   adaptSimulacaoToScenarios,
@@ -58,9 +75,18 @@ import {
   restaurarHistoricoDoTerreno,
   simularRotacao,
 } from "./services/api";
-import { WATER_DISTRIBUTION_OPTIONS } from "./features/onboarding/components/WaterDistributionStep";
-import { SOIL_TYPE_OPTIONS } from "./features/onboarding/components/SoilTypeStep";
-import { PRIORITY_OPTIONS } from "./features/onboarding/components/PrioritiesStep";
+import {
+  WaterDistributionStep,
+  WATER_DISTRIBUTION_OPTIONS,
+} from "./features/onboarding/components/WaterDistributionStep";
+import {
+  SoilTypeStep,
+  SOIL_TYPE_OPTIONS,
+} from "./features/onboarding/components/SoilTypeStep";
+import {
+  PrioritiesStep,
+  PRIORITY_OPTIONS,
+} from "./features/onboarding/components/PrioritiesStep";
 
 type OnboardingStep =
   | "plantations"
@@ -876,7 +902,11 @@ export function App() {
 
   return (
     <>
-      {renderStep()}
+      <React.Suspense
+        fallback={<KultivaLoader fullscreen label={t("common.loading")} />}
+      >
+        {renderStep()}
+      </React.Suspense>
       {isGlobalLoading && (
         <KultivaLoader
           fullscreen
