@@ -1,5 +1,4 @@
 import * as React from "react";
-import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 interface DrawerContextValue {
@@ -193,14 +192,7 @@ export const DrawerContent = React.forwardRef<HTMLDivElement, DrawerContentProps
               aria-hidden="true"
               className="h-1.5 w-12 rounded-full bg-[#D5D1C5]"
             />
-            <button
-              type="button"
-              aria-label="Fechar ajuda"
-              onClick={handleClose}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-[#6D6960] transition-colors hover:bg-[#511D4E]/10 hover:text-[#511D4E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#511D4E]"
-            >
-              <X className="h-5 w-5" aria-hidden="true" />
-            </button>
+            <span className="h-8 w-8" aria-hidden="true" />
           </div>
 
           {children}
