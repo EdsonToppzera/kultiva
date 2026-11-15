@@ -80,10 +80,18 @@ export const CROPS_DICTIONARY: CropOption[] = [
 
 /**
  * Formata a lista de nomes populares entre aspas em português (ex.: `"Mandioca", "Macaxeira" e "Aipim"`).
+ * Quando houver mais de `maxItems` nomes, limita a exibição e adiciona reticências (`...`).
  */
-export function formatPopularNames(popularNames: string[]): string {
+export function formatPopularNames(
+  popularNames: string[],
+  maxItems = 3
+): string {
   if (popularNames.length === 0) return "";
-  const quoted = popularNames.map((name) => `"${name}"`);
+  const visible = popularNames.slice(0, maxItems);
+  const quoted = visible.map((name) => `"${name}"`);
+  if (popularNames.length > maxItems) {
+    return `${quoted.join(", ")}, ...`;
+  }
   if (quoted.length === 1) return quoted[0];
   if (quoted.length === 2) return `${quoted[0]} e ${quoted[1]}`;
   return `${quoted.slice(0, -1).join(", ")} e ${quoted[quoted.length - 1]}`;

@@ -1,20 +1,24 @@
+import re
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from backend.db import models
 from backend.db.database import get_db
 from backend.schemas.rotacao import (
+    CulturaCatalogoItem,
     CulturaCreate,
     CulturaResponse,
     CulturaUpdate,
     EcoCropLookupResponse,
     GAEZAptidaoResponse,
+    PragaCatalogoItem,
     RotacaoCreate,
     RotacaoResponse,
     RotacaoUpdate,
 )
+from backend.services.ecocrop_seed import seed_agrofit, seed_ecocrop
 from backend.services.ecocrop_service import EcoCropDataProvider
 from backend.services.gaez_service import GAEZDataProvider
 
@@ -246,6 +250,230 @@ def consultar_ecocrop(
         )
 
     return res
+
+
+_PEST_SUFFIX_RE = re.compile(r"\s*\(\d+\)\s*$")
+
+
+def _garantir_catalogo_ecocrop_agrofit(db: Session) -> None:
+    if db.query(models.CulturaLimite).count() == 0:
+        seed_ecocrop(db=db)
+    if db.query(models.CulturaPraga).count() == 0:
+        seed_agrofit(db=db)
+
+
+def _limpar_nomes_populares_praga(raw: Optional[str]) -> List[str]:
+    if not raw:
+        return []
+    result: List[str] = []
+    seen: set[str] = set()
+    for part in raw.split(";"):
+        cleaned = _PEST_SUFFIX_RE.sub("", part.strip()).strip()
+        if not cleaned or cleaned in {"-", "--", "---"}:
+            continue
+        key = cleaned.lower()
+        if key not in seen:
+            seen.add(key)
+            result.append(cleaned)
+    return result
+
+
+@router.get("/catalogo/buscar", response_model=List[CulturaCatalogoItem])
+def buscar_culturas_catalogo(
+    q: str = Query(default="", description="Termo de busca (nome científico ou popular)."),
+    limit: int = Query(default=30, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """Busca culturas na base integrada EcoCrop + AGROFIT por qualquer nome popular ou científico."""
+    _garantir_catalogo_ecocrop_agrofit(db)
+
+    termo = q.strip()
+    if termo:
+        pattern = f"%{termo}%"
+        syn_sci_subq = (
+            db.query(models.CulturaSinonimo.scientific_name)
+            .filter(models.CulturaSinonimo.synonym.ilike(pattern))
+        )
+        praga_sci_subq = (
+            db.query(models.CulturaPraga.scientific_name)
+            .filter(models.CulturaPraga.cultura_agrofit.ilike(pattern))
+        )
+        matched_rows = (
+            db.query(models.CulturaLimite)
+            .filter(
+                or_(
+                    models.CulturaLimite.scientific_name.ilike(pattern),
+                    models.CulturaLimite.comname.ilike(pattern),
+                    models.CulturaLimite.scientific_name.in_(syn_sci_subq),
+                    models.CulturaLimite.scientific_name.in_(praga_sci_subq),
+                )
+            )
+            .order_by(models.CulturaLimite.scientific_name.asc())
+            .limit(limit * 3)
+            .all()
+        )
+    else:
+        agrofit_scis = [
+            r[0]
+            for r in db.query(models.CulturaPraga.scientific_name)
+            .distinct()
+            .limit(limit)
+            .all()
+        ]
+        if agrofit_scis:
+            matched_rows = (
+                db.query(models.CulturaLimite)
+                .filter(models.CulturaLimite.scientific_name.in_(agrofit_scis))
+                .all()
+            )
+        else:
+            matched_rows = (
+                db.query(models.CulturaLimite)
+                .order_by(models.CulturaLimite.scientific_name.asc())
+                .limit(limit)
+                .all()
+            )
+
+    if not matched_rows:
+        return []
+
+    sci_names = [row.scientific_name for row in matched_rows]
+
+    agrofit_names_map: Dict[str, List[str]] = {}
+    for sci, agro_name in (
+        db.query(
+            models.CulturaPraga.scientific_name,
+            models.CulturaPraga.cultura_agrofit,
+        )
+        .filter(models.CulturaPraga.scientific_name.in_(sci_names))
+        .distinct()
+        .all()
+    ):
+        if agro_name:
+            agrofit_names_map.setdefault(sci, []).append(agro_name.strip())
+
+    synonyms_map: Dict[str, List[str]] = {}
+    for sci, syn in (
+        db.query(models.CulturaSinonimo.scientific_name, models.CulturaSinonimo.synonym)
+        .filter(models.CulturaSinonimo.scientific_name.in_(sci_names))
+        .all()
+    ):
+        if syn:
+            synonyms_map.setdefault(sci, []).append(syn.strip())
+
+    items: List[CulturaCatalogoItem] = []
+    for row in matched_rows:
+        sci = row.scientific_name
+        pt_names = sorted(agrofit_names_map.get(sci, []), key=len)
+        ecocrop_syns = synonyms_map.get(sci, [])
+
+        merged_popular: List[str] = []
+        seen_pop: set[str] = set()
+        for candidate in [*pt_names, *ecocrop_syns]:
+            key = candidate.lower()
+            if candidate and key not in seen_pop:
+                seen_pop.add(key)
+                merged_popular.append(candidate)
+
+        official_name = (
+            pt_names[0]
+            if pt_names
+            else (merged_popular[0] if merged_popular else sci)
+        )
+
+        items.append(
+            CulturaCatalogoItem(
+                id=sci,
+                scientific_name=sci,
+                official_name=official_name,
+                popular_names=merged_popular or [sci],
+                family=row.family,
+                cat=row.cat,
+                gmin=row.gmin,
+                gmax=row.gmax,
+                image_url=None,
+            )
+        )
+
+    # Prioriza culturas com nome oficial em português (presentes no AGROFIT)
+    items.sort(
+        key=lambda item: (
+            0 if item.scientific_name in agrofit_names_map else 1,
+            item.official_name.lower(),
+        )
+    )
+    return items[:limit]
+
+
+@router.get("/pragas/buscar", response_model=List[PragaCatalogoItem])
+def buscar_pragas_catalogo(
+    q: str = Query(default="", description="Termo de busca (nome popular ou científico da praga)."),
+    limit: int = Query(default=30, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """Busca pragas e doenças na base AGROFIT exibindo os nomes populares."""
+    _garantir_catalogo_ecocrop_agrofit(db)
+
+    query = db.query(
+        models.CulturaPraga.praga_nome_cientifico,
+        models.CulturaPraga.praga_nome_comum,
+    )
+    termo = q.strip()
+    if termo:
+        pattern = f"%{termo}%"
+        query = query.filter(
+            or_(
+                models.CulturaPraga.praga_nome_comum.ilike(pattern),
+                models.CulturaPraga.praga_nome_cientifico.ilike(pattern),
+            )
+        )
+
+    rows = query.limit(2000).all()
+
+    grouped: Dict[str, Dict[str, Any]] = {}
+    for sci, comum_raw in rows:
+        sci_clean = (sci or "").strip()
+        pop_list = _limpar_nomes_populares_praga(comum_raw)
+        key = sci_clean or (pop_list[0] if pop_list else "")
+        if not key:
+            continue
+
+        entry = grouped.setdefault(
+            key,
+            {
+                "scientific_name": sci_clean or None,
+                "popular_names": [],
+                "seen": set(),
+                "count": 0,
+            },
+        )
+        entry["count"] += 1
+        for pop in pop_list:
+            low = pop.lower()
+            if low not in entry["seen"]:
+                entry["seen"].add(low)
+                entry["popular_names"].append(pop)
+
+    items: List[tuple[int, PragaCatalogoItem]] = []
+    for key, data in grouped.items():
+        popular_names: List[str] = data["popular_names"]
+        sci_name: Optional[str] = data["scientific_name"]
+        official_name = popular_names[0] if popular_names else (sci_name or key)
+        items.append(
+            (
+                data["count"],
+                PragaCatalogoItem(
+                    id=key.lower().replace(" ", "-"),
+                    official_name=official_name,
+                    popular_names=popular_names if popular_names else [official_name],
+                    scientific_name=sci_name,
+                    category="Praga / Doença",
+                ),
+            )
+        )
+
+    items.sort(key=lambda pair: (-pair[0], pair[1].official_name.lower()))
+    return [item for _, item in items[:limit]]
 
 
 @router.get("/", response_model=List[CulturaResponse])

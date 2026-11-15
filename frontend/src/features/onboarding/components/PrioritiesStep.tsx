@@ -40,10 +40,13 @@ import {
   PESTS_DICTIONARY,
   type PestOption,
 } from "../../../data/pestsDictionary";
+import { useCatalogSearch } from "../../../hooks/useCatalogSearch";
 import { cn } from "../../../lib/utils";
 import {
   type TerrenoResponse,
   atualizarTerreno,
+  buscarCulturasCatalogo,
+  buscarPragasCatalogo,
 } from "../../../services/api";
 import type {
   CropOption,
@@ -171,6 +174,12 @@ function TargetCropCombobox({
 }: TargetCropComboboxProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const filteredCrops = useCatalogSearch(
+    open,
+    searchQuery,
+    crops,
+    buscarCulturasCatalogo
+  );
 
   React.useEffect(() => {
     if (open) {
@@ -258,7 +267,11 @@ function TargetCropCombobox({
         </PopoverTrigger>
 
         <PopoverContent align="start" sideOffset={8}>
-          <Command value={searchQuery} onValueChange={setSearchQuery}>
+          <Command
+            shouldFilter={false}
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+          >
             <CommandInput
               ref={inputRef}
               placeholder="Ex: Macaxeira, milho, feijão..."
@@ -272,7 +285,7 @@ function TargetCropCombobox({
               </CommandEmpty>
 
               <CommandGroup>
-                {crops.map((crop) => {
+                {filteredCrops.map((crop) => {
                   const isSelected = value?.id === crop.id;
 
                   return (
@@ -336,6 +349,12 @@ function TargetPestCombobox({
 }: TargetPestComboboxProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const filteredPests = useCatalogSearch(
+    open,
+    searchQuery,
+    pests,
+    buscarPragasCatalogo
+  );
 
   React.useEffect(() => {
     if (open) {
@@ -422,7 +441,11 @@ function TargetPestCombobox({
         </PopoverTrigger>
 
         <PopoverContent align="start" sideOffset={8}>
-          <Command value={searchQuery} onValueChange={setSearchQuery}>
+          <Command
+            shouldFilter={false}
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+          >
             <CommandInput
               ref={inputRef}
               placeholder="Ex: Lagarta, formiga, nematoide..."
@@ -436,7 +459,7 @@ function TargetPestCombobox({
               </CommandEmpty>
 
               <CommandGroup>
-                {pests.map((pest) => {
+                {filteredPests.map((pest) => {
                   const isSelected = value?.id === pest.id;
 
                   return (

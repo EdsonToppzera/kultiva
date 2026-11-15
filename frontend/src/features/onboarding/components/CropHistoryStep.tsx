@@ -29,10 +29,12 @@ import {
   CROPS_DICTIONARY,
   formatPopularNames,
 } from "../../../data/cropsDictionary";
+import { useCatalogSearch } from "../../../hooks/useCatalogSearch";
 import { cn } from "../../../lib/utils";
 import {
   type TerrenoResponse,
   atualizarTerreno,
+  buscarCulturasCatalogo,
   converterHistoricoParaLista,
 } from "../../../services/api";
 import type {
@@ -119,6 +121,12 @@ function CropComboboxField({
 }: CropComboboxFieldProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const filteredCrops = useCatalogSearch(
+    open,
+    searchQuery,
+    crops,
+    buscarCulturasCatalogo
+  );
 
   React.useEffect(() => {
     if (open) {
@@ -203,7 +211,11 @@ function CropComboboxField({
         </PopoverTrigger>
 
         <PopoverContent align="start" sideOffset={8}>
-          <Command value={searchQuery} onValueChange={setSearchQuery}>
+          <Command
+            shouldFilter={false}
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+          >
             <CommandInput
               ref={inputRef}
               placeholder="Ex: Macaxeira, milho, feijão..."
@@ -217,7 +229,7 @@ function CropComboboxField({
               </CommandEmpty>
 
               <CommandGroup>
-                {crops.map((crop) => {
+                {filteredCrops.map((crop) => {
                   const isSelected = value?.id === crop.id;
 
                   return (

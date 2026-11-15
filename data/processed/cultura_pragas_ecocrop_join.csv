@@ -505,10 +505,6 @@ Nasturtium officinale,,Agrião,Stellaria media,centochio; erva-de-passarinho (2)
 Nasturtium officinale,,Agrião,Trichoplusia ni,Falsa medideira
 Nasturtium officinale,,Agrião,Triticum aestivum,trigo
 Nasturtium officinale,,Agrião,Zea mays,milho
-Apium graveolens,Umbelliferae,Aipo,Cercospora apii,Mancha-de-Cercospora; Queima-do-aipo
-Rosmarinus officinalis,Labiatae,Alecrim,Myzus persicae,Pulgão-verde
-Rosmarinus officinalis,Labiatae,Alecrim,Podosphaera spp.,-
-Rosmarinus officinalis,Labiatae,Alecrim,Septoria lactucae,Septoriose
 Lactuca sativa var. capitata,Compositae,Alface,Agrotis ipsilon,Lagarta-rosca
 Lactuca sativa var. capitata,Compositae,Alface,Alternaria brassicae,Mancha-de-Alternaria
 Lactuca sativa var. capitata,Compositae,Alface,Alternaria sonchi,Mancha-de-Alternaria; Mancha-foliar
@@ -549,34 +545,6 @@ Lactuca sativa var. capitata,Compositae,Alface,Stellaria media,centochio; erva-d
 Lactuca sativa var. capitata,Compositae,Alface,Thrips tabaci,Tripes do fumo
 Lactuca sativa var. capitata,Compositae,Alface,Triticum aestivum,trigo
 Lactuca sativa var. capitata,Compositae,Alface,Zea mays,milho
-Medicago sativa,Leguminosae,Alfafa,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
-Medicago sativa,Leguminosae,Alfafa,Acanthospermum hispidum,carrapicho-de-carneiro (1); chifre-de-veado; espinho-de-carneiro (1)
-Medicago sativa,Leguminosae,Alfafa,Ageratum conyzoides,catinga-de-bode; erva-de-são-joão (1); mentrasto
-Medicago sativa,Leguminosae,Alfafa,Amaranthus hybridus,bredo (3); caruru-branco; caruru-roxo
-Medicago sativa,Leguminosae,Alfafa,Amaranthus viridis,bredo (1); caruru (2); caruru-de-mancha
-Medicago sativa,Leguminosae,Alfafa,Bidens pilosa,fura-capa; pico-pico; picão (1)
-Medicago sativa,Leguminosae,Alfafa,Brachiaria decumbens,braquiária; braquiária-decumbens; capim-braquiária
-Medicago sativa,Leguminosae,Alfafa,Brachiaria plantaginea,capim-marmelada (1); capim-papuã; capim-são-paulo
-Medicago sativa,Leguminosae,Alfafa,Brassica rapa,colza; mostarda (3); mostarda-selvagem
-Medicago sativa,Leguminosae,Alfafa,Cenchrus echinatus,
-Medicago sativa,Leguminosae,Alfafa,Cenchrus echinatus,capim-amoroso; capim-carrapicho; capim-roseta
-Medicago sativa,Leguminosae,Alfafa,Commelina benghalensis,marianinha (1); mata-brasil (1); trapoeraba (1)
-Medicago sativa,Leguminosae,Alfafa,Commelina diffusa,capoeraba (2); marianinha (2); mata-brasil (2)
-Medicago sativa,Leguminosae,Alfafa,Cyperus esculentus,junquinho (2); junça (1); tiririca-amarela
-Medicago sativa,Leguminosae,Alfafa,Digitaria horizontalis,capim-colchão (1); capim-de-roça; capim-milhã (2)
-Medicago sativa,Leguminosae,Alfafa,Digitaria insularis,capim amargoso; capim açu; capim flexa
-Medicago sativa,Leguminosae,Alfafa,Digitaria sanguinalis,capim-colchão (2); capim-das-roças (2); milhã (1)
-Medicago sativa,Leguminosae,Alfafa,Eleusine indica,capim-da-cidade (2); capim-de-pomar; capim-pé-de-galinha (1)
-Medicago sativa,Leguminosae,Alfafa,Emilia sonchifolia,bela-emilia; falsa-serralha; pincel
-Medicago sativa,Leguminosae,Alfafa,Galinsoga parviflora,botão-de-ouro (3); fazendeiro (2); picão-branco (1)
-Medicago sativa,Leguminosae,Alfafa,Gnaphalium spicatum,erva-branca; erva-macia; macela-branca
-Medicago sativa,Leguminosae,Alfafa,Ipomoea purpurea,campainha (9); corda-de-viola (10); corriola (8)
-Medicago sativa,Leguminosae,Alfafa,Melinis minutiflora,capim-catingueiro; capim-gordo; capim-gordura
-Medicago sativa,Leguminosae,Alfafa,Portulaca oleracea,beldroega; bredo-de-porco; ora-pro-nobis
-Medicago sativa,Leguminosae,Alfafa,Richardia brasiliensis,poaia; poaia-branca; poaia-do-campo (2)
-Medicago sativa,Leguminosae,Alfafa,Sida glaziovii,guanxuma-branca; malva-guaxima; mata-pasto (3)
-Medicago sativa,Leguminosae,Alfafa,Sida rhombifolia,guanxuma (3); mata-pasto (4); relógio (1)
-Medicago sativa,Leguminosae,Alfafa,Solanum americanum,erva-de-bicho (1); erva-moura; maria-pretinha
 Gossypium hirsutum,Malvaceae,Algodão,Acacia farnesiana,aromita; espinheiro; esponjinha
 Gossypium hirsutum,Malvaceae,Algodão,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
 Gossypium hirsutum,Malvaceae,Algodão,Acanthospermum hispidum,carrapicho-de-carneiro (1); chifre-de-veado; espinho-de-carneiro (1)
@@ -1031,179 +999,6 @@ Cichorium intybus,Compositae,Almeirão,Tetranychus urticae,Ácaro rajado
 Cichorium intybus,Compositae,Almeirão,Thrips tabaci,Trips do fumo
 Cichorium intybus,Compositae,Almeirão,Triticum aestivum,trigo
 Cichorium intybus,Compositae,Almeirão,Zea mays,milho
-Ximenia americana,Olacaceae,Ameixa,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
-Ximenia americana,Olacaceae,Ameixa,Acanthospermum hispidum,carrapicho-de-carneiro (1); chifre-de-veado; espinho-de-carneiro (1)
-Ximenia americana,Olacaceae,Ameixa,Aeschynomene denticulata,angiquinho (2); corticeirinha (1); maricazinho (2)
-Ximenia americana,Olacaceae,Ameixa,Aeschynomene rudis,angiquinho (1); maricazinho (1); paquinha
-Ximenia americana,Olacaceae,Ameixa,Ageratum conyzoides,catinga-de-bode; erva-de-são-joão (1); mentrasto
-Ximenia americana,Olacaceae,Ameixa,Alternanthera tenella,apaga-fogo (2); corrente; periquito (2)
-Ximenia americana,Olacaceae,Ameixa,Amaranthus deflexus,bredo (2); bredo-rasteiro; caruru (1)
-Ximenia americana,Olacaceae,Ameixa,Amaranthus hybridus,bredo (3); caruru-branco; caruru-roxo
-Ximenia americana,Olacaceae,Ameixa,Amaranthus spinosus,bredo-branco; bredo-de-espinho; caruru-de-espinho
-Ximenia americana,Olacaceae,Ameixa,Amaranthus viridis,bredo (1); caruru (2); caruru-de-mancha
-Ximenia americana,Olacaceae,Ameixa,Anastrepha fraterculus,Mosca-das-frutas; Mosca-sul-americana
-Ximenia americana,Olacaceae,Ameixa,Anastrepha spp.,Mosca-das-frutas
-Ximenia americana,Olacaceae,Ameixa,Andropogon bicornis,capim-de-bezerra; capim-peba; capim-rabo-de-burro
-Ximenia americana,Olacaceae,Ameixa,Andropogon leucostachyus,capim-colchão (5); capim-membeca; capim-rabo-de-raposa (1)
-Ximenia americana,Olacaceae,Ameixa,Antirrhinum orontium,boca-de-leão-selvagem
-Ximenia americana,Olacaceae,Ameixa,Avena sativa,aveia
-Ximenia americana,Olacaceae,Ameixa,Avena strigosa,aveia-brasileira; aveia-preta; aveia-voluntária
-Ximenia americana,Olacaceae,Ameixa,Axonopus compressus,capitinga; grama-argentina; grama-missioneira
-Ximenia americana,Olacaceae,Ameixa,Bidens pilosa,fura-capa; pico-pico; picão (1)
-Ximenia americana,Olacaceae,Ameixa,Bidens subalternans,picão-preto
-Ximenia americana,Olacaceae,Ameixa,Bonagota salubricola,Lagarta-enroladeira
-Ximenia americana,Olacaceae,Ameixa,Botrytis cinerea,Mofo - cinzento
-Ximenia americana,Olacaceae,Ameixa,Botrytis sp.,Mofo cinzento
-Ximenia americana,Olacaceae,Ameixa,Brachiaria brizantha,braquiarão; braquiária-brizanta; braquiária-do-alto
-Ximenia americana,Olacaceae,Ameixa,Brachiaria decumbens,braquiária; braquiária-decumbens; capim-braquiária
-Ximenia americana,Olacaceae,Ameixa,Brachiaria mutica,capim-angola; capim-branco (1); capim-de-planta
-Ximenia americana,Olacaceae,Ameixa,Brachiaria plantaginea,capim-marmelada (1); capim-papuã; capim-são-paulo
-Ximenia americana,Olacaceae,Ameixa,Brachiaria subquadripara,tanner-grass; tenner-grass
-Ximenia americana,Olacaceae,Ameixa,Brassica rapa,colza; mostarda (3); mostarda-selvagem
-Ximenia americana,Olacaceae,Ameixa,Bromus catharticus,aveia-louca; cevadilha; falsa-cevada
-Ximenia americana,Olacaceae,Ameixa,Cenchrus echinatus,
-Ximenia americana,Olacaceae,Ameixa,Cenchrus echinatus,capim-amoroso; capim-carrapicho; capim-roseta
-Ximenia americana,Olacaceae,Ameixa,Centella asiatica,centela; corcel; pata-de-mula
-Ximenia americana,Olacaceae,Ameixa,Ceratitis capitata,Mosca-das-frutas; Mosca-do-mediterrâneo
-Ximenia americana,Olacaceae,Ameixa,Cercospora circumscissa,Cercosporiose; Mancha-de-Cercospora
-Ximenia americana,Olacaceae,Ameixa,Chamaesyce hirta,erva-andorinha (2); erva-de-cobre; erva-de-sangue
-Ximenia americana,Olacaceae,Ameixa,Chamaesyce hyssopifolia,burra-leiteira; erva-andorinha (1); erva-de-santa luzia (1)
-Ximenia americana,Olacaceae,Ameixa,Chamaesyce prostrata,beldroega-pequena; erva-de-santa-luzia (3); quebra-pedra (3)
-Ximenia americana,Olacaceae,Ameixa,Chenopodium ambrosioides,anserina-vermífuga; erva-de-santa-maria; mastruço (4)
-Ximenia americana,Olacaceae,Ameixa,Chloris pycnothrix,capim-cebola; capim-fino (2); capim-pé-de-galinha (2)
-Ximenia americana,Olacaceae,Ameixa,Chloris retusa,capim-coqueirinho
-Ximenia americana,Olacaceae,Ameixa,Colletotrichum acutatum,Atracnose
-Ximenia americana,Olacaceae,Ameixa,Colletotrichum gloeosporioides,Antracnose
-Ximenia americana,Olacaceae,Ameixa,Commelina benghalensis,marianinha (1); mata-brasil (1); trapoeraba (1)
-Ximenia americana,Olacaceae,Ameixa,Conyza bonariensis,arranha-gato (1); buva; rabo-de-foguete (1)
-Ximenia americana,Olacaceae,Ameixa,Cynodon dactylon,capim-da-cidade; capim-de-burro (1); grama-bermuda
-Ximenia americana,Olacaceae,Ameixa,Cyperus difformis,junquinho (6); junça (5); tiririca (10)
-Ximenia americana,Olacaceae,Ameixa,Cyperus ferax,capim-de-cheiro (2); chufa; junquinho (1)
-Ximenia americana,Olacaceae,Ameixa,Cyperus flavus,junquinho (4); junça (4); tiririca (4)
-Ximenia americana,Olacaceae,Ameixa,Cyperus rotundus,alho; capim-dandá; junça-aromática
-Ximenia americana,Olacaceae,Ameixa,Cyperus sesquiflorus,capim-de-cheiro (1); capim-santo; junquinho (9)
-Ximenia americana,Olacaceae,Ameixa,Desmodium tortuosum,carrapicho (4); carrapicho-beiço-de-boi (2); desmodio
-Ximenia americana,Olacaceae,Ameixa,Dichondra microcalyx,cobre-verde; corriola (13); dinheiro-em-penca
-Ximenia americana,Olacaceae,Ameixa,Digitaria ciliaris,capim-colchão (3); capim-da-roça (2); capim-tinga
-Ximenia americana,Olacaceae,Ameixa,Digitaria decumbens,capim-colchão (4); capim-das-hortas; capim-das-roças (1)
-Ximenia americana,Olacaceae,Ameixa,Digitaria horizontalis,
-Ximenia americana,Olacaceae,Ameixa,Digitaria horizontalis,capim-colchão (1); capim-de-roça; capim-milhã (2)
-Ximenia americana,Olacaceae,Ameixa,Digitaria insularis,capim amargoso; capim açu; capim flexa
-Ximenia americana,Olacaceae,Ameixa,Digitaria sanguinalis,capim-colchão (2); capim-das-roças (2); milhã (1)
-Ximenia americana,Olacaceae,Ameixa,Diodia ocimifolia,diodia; poaia-do-campo (3)
-Ximenia americana,Olacaceae,Ameixa,Echinochloa crusgalli,capim-arroz (2); capim-canevão; capim-jaú
-Ximenia americana,Olacaceae,Ameixa,Echinochloa cruspavonis,canevão; capim-arroz (3); capim-jaú (2)
-Ximenia americana,Olacaceae,Ameixa,Eclipta alba,agrião-do-brejo; erva-de-botão (1); lanceta
-Ximenia americana,Olacaceae,Ameixa,Eleusine indica,capim-da-cidade (2); capim-de-pomar; capim-pé-de-galinha (1)
-Ximenia americana,Olacaceae,Ameixa,Emilia sonchifolia,bela-emilia; falsa-serralha; pincel
-Ximenia americana,Olacaceae,Ameixa,Eragrostis pilosa,capim-barbicha-de-alemão; capim-mimoso (2); capim-orvalho
-Ximenia americana,Olacaceae,Ameixa,Eriosoma lanigerum,pulgão-lanígero-das-macieiras
-Ximenia americana,Olacaceae,Ameixa,Eupatorium maximilianii,mata-pasto (8)
-Ximenia americana,Olacaceae,Ameixa,Euphorbia heterophylla,
-Ximenia americana,Olacaceae,Ameixa,Euphorbia heterophylla,Leiteiro
-Ximenia americana,Olacaceae,Ameixa,Euphorbia heterophylla,amendoim-bravo; café-do-diabo; flor-de-poetas
-Ximenia americana,Olacaceae,Ameixa,Euphorbia hirta,Erva-de-santa-maria
-Ximenia americana,Olacaceae,Ameixa,Fimbristylis miliacea,cabelo-de-negro; cuminho; falso-cominho
-Ximenia americana,Olacaceae,Ameixa,Frankliniella occidentalis,Tripes
-Ximenia americana,Olacaceae,Ameixa,Galinsoga parviflora,botão-de-ouro (3); fazendeiro (2); picão-branco (1)
-Ximenia americana,Olacaceae,Ameixa,Glycine max,soja
-Ximenia americana,Olacaceae,Ameixa,Gnaphalium spicatum,erva-branca; erva-macia; macela-branca
-Ximenia americana,Olacaceae,Ameixa,Grapholita molesta,Mariposa-oriental
-Ximenia americana,Olacaceae,Ameixa,Guadua angustifolia,bambu-taquara; taboca; taquara
-Ximenia americana,Olacaceae,Ameixa,Haplothrips spp,Trips
-Ximenia americana,Olacaceae,Ameixa,Heliothrips haemorrhoidalis,Tripes
-Ximenia americana,Olacaceae,Ameixa,Hyparrhenia rufa,capim-jaraguá; capim-provisório; capim-vermelho
-Ximenia americana,Olacaceae,Ameixa,Hyptis suaveolens,bamburral; betônica-brava (2); cheirosa (2)
-Ximenia americana,Olacaceae,Ameixa,Imperata brasiliensis,capim-agreste (2); capim-massapé; capim-sapé
-Ximenia americana,Olacaceae,Ameixa,Indigofera hirsuta,anil (1); anil-roxo; anileira (1)
-Ximenia americana,Olacaceae,Ameixa,Ipomoea acuminata,Corda-de-viola
-Ximenia americana,Olacaceae,Ameixa,Ipomoea aristolochiaefolia,campainha (1); corda-de-viola (1); corriola (1)
-Ximenia americana,Olacaceae,Ameixa,Ipomoea grandifolia,campainha (5); corda-de-viola (5); corriola (4)
-Ximenia americana,Olacaceae,Ameixa,Ipomoea indivisa,campainha (7); corda-de-viola (8); corriola (6)
-Ximenia americana,Olacaceae,Ameixa,Ipomoea nil,amarra-amarra (2); campainha (8); corda-de-viola (9)
-Ximenia americana,Olacaceae,Ameixa,Ipomoea purpurea,campainha (9); corda-de-viola (10); corriola (8)
-Ximenia americana,Olacaceae,Ameixa,Ipomoea quamoclit,cardeal; corda-de-viola (16); esqueleto
-Ximenia americana,Olacaceae,Ameixa,Leonotis nepetifolia,carda-de-leão; cordão-de-frade; cordão-de-são-francisco (1)
-Ximenia americana,Olacaceae,Ameixa,Leonurus sibiricus,chá-de-frade; cordão-de-são-francisco (2); erva-macaé
-Ximenia americana,Olacaceae,Ameixa,Lepidium virginicum,mastruz (1); mastruço (2); mentrusto (1)
-Ximenia americana,Olacaceae,Ameixa,Lolium multiflorum,azevém; azevém-anual; azevém-italiano
-Ximenia americana,Olacaceae,Ameixa,Luziola peruviana,arrozinho; grama-boiadeira; pastinho-d´água
-Ximenia americana,Olacaceae,Ameixa,Malvastrum coromandelianum,guanxuma (1); guaxima (2); malvastro
-Ximenia americana,Olacaceae,Ameixa,Medicago sativa,alfafa; alfafa-verdadeira
-Ximenia americana,Olacaceae,Ameixa,Melinis minutiflora,capim-catingueiro; capim-gordo; capim-gordura
-Ximenia americana,Olacaceae,Ameixa,Mikania cordifolia,cipó-cabeludo; erva-de-cobra; erva-de-sapo
-Ximenia americana,Olacaceae,Ameixa,Monilinia fructicola,Podridão-parda
-Ximenia americana,Olacaceae,Ameixa,Monilinia laxa,Podridão-dos-frutos
-Ximenia americana,Olacaceae,Ameixa,Murdannia nudiflora,trapoeraba (4); trapoerabinha
-Ximenia americana,Olacaceae,Ameixa,Myzus persicae,pulgão verde
-Ximenia americana,Olacaceae,Ameixa,Nicandra physaloides,balão; bexiga; joá-de-capote (1)
-Ximenia americana,Olacaceae,Ameixa,Oryza sativa,arroz; arroz-preto; arroz-vermelho
-Ximenia americana,Olacaceae,Ameixa,Oxalis oxyptera,azedinha (4); trevo (2)
-Ximenia americana,Olacaceae,Ameixa,Panicum cayennense,capim-branco (3); capim-caiana; penacho
-Ximenia americana,Olacaceae,Ameixa,Panicum maximum,capim-coloninho (1); capim-colonião; capim-guiné
-Ximenia americana,Olacaceae,Ameixa,Panonychus ulmi,Ácaro-vermelho-europeu
-Ximenia americana,Olacaceae,Ameixa,Parthenium hysterophorus,coentro-do-mato; fazendeiro (1); losna-branca
-Ximenia americana,Olacaceae,Ameixa,Paspalum acuminatum,grama-doce (1)
-Ximenia americana,Olacaceae,Ameixa,Paspalum conjugatum,capim-azedo; capim-forquilha; capim-marreca
-Ximenia americana,Olacaceae,Ameixa,Paspalum conspersum,capim-de-mula; capim-do-brejo; capim-guaçu
-Ximenia americana,Olacaceae,Ameixa,Paspalum dilatatum,capim-comprido; capim-melado; grama-comprida
-Ximenia americana,Olacaceae,Ameixa,Paspalum maritimum,capim-gengibre; capim-gengibrão; capim-jacaré
-Ximenia americana,Olacaceae,Ameixa,Paspalum notatum,capim-bahia; capim-batatais; grama-batatais
-Ximenia americana,Olacaceae,Ameixa,Paspalum paniculatum,capim-da-guiné; capim-de-burro (2); grama-da-guiné
-Ximenia americana,Olacaceae,Ameixa,Paspalum urvillei,capim-da-roça (1); capim-das-estradas; milhã-grande
-Ximenia americana,Olacaceae,Ameixa,Pennisetum americanum,milheto
-Ximenia americana,Olacaceae,Ameixa,Pennisetum clandestinum,capim-kikuio; kikuyo; quicuio
-Ximenia americana,Olacaceae,Ameixa,Pennisetum purpureum,capim-cameroon; capim-elefante; capim-napier
-Ximenia americana,Olacaceae,Ameixa,Pennisetum setosum,capim-avião; capim-custódio; capim-mandante
-Ximenia americana,Olacaceae,Ameixa,Phyllanthus niruri,arrebenta-pedra (2); erva-pombinha (2); fura-parede
-Ximenia americana,Olacaceae,Ameixa,Phyllanthus tenellus,arrebenta-pedra (1); erva-pombinha (1); quebra-pedra (1)
-Ximenia americana,Olacaceae,Ameixa,Plantago major,plantagem (1); tanchagem (2); tanchagem-maior
-Ximenia americana,Olacaceae,Ameixa,Podosphaera spp.,-
-Ximenia americana,Olacaceae,Ameixa,Portulaca oleracea,beldroega; bredo-de-porco; ora-pro-nobis
-Ximenia americana,Olacaceae,Ameixa,Pteridium aquilinum,pluma-grande; samambaia; samambaia-das-taperas
-Ximenia americana,Olacaceae,Ameixa,Pterocaulon virgatum,barbasco; branqueja; calça-de-velho
-Ximenia americana,Olacaceae,Ameixa,Puccinia pruni,Ferrugem
-Ximenia americana,Olacaceae,Ameixa,Raphanus raphanistrum,nabiça (1); nabo (1); nabo-bravo
-Ximenia americana,Olacaceae,Ameixa,Raphanus sativus,nabiça (2); nabo (2); rabanete
-Ximenia americana,Olacaceae,Ameixa,Rhynchelytrum repens,capim-favorito; capim-gafanhoto; capim-molambo
-Ximenia americana,Olacaceae,Ameixa,Richardia brasiliensis,poaia; poaia-branca; poaia-do-campo (2)
-Ximenia americana,Olacaceae,Ameixa,Rumex crispus,azeda-crespa; lígua-de-vaca-crespa; língua-de-vaca (1)
-Ximenia americana,Olacaceae,Ameixa,Saccharum officinarum,cana-de-açucar
-Ximenia americana,Olacaceae,Ameixa,Senecio brasiliensis,flor-das-almas; flor-de-finados; maria-mole (2)
-Ximenia americana,Olacaceae,Ameixa,Senna obtusifolia,fedegoso-branco; mata-pasto (5); mata-pasto-liso
-Ximenia americana,Olacaceae,Ameixa,Setaria geniculata,bambuzinho; capim-rabo-de-gato (1); capim-rabo-de-raposa (1)
-Ximenia americana,Olacaceae,Ameixa,Setaria poiretiana,capim-canoão; capim-jiriva; capim-leque
-Ximenia americana,Olacaceae,Ameixa,Sida carpinifolia,guanxuma (8); guaxima (4); malva-brava
-Ximenia americana,Olacaceae,Ameixa,Sida cordifolia,guanxuma (2); malva (1); malva-branca (1)
-Ximenia americana,Olacaceae,Ameixa,Sida glaziovii,guanxuma-branca; malva-guaxima; mata-pasto (3)
-Ximenia americana,Olacaceae,Ameixa,Sida rhombifolia,guanxuma (3); mata-pasto (4); relógio (1)
-Ximenia americana,Olacaceae,Ameixa,Solanum americanum,erva-de-bicho (1); erva-moura; maria-pretinha
-Ximenia americana,Olacaceae,Ameixa,Solanum paniculatum,gerobeba; jupeba; jurubeba (2)
-Ximenia americana,Olacaceae,Ameixa,Solidago chilensis,arnica-do-brasil; erva-lanceta; espiga-de-ouro
-Ximenia americana,Olacaceae,Ameixa,Sonchus oleraceus,chicória-brava; serralha; serralha-lisa
-Ximenia americana,Olacaceae,Ameixa,Sorghum arundinaceum,falso-massambará; sorgo-selvagem
-Ximenia americana,Olacaceae,Ameixa,Sorghum bicolor,sorgo
-Ximenia americana,Olacaceae,Ameixa,Sorghum halepense,capim-argentino; capim-cevada; capim-massambará
-Ximenia americana,Olacaceae,Ameixa,Spergula arvensis,esparguta (1); espérgula; gorga (2)
-Ximenia americana,Olacaceae,Ameixa,Spermacoce alata,erva-de-lagarto (1); erva-quente (1); perpetua-do-mato (1)
-Ximenia americana,Olacaceae,Ameixa,Spermacoce latifolia,erva-de-lagarto (2); erva-quente (2); perpetua-do-mato (2)
-Ximenia americana,Olacaceae,Ameixa,Synedrellopsis grisebachii,agrião-do-pasto; agriãozinho; poejinho
-Ximenia americana,Olacaceae,Ameixa,Talinum paniculatum,bunda-mole; bênção-de-deus; lígua-de-vaca
-Ximenia americana,Olacaceae,Ameixa,Tetranychus mexicanus,-
-Ximenia americana,Olacaceae,Ameixa,Tetranychus urticae,Ácaro rajado
-Ximenia americana,Olacaceae,Ameixa,Thalia geniculata,arumarana; caeté; paquiviri
-Ximenia americana,Olacaceae,Ameixa,Thrips tabaci,Trips do fumo
-Ximenia americana,Olacaceae,Ameixa,Tranzschelia discolor,Ferrugem
-Ximenia americana,Olacaceae,Ameixa,Trema micrantha,crindiúva; grandiúva; pau-pólvora
-Ximenia americana,Olacaceae,Ameixa,Tridax procumbens,erva-de-touro
-Ximenia americana,Olacaceae,Ameixa,Trifolium repens,flor-de-primavera; trevo (3); trevo-branco
-Ximenia americana,Olacaceae,Ameixa,Triticum aestivum,trigo
-Ximenia americana,Olacaceae,Ameixa,Urochloa decumbens,Capim-Braquiária
-Ximenia americana,Olacaceae,Ameixa,Vernonia ferruginea,assa-peixe (1); assa-peixe-de-santana; assa-peixe-do-pará
-Ximenia americana,Olacaceae,Ameixa,Vicia sativa,avica; ervilhaca
-Ximenia americana,Olacaceae,Ameixa,Xanthium strumarium,carrapicho-bravo (2); carrapicho-de-carneiro (2); carrapicho-grande (2)
-Ximenia americana,Olacaceae,Ameixa,Zea mays,milho
-Ximenia americana,Olacaceae,Ameixa,indigosfera hirsuta,Anileira
 Arachis hypogaea,Leguminosae,Amendoim,Acanthoscelides obtectus,Caruncho-do-feijão; Gorgulho-do-feijão
 Arachis hypogaea,Leguminosae,Amendoim,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
 Arachis hypogaea,Leguminosae,Amendoim,Acanthospermum hispidum,carrapicho-de-carneiro (1); chifre-de-veado; espinho-de-carneiro (1)
@@ -1396,10 +1191,6 @@ Arachis hypogaea,Leguminosae,Amendoim,Triticum aestivum,trigo
 Arachis hypogaea,Leguminosae,Amendoim,Urtica circularis,ortiga; queimadeira; urtiga
 Arachis hypogaea,Leguminosae,Amendoim,Xanthium strumarium,carrapicho-bravo (2); carrapicho-de-carneiro (2); carrapicho-grande (2)
 Arachis hypogaea,Leguminosae,Amendoim,Zea mays,milho
-Annona montana,Annonaceae,Araticum,Batistopsora crucisfilii,Ferrugem
-Annona montana,Annonaceae,Araticum,Colletotrichum gloeosporioides,Antracnose
-Annona montana,Annonaceae,Araticum,Lasiodiplodia theobromae,Podridão-das-maçãs
-Annona montana,Annonaceae,Araticum,Pseudocercospora annonae-squamosae,Cercosporiose
 Oryza sativa,Gramineae,Arroz,Acacia plumosa,acacia-de-espinho; arranha-gato (2); unha-de-gato (1)
 Oryza sativa,Gramineae,Arroz,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
 Oryza sativa,Gramineae,Arroz,Acanthospermum hispidum,carrapicho-de-carneiro (1); chifre-de-veado; espinho-de-carneiro (1)
@@ -1870,29 +1661,6 @@ Oryza sativa,Gramineae,Arroz irrigado,Vernonia ferruginea,assa-peixe (1); assa-p
 Oryza sativa,Gramineae,Arroz irrigado,Vicia sativa,avica; ervilhaca
 Oryza sativa,Gramineae,Arroz irrigado,Xanthium strumarium,carrapicho-bravo (2); carrapicho-de-carneiro (2); carrapicho-grande (2)
 Oryza sativa,Gramineae,Arroz irrigado,Zea mays,milho
-Asparagus officinalis,Asparagaceae,Aspargo,Ageratum conyzoides,catinga-de-bode; erva-de-são-joão (1); mentrasto
-Asparagus officinalis,Asparagaceae,Aspargo,Alternanthera tenella,apaga-fogo (2); corrente; periquito (2)
-Asparagus officinalis,Asparagaceae,Aspargo,Amaranthus hybridus,bredo (3); caruru-branco; caruru-roxo
-Asparagus officinalis,Asparagaceae,Aspargo,Amaranthus viridis,bredo (1); caruru (2); caruru-de-mancha
-Asparagus officinalis,Asparagaceae,Aspargo,Bidens pilosa,fura-capa; pico-pico; picão (1)
-Asparagus officinalis,Asparagaceae,Aspargo,Brassica rapa,colza; mostarda (3); mostarda-selvagem
-Asparagus officinalis,Asparagaceae,Aspargo,Coronopus didymus,mastruz (2); mastruço (3); mentrusto (2)
-Asparagus officinalis,Asparagaceae,Aspargo,Desmodium tortuosum,carrapicho (4); carrapicho-beiço-de-boi (2); desmodio
-Asparagus officinalis,Asparagaceae,Aspargo,Emilia sonchifolia,bela-emilia; falsa-serralha; pincel
-Asparagus officinalis,Asparagaceae,Aspargo,Galinsoga parviflora,botão-de-ouro (3); fazendeiro (2); picão-branco (1)
-Asparagus officinalis,Asparagaceae,Aspargo,Hyptis lophanta,catirina; cheirosa (1); fazendeiro (3)
-Asparagus officinalis,Asparagaceae,Aspargo,Ipomoea aristolochiaefolia,campainha (1); corda-de-viola (1); corriola (1)
-Asparagus officinalis,Asparagaceae,Aspargo,Nicandra physaloides,balão; bexiga; joá-de-capote (1)
-Asparagus officinalis,Asparagaceae,Aspargo,Phyllanthus tenellus,arrebenta-pedra (1); erva-pombinha (1); quebra-pedra (1)
-Asparagus officinalis,Asparagaceae,Aspargo,Polygonum convolvulus,cipó; cipó-de-veado; cipó-de-veado-de-inverno
-Asparagus officinalis,Asparagaceae,Aspargo,Portulaca oleracea,beldroega; bredo-de-porco; ora-pro-nobis
-Asparagus officinalis,Asparagaceae,Aspargo,Raphanus raphanistrum,nabiça (1); nabo (1); nabo-bravo
-Asparagus officinalis,Asparagaceae,Aspargo,Richardia brasiliensis,poaia; poaia-branca; poaia-do-campo (2)
-Asparagus officinalis,Asparagaceae,Aspargo,Senecio brasiliensis,flor-das-almas; flor-de-finados; maria-mole (2)
-Asparagus officinalis,Asparagaceae,Aspargo,Sida rhombifolia,guanxuma (3); mata-pasto (4); relógio (1)
-Asparagus officinalis,Asparagaceae,Aspargo,Sonchus oleraceus,chicória-brava; serralha; serralha-lisa
-Asparagus officinalis,Asparagaceae,Aspargo,Spergula arvensis,esparguta (1); espérgula; gorga (2)
-Asparagus officinalis,Asparagaceae,Aspargo,Spermacoce latifolia,erva-de-lagarto (2); erva-quente (2); perpetua-do-mato (2)
 Avena sativa,Gramineae,Aveia,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
 Avena sativa,Gramineae,Aveia,Acanthospermum hispidum,carrapicho-de-carneiro (1); chifre-de-veado; espinho-de-carneiro (1)
 Avena sativa,Gramineae,Aveia,Aeschynomene denticulata,angiquinho (2); corticeirinha (1); maricazinho (2)
@@ -3737,87 +3505,6 @@ Saccharum officinarum,Gramineae,Cana-de-açúcar,Xanthium strumarium,carrapicho-
 Saccharum officinarum,Gramineae,Cana-de-açúcar,Zea mays,milho
 Saccharum officinarum,Gramineae,Cana-de-açúcar,indigosfera hirsuta,Anileira
 Saccharum officinarum,Gramineae,Cana-de-açúcar,pterogyne nitens,
-Brassica napus,Cruciferae,Canola,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
-Brassica napus,Cruciferae,Canola,Alternanthera tenella,apaga-fogo (2); corrente; periquito (2)
-Brassica napus,Cruciferae,Canola,Alternaria alternata,Mancha-de-Alternaria
-Brassica napus,Cruciferae,Canola,Alternaria brassicae,Mancha-de-Alternaria
-Brassica napus,Cruciferae,Canola,Alternaria helianthi,-
-Brassica napus,Cruciferae,Canola,Alternaria sp.,Mancha foliar; Mancha-de-alternaria
-Brassica napus,Cruciferae,Canola,Amaranthus deflexus,bredo (2); bredo-rasteiro; caruru (1)
-Brassica napus,Cruciferae,Canola,Amaranthus hybridus,bredo (3); caruru-branco; caruru-roxo
-Brassica napus,Cruciferae,Canola,Amaranthus lividus,bredo (4); caruru (3); caruru-de-folha-de-cuia
-Brassica napus,Cruciferae,Canola,Amaranthus spinosus,bredo-branco; bredo-de-espinho; caruru-de-espinho
-Brassica napus,Cruciferae,Canola,Amaranthus viridis,bredo (1); caruru (2); caruru-de-mancha
-Brassica napus,Cruciferae,Canola,Ascia monuste orseis,Curuquerê-da-couve
-Brassica napus,Cruciferae,Canola,Bemisia tabaci raça B,Mosca-Branca
-Brassica napus,Cruciferae,Canola,Bidens pilosa,fura-capa; pico-pico; picão (1)
-Brassica napus,Cruciferae,Canola,Brachiaria decumbens,braquiária; braquiária-decumbens; capim-braquiária
-Brassica napus,Cruciferae,Canola,Brachiaria plantaginea,capim-marmelada (1); capim-papuã; capim-são-paulo
-Brassica napus,Cruciferae,Canola,Cenchrus echinatus,
-Brassica napus,Cruciferae,Canola,Cenchrus echinatus,capim-amoroso; capim-carrapicho; capim-roseta
-Brassica napus,Cruciferae,Canola,Chamaecrista rotundifolia,Erva-de-coração; Fedegoso
-Brassica napus,Cruciferae,Canola,Chrysodeixis includens,Lagarta-falsa-medideira
-Brassica napus,Cruciferae,Canola,Colletotrichum lindemuthianum,Antracnose
-Brassica napus,Cruciferae,Canola,Commelina benghalensis,marianinha (1); mata-brasil (1); trapoeraba (1)
-Brassica napus,Cruciferae,Canola,Conyza bonariensis,arranha-gato (1); buva; rabo-de-foguete (1)
-Brassica napus,Cruciferae,Canola,Conyza canadensis,
-Brassica napus,Cruciferae,Canola,Corynespora cassiicola,mancha-alvo
-Brassica napus,Cruciferae,Canola,Cynodon dactylon,capim-da-cidade; capim-de-burro (1); grama-bermuda
-Brassica napus,Cruciferae,Canola,Diabrotica speciosa,Vaquinha
-Brassica napus,Cruciferae,Canola,Dichelops melacanthus,Percevejo barriga verde
-Brassica napus,Cruciferae,Canola,Digitaria horizontalis,
-Brassica napus,Cruciferae,Canola,Digitaria horizontalis,capim-colchão (1); capim-de-roça; capim-milhã (2)
-Brassica napus,Cruciferae,Canola,Digitaria insularis,capim amargoso; capim açu; capim flexa
-Brassica napus,Cruciferae,Canola,Echinochloa crusgalli,capim-arroz (2); capim-canevão; capim-jaú
-Brassica napus,Cruciferae,Canola,Elasmopalpus lignosellus,Lagarta-elasmo
-Brassica napus,Cruciferae,Canola,Eleusine indica,capim-da-cidade (2); capim-de-pomar; capim-pé-de-galinha (1)
-Brassica napus,Cruciferae,Canola,Emilia sonchifolia,bela-emilia; falsa-serralha; pincel
-Brassica napus,Cruciferae,Canola,Eragrostis ciliaris,capim-de-canário; capim-de-rola; capim-mimoso (4)
-Brassica napus,Cruciferae,Canola,Erysiphe cichoracearum,.
-Brassica napus,Cruciferae,Canola,Euphorbia heterophylla,Leiteiro
-Brassica napus,Cruciferae,Canola,Euphorbia heterophylla,amendoim-bravo; café-do-diabo; flor-de-poetas
-Brassica napus,Cruciferae,Canola,Euschistus heros,Percevejo marrom
-Brassica napus,Cruciferae,Canola,Frankliniella schultzei,Trips
-Brassica napus,Cruciferae,Canola,Fusarium oxysporum f.sp. phaseoli,Podridão-radicular-seca
-Brassica napus,Cruciferae,Canola,Galinsoga parviflora,botão-de-ouro (3); fazendeiro (2); picão-branco (1)
-Brassica napus,Cruciferae,Canola,Glycine max,soja
-Brassica napus,Cruciferae,Canola,Gossypium hirsutum,algodão
-Brassica napus,Cruciferae,Canola,Helicoverpa armigera,Lagarta
-Brassica napus,Cruciferae,Canola,Hyptis suaveolens,bamburral; betônica-brava (2); cheirosa (2)
-Brassica napus,Cruciferae,Canola,Ipomoea aristolochiaefolia,campainha (1); corda-de-viola (1); corriola (1)
-Brassica napus,Cruciferae,Canola,Ipomoea grandifolia,campainha (5); corda-de-viola (5); corriola (4)
-Brassica napus,Cruciferae,Canola,Ipomoea nil,amarra-amarra (2); campainha (8); corda-de-viola (9)
-Brassica napus,Cruciferae,Canola,Ipomoea triloba,Corda de viola; Corriola
-Brassica napus,Cruciferae,Canola,Lasioderma serricorne,Bicho-do-fumo
-Brassica napus,Cruciferae,Canola,Leptosphaeria maculans,Canela-preta
-Brassica napus,Cruciferae,Canola,Lolium multiflorum,azevém; azevém-anual; azevém-italiano
-Brassica napus,Cruciferae,Canola,Nicandra physaloides,balão; bexiga; joá-de-capote (1)
-Brassica napus,Cruciferae,Canola,Oidium balsamii,Oídio
-Brassica napus,Cruciferae,Canola,Oryza sativa,arroz; arroz-preto; arroz-vermelho
-Brassica napus,Cruciferae,Canola,Panicum maximum,capim-coloninho (1); capim-colonião; capim-guiné
-Brassica napus,Cruciferae,Canola,Pennisetum americanum,milheto
-Brassica napus,Cruciferae,Canola,Pennisetum setosum,capim-avião; capim-custódio; capim-mandante
-Brassica napus,Cruciferae,Canola,Phomopsis helianthi,Mancha cinzenta da haste
-Brassica napus,Cruciferae,Canola,Plutella xylostella,Traça-das-crucíferas
-Brassica napus,Cruciferae,Canola,Portulaca oleracea,beldroega; bredo-de-porco; ora-pro-nobis
-Brassica napus,Cruciferae,Canola,Puccinia helianthi,Ferrugem
-Brassica napus,Cruciferae,Canola,Raphanus raphanistrum,nabiça (1); nabo (1); nabo-bravo
-Brassica napus,Cruciferae,Canola,Rhizoctonia solani,Podridão-do-colo; Tombamento
-Brassica napus,Cruciferae,Canola,Richardia brasiliensis,poaia; poaia-branca; poaia-do-campo (2)
-Brassica napus,Cruciferae,Canola,Rottboellia exaltata,capim-alto; capim-camalote; rabo-de-lagarto
-Brassica napus,Cruciferae,Canola,Saccharum officinarum,cana-de-açucar
-Brassica napus,Cruciferae,Canola,Sclerotinia sclerotiorum,Mofo branco
-Brassica napus,Cruciferae,Canola,Setaria geniculata,bambuzinho; capim-rabo-de-gato (1); capim-rabo-de-raposa (1)
-Brassica napus,Cruciferae,Canola,Sida rhombifolia,guanxuma (3); mata-pasto (4); relógio (1)
-Brassica napus,Cruciferae,Canola,Solanum americanum,erva-de-bicho (1); erva-moura; maria-pretinha
-Brassica napus,Cruciferae,Canola,Sorghum halepense,capim-argentino; capim-cevada; capim-massambará
-Brassica napus,Cruciferae,Canola,Spermacoce latifolia,erva-de-lagarto (2); erva-quente (2); perpetua-do-mato (2)
-Brassica napus,Cruciferae,Canola,Spermacoce verticillata,poaia-botão; poaia-preta; poaia-rosário
-Brassica napus,Cruciferae,Canola,Spodoptera frugiperda,Lagarta do cartucho
-Brassica napus,Cruciferae,Canola,Tetranychus urticae,Ácaro rajado
-Brassica napus,Cruciferae,Canola,Tridax procumbens,erva-de-touro
-Brassica napus,Cruciferae,Canola,Triticum aestivum,trigo
-Brassica napus,Cruciferae,Canola,Zea mays,milho
 Diospyros kaki,Ebenaceae,Caqui,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
 Diospyros kaki,Ebenaceae,Caqui,Acanthospermum hispidum,carrapicho-de-carneiro (1); chifre-de-veado; espinho-de-carneiro (1)
 Diospyros kaki,Ebenaceae,Caqui,Aeschynomene denticulata,angiquinho (2); corticeirinha (1); maricazinho (2)
@@ -4323,34 +4010,6 @@ Allium cepa,Alliaceae,Cebola,Triticum aestivum,trigo
 Allium cepa,Alliaceae,Cebola,Urtica circularis,ortiga; queimadeira; urtiga
 Allium cepa,Alliaceae,Cebola,Xanthomonas campestris,Queima bacteriana
 Allium cepa,Alliaceae,Cebola,Zea mays,milho
-Allium schoenoprasum,Alliaceae,Cebolinha,Alternaria porri,Crestamento; Mancha-púrpura
-Allium schoenoprasum,Alliaceae,Cebolinha,Peronospora destructor,Cinza; Míldio
-Allium schoenoprasum,Alliaceae,Cebolinha,Podosphaera spp.,-
-Allium schoenoprasum,Alliaceae,Cebolinha,Septoria lactucae,Septoriose
-Toona ciliata,Meliaceae,Cedro,Amaranthus hybridus,bredo (3); caruru-branco; caruru-roxo
-Toona ciliata,Meliaceae,Cedro,Amaranthus viridis,bredo (1); caruru (2); caruru-de-mancha
-Toona ciliata,Meliaceae,Cedro,Bidens pilosa,fura-capa; pico-pico; picão (1)
-Toona ciliata,Meliaceae,Cedro,Brachiaria brizantha,braquiarão; braquiária-brizanta; braquiária-do-alto
-Toona ciliata,Meliaceae,Cedro,Brachiaria decumbens,braquiária; braquiária-decumbens; capim-braquiária
-Toona ciliata,Meliaceae,Cedro,Brachiaria plantaginea,capim-marmelada (1); capim-papuã; capim-são-paulo
-Toona ciliata,Meliaceae,Cedro,Cenchrus echinatus,capim-amoroso; capim-carrapicho; capim-roseta
-Toona ciliata,Meliaceae,Cedro,Commelina benghalensis,marianinha (1); mata-brasil (1); trapoeraba (1)
-Toona ciliata,Meliaceae,Cedro,Conyza bonariensis,arranha-gato (1); buva; rabo-de-foguete (1)
-Toona ciliata,Meliaceae,Cedro,Cylindrocladium parasiticum,Mancha-foliar-de-Cylindrocladium
-Toona ciliata,Meliaceae,Cedro,Cynodon dactylon,capim-da-cidade; capim-de-burro (1); grama-bermuda
-Toona ciliata,Meliaceae,Cedro,Cyperus rotundus,alho; capim-dandá; junça-aromática
-Toona ciliata,Meliaceae,Cedro,Digitaria horizontalis,capim-colchão (1); capim-de-roça; capim-milhã (2)
-Toona ciliata,Meliaceae,Cedro,Digitaria insularis,capim amargoso; capim açu; capim flexa
-Toona ciliata,Meliaceae,Cedro,Eleusine indica,capim-da-cidade (2); capim-de-pomar; capim-pé-de-galinha (1)
-Toona ciliata,Meliaceae,Cedro,Emilia sagittata,Algodão-de-preá
-Toona ciliata,Meliaceae,Cedro,Euphorbia heterophylla,Leiteiro
-Toona ciliata,Meliaceae,Cedro,Ipomoea grandifolia,campainha (5); corda-de-viola (5); corriola (4)
-Toona ciliata,Meliaceae,Cedro,Lolium multiflorum,azevém; azevém-anual; azevém-italiano
-Toona ciliata,Meliaceae,Cedro,Panicum maximum,capim-coloninho (1); capim-colonião; capim-guiné
-Toona ciliata,Meliaceae,Cedro,Senecio brasiliensis,flor-das-almas; flor-de-finados; maria-mole (2)
-Toona ciliata,Meliaceae,Cedro,Sida rhombifolia,guanxuma (3); mata-pasto (4); relógio (1)
-Toona ciliata,Meliaceae,Cedro,Sorghum halepense,capim-argentino; capim-cevada; capim-massambará
-Toona ciliata,Meliaceae,Cedro,Tetranychus mexicanus,Ácaro-vermelho
 Celosia argentea,Amaranthaceae,Celósia,Aphis gossypii,Pulgão
 Celosia argentea,Amaranthaceae,Celósia,Bemisia tabaci raça B,Mosca-branca
 Celosia argentea,Amaranthaceae,Celósia,Tetranychus urticae,Ácaro-rajado
@@ -4813,49 +4472,6 @@ Allium cepa,Alliaceae,Chalota,Thrips tabaci,Tripes
 Allium cepa,Alliaceae,Chalota,Thrips tabaci,Tripes do fumo
 Allium cepa,Alliaceae,Chalota,Triticum aestivum,trigo
 Allium cepa,Alliaceae,Chalota,Zea mays,milho
-Cichorium intybus,Compositae,Chicória,Agrotis ipsilon,Lagarta-rosca
-Cichorium intybus,Compositae,Chicória,Alternaria brassicae,Mancha-de-Alternaria
-Cichorium intybus,Compositae,Chicória,Alternaria cichorii,Alternariose
-Cichorium intybus,Compositae,Chicória,Alternaria sonchi,Mancha-de-Alternaria; Mancha-foliar
-Cichorium intybus,Compositae,Chicória,Amaranthus viridis,bredo (1); caruru (2); caruru-de-mancha
-Cichorium intybus,Compositae,Chicória,Aphis fabae,Afídio de feijão preto; Pulgão
-Cichorium intybus,Compositae,Chicória,Aphis gossypii,Pulgão-das-inflorescências; Pulgão-do-algodoeiro
-Cichorium intybus,Compositae,Chicória,Ascia monuste orseis,Curuquerê-da-couve; Lagarta-da-couve
-Cichorium intybus,Compositae,Chicória,Bemisia tabaci,Mosca-branca
-Cichorium intybus,Compositae,Chicória,Bemisia tabaci raça B,Mosca-branca
-Cichorium intybus,Compositae,Chicória,Brachiaria plantaginea,capim-marmelada (1); capim-papuã; capim-são-paulo
-Cichorium intybus,Compositae,Chicória,Bremia lactucae,Míldio
-Cichorium intybus,Compositae,Chicória,Brevicoryne brassicae,Pulgão
-Cichorium intybus,Compositae,Chicória,Cenchrus echinatus,capim-amoroso; capim-carrapicho; capim-roseta
-Cichorium intybus,Compositae,Chicória,Cercospora cichorii,Cercosporiose
-Cichorium intybus,Compositae,Chicória,Cynodon dactylon,capim-da-cidade; capim-de-burro (1); grama-bermuda
-Cichorium intybus,Compositae,Chicória,Digitaria horizontalis,capim-colchão (1); capim-de-roça; capim-milhã (2)
-Cichorium intybus,Compositae,Chicória,Eleusine indica,capim-da-cidade (2); capim-de-pomar; capim-pé-de-galinha (1)
-Cichorium intybus,Compositae,Chicória,Erwinia carotovora subsp. carotovora,Podridão mole
-Cichorium intybus,Compositae,Chicória,Erysiphe cichoracearum,Oídio
-Cichorium intybus,Compositae,Chicória,Eurhizococcus brasiliensis,-
-Cichorium intybus,Compositae,Chicória,Frankliniella schultzei,Tripes
-Cichorium intybus,Compositae,Chicória,Fusarium oxysporum,Fusariose; Murcha-de-fusário
-Cichorium intybus,Compositae,Chicória,Galinsoga parviflora,botão-de-ouro (3); fazendeiro (2); picão-branco (1)
-Cichorium intybus,Compositae,Chicória,Lyriomyza huidobrensis,Mosca-minadora
-Cichorium intybus,Compositae,Chicória,Macrosiphum euphorbiae,Pulgão-das-solanáceas; Pulgão-verde-escuro
-Cichorium intybus,Compositae,Chicória,Meloidogyne incognita,Nematoide das galhas
-Cichorium intybus,Compositae,Chicória,Myzus persicae,Pulgão-verde
-Cichorium intybus,Compositae,Chicória,Oryza sativa,arroz; arroz-preto; arroz-vermelho
-Cichorium intybus,Compositae,Chicória,Peronospora parasitica,Míldio
-Cichorium intybus,Compositae,Chicória,Plutella xylostella,Traça-das-crucíferas
-Cichorium intybus,Compositae,Chicória,Podosphaera spp.,-
-Cichorium intybus,Compositae,Chicória,Polygonum aviculare,erva-de-bicho (6)
-Cichorium intybus,Compositae,Chicória,Pythium spp.,Estiolamento; Podridão-de-raízes
-Cichorium intybus,Compositae,Chicória,Sclerotinia sclerotiorum,Mofo-branco; Podridão-de-Sclerotinia
-Cichorium intybus,Compositae,Chicória,Septoria lactucae,Septoriose
-Cichorium intybus,Compositae,Chicória,Soliva anthemifolia,Soliva
-Cichorium intybus,Compositae,Chicória,Sonchus oleraceus,chicória-brava; serralha; serralha-lisa
-Cichorium intybus,Compositae,Chicória,Spodoptera frugiperda,Lagarta-do-cartucho; Lagarta-militar
-Cichorium intybus,Compositae,Chicória,Stellaria media,centochio; erva-de-passarinho (2); esparguta (2)
-Cichorium intybus,Compositae,Chicória,Tetranychus urticae,Ácaro rajado
-Cichorium intybus,Compositae,Chicória,Triticum aestivum,trigo
-Cichorium intybus,Compositae,Chicória,Zea mays,milho
 Sechium edule,Cucurbitaceae,Chuchu,Agrotis ipsilon,Lagarta-rosca
 Sechium edule,Cucurbitaceae,Chuchu,Alternaria cucumerina,Mancha de alternaria
 Sechium edule,Cucurbitaceae,Chuchu,Alternaria solani,Pinta preta grande
@@ -5322,13 +4938,6 @@ Cocos nucifera,Palmae,Coco,Vicia sativa,avica; ervilhaca
 Cocos nucifera,Palmae,Coco,Xanthium strumarium,carrapicho-bravo (2); carrapicho-de-carneiro (2); carrapicho-grande (2)
 Cocos nucifera,Palmae,Coco,Zea mays,milho
 Cocos nucifera,Palmae,Coco,indigosfera hirsuta,Anileira
-Coriandrum sativum,Umbelliferae,Coentro,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
-Coriandrum sativum,Umbelliferae,Coentro,Alternaria dauci,Mancha-de-alternaria
-Coriandrum sativum,Umbelliferae,Coentro,Amaranthus hybridus,bredo (3); caruru-branco; caruru-roxo
-Coriandrum sativum,Umbelliferae,Coentro,Bidens pilosa,fura-capa; pico-pico; picão (1)
-Coriandrum sativum,Umbelliferae,Coentro,Galinsoga parviflora,botão-de-ouro (3); fazendeiro (2); picão-branco (1)
-Coriandrum sativum,Umbelliferae,Coentro,Podosphaera spp.,-
-Coriandrum sativum,Umbelliferae,Coentro,Septoria lactucae,Septoriose
 Brassica oleracea var. acephala,Cruciferae,Couve,Agrotis ipsilon,Lagarta-rosca
 Brassica oleracea var. acephala,Cruciferae,Couve,Alternaria brassicae,Mancha-de-Alternaria; Mancha-preta
 Brassica oleracea var. acephala,Cruciferae,Couve,Alternaria dauci,Mancha-de-alternaria
@@ -5628,127 +5237,6 @@ Theobroma grandiflorum,Sterculiaceae,Cupuaçu,Spermacoce latifolia,erva-de-lagar
 Theobroma grandiflorum,Sterculiaceae,Cupuaçu,Sphaerotheca fuliginea,Oídio
 Theobroma grandiflorum,Sterculiaceae,Cupuaçu,Tetranychus urticae,Ácaro rajado
 Theobroma grandiflorum,Sterculiaceae,Cupuaçu,Zea mays,milho
-Elaeis guineensis,Palmae,Dendê,Acacia plumosa,acacia-de-espinho; arranha-gato (2); unha-de-gato (1)
-Elaeis guineensis,Palmae,Dendê,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
-Elaeis guineensis,Palmae,Dendê,Acanthospermum hispidum,carrapicho-de-carneiro (1); chifre-de-veado; espinho-de-carneiro (1)
-Elaeis guineensis,Palmae,Dendê,Aceria guerreronis,Ácaro do coqueiro
-Elaeis guineensis,Palmae,Dendê,Aeschynomene rudis,angiquinho (1); maricazinho (1); paquinha
-Elaeis guineensis,Palmae,Dendê,Ageratum conyzoides,catinga-de-bode; erva-de-são-joão (1); mentrasto
-Elaeis guineensis,Palmae,Dendê,Alternanthera tenella,apaga-fogo (2); corrente; periquito (2)
-Elaeis guineensis,Palmae,Dendê,Amaranthus deflexus,bredo (2); bredo-rasteiro; caruru (1)
-Elaeis guineensis,Palmae,Dendê,Amaranthus hybridus,bredo (3); caruru-branco; caruru-roxo
-Elaeis guineensis,Palmae,Dendê,Amaranthus spinosus,bredo-branco; bredo-de-espinho; caruru-de-espinho
-Elaeis guineensis,Palmae,Dendê,Amaranthus viridis,bredo (1); caruru (2); caruru-de-mancha
-Elaeis guineensis,Palmae,Dendê,Andropogon bicornis,capim-de-bezerra; capim-peba; capim-rabo-de-burro
-Elaeis guineensis,Palmae,Dendê,Avena sativa,aveia
-Elaeis guineensis,Palmae,Dendê,Avena strigosa,aveia-brasileira; aveia-preta; aveia-voluntária
-Elaeis guineensis,Palmae,Dendê,Baccharis dracunculifolia,alecrim-de-vassoura; vassoura (1); vassoureira
-Elaeis guineensis,Palmae,Dendê,Bemisia tabaci raça B,Mosca-branca
-Elaeis guineensis,Palmae,Dendê,Bidens pilosa,fura-capa; pico-pico; picão (1)
-Elaeis guineensis,Palmae,Dendê,Bipolaris incurvata,Mancha-púrpura
-Elaeis guineensis,Palmae,Dendê,Brachiaria decumbens,braquiária; braquiária-decumbens; capim-braquiária
-Elaeis guineensis,Palmae,Dendê,Brachiaria mutica,capim-angola; capim-branco (1); capim-de-planta
-Elaeis guineensis,Palmae,Dendê,Brachiaria plantaginea,capim-marmelada (1); capim-papuã; capim-são-paulo
-Elaeis guineensis,Palmae,Dendê,Brachiaria subquadripara,tanner-grass; tenner-grass
-Elaeis guineensis,Palmae,Dendê,Brassica rapa,colza; mostarda (3); mostarda-selvagem
-Elaeis guineensis,Palmae,Dendê,Brassolis sophorae,Lagarta-das-palmáceas
-Elaeis guineensis,Palmae,Dendê,Brevipalpus phoenicis,ácaro-plano
-Elaeis guineensis,Palmae,Dendê,Cenchrus echinatus,
-Elaeis guineensis,Palmae,Dendê,Cenchrus echinatus,capim-amoroso; capim-carrapicho; capim-roseta
-Elaeis guineensis,Palmae,Dendê,Cercospora spp.,Manchas- foliares
-Elaeis guineensis,Palmae,Dendê,Chamaesyce hirta,erva-andorinha (2); erva-de-cobre; erva-de-sangue
-Elaeis guineensis,Palmae,Dendê,Chamaesyce hyssopifolia,burra-leiteira; erva-andorinha (1); erva-de-santa luzia (1)
-Elaeis guineensis,Palmae,Dendê,Chamaesyce prostrata,beldroega-pequena; erva-de-santa-luzia (3); quebra-pedra (3)
-Elaeis guineensis,Palmae,Dendê,Chenopodium ambrosioides,anserina-vermífuga; erva-de-santa-maria; mastruço (4)
-Elaeis guineensis,Palmae,Dendê,Chloris pycnothrix,capim-cebola; capim-fino (2); capim-pé-de-galinha (2)
-Elaeis guineensis,Palmae,Dendê,Chloris retusa,capim-coqueirinho
-Elaeis guineensis,Palmae,Dendê,Colletotrichum gloeosporioides,Antracnose
-Elaeis guineensis,Palmae,Dendê,Commelina benghalensis,marianinha (1); mata-brasil (1); trapoeraba (1)
-Elaeis guineensis,Palmae,Dendê,Conyza bonariensis,arranha-gato (1); buva; rabo-de-foguete (1)
-Elaeis guineensis,Palmae,Dendê,Cynodon dactylon,capim-da-cidade; capim-de-burro (1); grama-bermuda
-Elaeis guineensis,Palmae,Dendê,Cyperus flavus,junquinho (4); junça (4); tiririca (4)
-Elaeis guineensis,Palmae,Dendê,Cyperus rotundus,alho; capim-dandá; junça-aromática
-Elaeis guineensis,Palmae,Dendê,Cyperus sesquiflorus,capim-de-cheiro (1); capim-santo; junquinho (9)
-Elaeis guineensis,Palmae,Dendê,Desmodium tortuosum,carrapicho (4); carrapicho-beiço-de-boi (2); desmodio
-Elaeis guineensis,Palmae,Dendê,Dichondra microcalyx,cobre-verde; corriola (13); dinheiro-em-penca
-Elaeis guineensis,Palmae,Dendê,Digitaria decumbens,capim-colchão (4); capim-das-hortas; capim-das-roças (1)
-Elaeis guineensis,Palmae,Dendê,Digitaria horizontalis,
-Elaeis guineensis,Palmae,Dendê,Digitaria horizontalis,capim-colchão (1); capim-de-roça; capim-milhã (2)
-Elaeis guineensis,Palmae,Dendê,Digitaria insularis,capim amargoso; capim açu; capim flexa
-Elaeis guineensis,Palmae,Dendê,Digitaria sanguinalis,capim-colchão (2); capim-das-roças (2); milhã (1)
-Elaeis guineensis,Palmae,Dendê,Diodia ocimifolia,diodia; poaia-do-campo (3)
-Elaeis guineensis,Palmae,Dendê,Echinochloa crusgalli,capim-arroz (2); capim-canevão; capim-jaú
-Elaeis guineensis,Palmae,Dendê,Echinochloa cruspavonis,canevão; capim-arroz (3); capim-jaú (2)
-Elaeis guineensis,Palmae,Dendê,Eleusine indica,capim-da-cidade (2); capim-de-pomar; capim-pé-de-galinha (1)
-Elaeis guineensis,Palmae,Dendê,Emilia sagittata,Algodão-de-preá
-Elaeis guineensis,Palmae,Dendê,Emilia sonchifolia,bela-emilia; falsa-serralha; pincel
-Elaeis guineensis,Palmae,Dendê,Eragrostis pilosa,capim-barbicha-de-alemão; capim-mimoso (2); capim-orvalho
-Elaeis guineensis,Palmae,Dendê,Eriophyes guerreronis,Acaro da necrose
-Elaeis guineensis,Palmae,Dendê,Euphorbia heterophylla,
-Elaeis guineensis,Palmae,Dendê,Euphorbia heterophylla,Leiteiro
-Elaeis guineensis,Palmae,Dendê,Euphorbia heterophylla,amendoim-bravo; café-do-diabo; flor-de-poetas
-Elaeis guineensis,Palmae,Dendê,Euphorbia hirta,Erva-de-santa-maria
-Elaeis guineensis,Palmae,Dendê,Galinsoga parviflora,botão-de-ouro (3); fazendeiro (2); picão-branco (1)
-Elaeis guineensis,Palmae,Dendê,Gnaphalium spicatum,erva-branca; erva-macia; macela-branca
-Elaeis guineensis,Palmae,Dendê,Hyalospila ptychis,Traça das flores
-Elaeis guineensis,Palmae,Dendê,Hyparrhenia rufa,capim-jaraguá; capim-provisório; capim-vermelho
-Elaeis guineensis,Palmae,Dendê,Hyptis suaveolens,bamburral; betônica-brava (2); cheirosa (2)
-Elaeis guineensis,Palmae,Dendê,Imperata brasiliensis,capim-agreste (2); capim-massapé; capim-sapé
-Elaeis guineensis,Palmae,Dendê,Ipomoea aristolochiaefolia,campainha (1); corda-de-viola (1); corriola (1)
-Elaeis guineensis,Palmae,Dendê,Ipomoea grandifolia,campainha (5); corda-de-viola (5); corriola (4)
-Elaeis guineensis,Palmae,Dendê,Ipomoea nil,amarra-amarra (2); campainha (8); corda-de-viola (9)
-Elaeis guineensis,Palmae,Dendê,Ipomoea purpurea,campainha (9); corda-de-viola (10); corriola (8)
-Elaeis guineensis,Palmae,Dendê,Ipomoea quamoclit,cardeal; corda-de-viola (16); esqueleto
-Elaeis guineensis,Palmae,Dendê,Lasiodiplodia theobromae,Queima-das-folhas
-Elaeis guineensis,Palmae,Dendê,Leonurus sibiricus,chá-de-frade; cordão-de-são-francisco (2); erva-macaé
-Elaeis guineensis,Palmae,Dendê,Lepidium virginicum,mastruz (1); mastruço (2); mentrusto (1)
-Elaeis guineensis,Palmae,Dendê,Lolium multiflorum,azevém; azevém-anual; azevém-italiano
-Elaeis guineensis,Palmae,Dendê,Melinis minutiflora,capim-catingueiro; capim-gordo; capim-gordura
-Elaeis guineensis,Palmae,Dendê,Mikania cordifolia,cipó-cabeludo; erva-de-cobra; erva-de-sapo
-Elaeis guineensis,Palmae,Dendê,Nicandra physaloides,balão; bexiga; joá-de-capote (1)
-Elaeis guineensis,Palmae,Dendê,Opsiphanes invirae,Lagarta-desfolhadora
-Elaeis guineensis,Palmae,Dendê,Oryza sativa,arroz; arroz-preto; arroz-vermelho
-Elaeis guineensis,Palmae,Dendê,Oxalis oxyptera,azedinha (4); trevo (2)
-Elaeis guineensis,Palmae,Dendê,Panicum maximum,capim-coloninho (1); capim-colonião; capim-guiné
-Elaeis guineensis,Palmae,Dendê,Parthenium hysterophorus,coentro-do-mato; fazendeiro (1); losna-branca
-Elaeis guineensis,Palmae,Dendê,Paspalum conjugatum,capim-azedo; capim-forquilha; capim-marreca
-Elaeis guineensis,Palmae,Dendê,Paspalum conspersum,capim-de-mula; capim-do-brejo; capim-guaçu
-Elaeis guineensis,Palmae,Dendê,Paspalum dilatatum,capim-comprido; capim-melado; grama-comprida
-Elaeis guineensis,Palmae,Dendê,Paspalum notatum,capim-bahia; capim-batatais; grama-batatais
-Elaeis guineensis,Palmae,Dendê,Paspalum paniculatum,capim-da-guiné; capim-de-burro (2); grama-da-guiné
-Elaeis guineensis,Palmae,Dendê,Paspalum urvillei,capim-da-roça (1); capim-das-estradas; milhã-grande
-Elaeis guineensis,Palmae,Dendê,Pennisetum clandestinum,capim-kikuio; kikuyo; quicuio
-Elaeis guineensis,Palmae,Dendê,Pennisetum purpureum,capim-cameroon; capim-elefante; capim-napier
-Elaeis guineensis,Palmae,Dendê,Pennisetum setosum,capim-avião; capim-custódio; capim-mandante
-Elaeis guineensis,Palmae,Dendê,Phyllanthus niruri,arrebenta-pedra (2); erva-pombinha (2); fura-parede
-Elaeis guineensis,Palmae,Dendê,Phyllanthus tenellus,arrebenta-pedra (1); erva-pombinha (1); quebra-pedra (1)
-Elaeis guineensis,Palmae,Dendê,Podosphaera spp.,-
-Elaeis guineensis,Palmae,Dendê,Portulaca oleracea,beldroega; bredo-de-porco; ora-pro-nobis
-Elaeis guineensis,Palmae,Dendê,Pteridium aquilinum,pluma-grande; samambaia; samambaia-das-taperas
-Elaeis guineensis,Palmae,Dendê,Raphanus raphanistrum,nabiça (1); nabo (1); nabo-bravo
-Elaeis guineensis,Palmae,Dendê,Rhynchelytrum repens,capim-favorito; capim-gafanhoto; capim-molambo
-Elaeis guineensis,Palmae,Dendê,Rhynchophorus palmarum,Bicudo; Broca-do-olho-do-coqueiro
-Elaeis guineensis,Palmae,Dendê,Richardia brasiliensis,poaia; poaia-branca; poaia-do-campo (2)
-Elaeis guineensis,Palmae,Dendê,Saccharum officinarum,cana-de-açucar
-Elaeis guineensis,Palmae,Dendê,Senecio brasiliensis,flor-das-almas; flor-de-finados; maria-mole (2)
-Elaeis guineensis,Palmae,Dendê,Setaria geniculata,bambuzinho; capim-rabo-de-gato (1); capim-rabo-de-raposa (1)
-Elaeis guineensis,Palmae,Dendê,Sida cordifolia,guanxuma (2); malva (1); malva-branca (1)
-Elaeis guineensis,Palmae,Dendê,Sida glaziovii,guanxuma-branca; malva-guaxima; mata-pasto (3)
-Elaeis guineensis,Palmae,Dendê,Sida rhombifolia,guanxuma (3); mata-pasto (4); relógio (1)
-Elaeis guineensis,Palmae,Dendê,Solanum americanum,erva-de-bicho (1); erva-moura; maria-pretinha
-Elaeis guineensis,Palmae,Dendê,Solanum paniculatum,gerobeba; jupeba; jurubeba (2)
-Elaeis guineensis,Palmae,Dendê,Sonchus oleraceus,chicória-brava; serralha; serralha-lisa
-Elaeis guineensis,Palmae,Dendê,Sorghum arundinaceum,falso-massambará; sorgo-selvagem
-Elaeis guineensis,Palmae,Dendê,Sorghum halepense,capim-argentino; capim-cevada; capim-massambará
-Elaeis guineensis,Palmae,Dendê,Spermacoce latifolia,erva-de-lagarto (2); erva-quente (2); perpetua-do-mato (2)
-Elaeis guineensis,Palmae,Dendê,Sphaerotheca fuliginea,Oídio
-Elaeis guineensis,Palmae,Dendê,Spodoptera frugiperda,Lagarta militar
-Elaeis guineensis,Palmae,Dendê,Talinum paniculatum,bunda-mole; bênção-de-deus; lígua-de-vaca
-Elaeis guineensis,Palmae,Dendê,Thielaviopsis paradoxa,Podridão-basal
-Elaeis guineensis,Palmae,Dendê,Triticum aestivum,trigo
-Elaeis guineensis,Palmae,Dendê,Urochloa decumbens,Capim-Braquiária
-Elaeis guineensis,Palmae,Dendê,Vernonia ferruginea,assa-peixe (1); assa-peixe-de-santana; assa-peixe-do-pará
-Elaeis guineensis,Palmae,Dendê,Zea mays,milho
 Pimpinella anisum,Umbelliferae,Erva-doce,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
 Pimpinella anisum,Umbelliferae,Erva-doce,Bidens pilosa,fura-capa; pico-pico; picão (1)
 Pimpinella anisum,Umbelliferae,Erva-doce,Euphorbia heterophylla,Leiteiro
@@ -5964,8 +5452,6 @@ Spinacia oleracea,Chenopodiaceae,Espinafre,Trichoplusia ni,Falsa-medideira-da-co
 Spinacia oleracea,Chenopodiaceae,Espinafre,Triticum aestivum,trigo
 Spinacia oleracea,Chenopodiaceae,Espinafre,Tuta absoluta,Traça do tomateiro
 Spinacia oleracea,Chenopodiaceae,Espinafre,Zea mays,milho
-Artemisia dracunculus,Compositae,Estragão,Podosphaera spp.,-
-Artemisia dracunculus,Compositae,Estragão,Septoria lactucae,Septoriose
 Stevia rebaudiana,Compositae,Estévia,Agrotis ipsilon,Lagarta-rosca
 Stevia rebaudiana,Compositae,Estévia,Alternaria brassicae,Mancha-de-Alternaria
 Stevia rebaudiana,Compositae,Estévia,Alternaria steviae,Mancha-de-alternaria
@@ -7441,64 +6927,6 @@ Nicotiana tabacum,Solanaceae,Fumo,Vernonia ferruginea,assa-peixe (1); assa-peixe
 Nicotiana tabacum,Solanaceae,Fumo,Vicia sativa,avica; ervilhaca
 Nicotiana tabacum,Solanaceae,Fumo,Xanthium strumarium,carrapicho-bravo (2); carrapicho-de-carneiro (2); carrapicho-grande (2)
 Nicotiana tabacum,Solanaceae,Fumo,Zea mays,milho
-Zingiber officinale,Zingiberaceae,Gengibre,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
-Zingiber officinale,Zingiberaceae,Gengibre,Acanthospermum hispidum,carrapicho-de-carneiro (1); chifre-de-veado; espinho-de-carneiro (1)
-Zingiber officinale,Zingiberaceae,Gengibre,Ageratum conyzoides,catinga-de-bode; erva-de-são-joão (1); mentrasto
-Zingiber officinale,Zingiberaceae,Gengibre,Agrotis ipsilon,Lagarta-rosca
-Zingiber officinale,Zingiberaceae,Gengibre,Aleurocanthus woglumi,Mosca-negra
-Zingiber officinale,Zingiberaceae,Gengibre,Alternaria dauci,-
-Zingiber officinale,Zingiberaceae,Gengibre,Alternaria solani,Pinta preta grande
-Zingiber officinale,Zingiberaceae,Gengibre,Amaranthus hybridus,bredo (3); caruru-branco; caruru-roxo
-Zingiber officinale,Zingiberaceae,Gengibre,Amaranthus spinosus,bredo-branco; bredo-de-espinho; caruru-de-espinho
-Zingiber officinale,Zingiberaceae,Gengibre,Amaranthus viridis,bredo (1); caruru (2); caruru-de-mancha
-Zingiber officinale,Zingiberaceae,Gengibre,Aspidiella hari,Cochonilha-do-rizoma
-Zingiber officinale,Zingiberaceae,Gengibre,Aspidiotus destructor,Cochonilha
-Zingiber officinale,Zingiberaceae,Gengibre,Bemisia tabaci raça B,Mosca branca
-Zingiber officinale,Zingiberaceae,Gengibre,Bidens pilosa,fura-capa; pico-pico; picão (1)
-Zingiber officinale,Zingiberaceae,Gengibre,Botrytis sp.,Mofo cinzento
-Zingiber officinale,Zingiberaceae,Gengibre,Brachiaria decumbens,braquiária; braquiária-decumbens; capim-braquiária
-Zingiber officinale,Zingiberaceae,Gengibre,Brachiaria plantaginea,capim-marmelada (1); capim-papuã; capim-são-paulo
-Zingiber officinale,Zingiberaceae,Gengibre,Cenchrus echinatus,
-Zingiber officinale,Zingiberaceae,Gengibre,Cenchrus echinatus,capim-amoroso; capim-carrapicho; capim-roseta
-Zingiber officinale,Zingiberaceae,Gengibre,Cercospora beticola,Mancha-de -cercospora
-Zingiber officinale,Zingiberaceae,Gengibre,Cercospora spp.,Cercosporiose
-Zingiber officinale,Zingiberaceae,Gengibre,Commelina benghalensis,marianinha (1); mata-brasil (1); trapoeraba (1)
-Zingiber officinale,Zingiberaceae,Gengibre,Coronopus didymus,mastruz (2); mastruço (3); mentrusto (2)
-Zingiber officinale,Zingiberaceae,Gengibre,Cynodon dactylon,capim-da-cidade; capim-de-burro (1); grama-bermuda
-Zingiber officinale,Zingiberaceae,Gengibre,Diabrotica speciosa,Larva-alfinete ; Vaquinha-verde-amarela
-Zingiber officinale,Zingiberaceae,Gengibre,Digitaria horizontalis,
-Zingiber officinale,Zingiberaceae,Gengibre,Digitaria horizontalis,capim-colchão (1); capim-de-roça; capim-milhã (2)
-Zingiber officinale,Zingiberaceae,Gengibre,Digitaria insularis,capim amargoso; capim açu; capim flexa
-Zingiber officinale,Zingiberaceae,Gengibre,Echinochloa crusgalli,capim-arroz (2); capim-canevão; capim-jaú
-Zingiber officinale,Zingiberaceae,Gengibre,Elasmopalpus lignosellus,Lagarta elasmo
-Zingiber officinale,Zingiberaceae,Gengibre,Eleusine indica,capim-da-cidade (2); capim-de-pomar; capim-pé-de-galinha (1)
-Zingiber officinale,Zingiberaceae,Gengibre,Emilia sonchifolia,bela-emilia; falsa-serralha; pincel
-Zingiber officinale,Zingiberaceae,Gengibre,Eragrostis ciliaris,capim-de-canário; capim-de-rola; capim-mimoso (4)
-Zingiber officinale,Zingiberaceae,Gengibre,Galinsoga parviflora,botão-de-ouro (3); fazendeiro (2); picão-branco (1)
-Zingiber officinale,Zingiberaceae,Gengibre,Lyriomyza huidobrensis,Larva minadora
-Zingiber officinale,Zingiberaceae,Gengibre,Meloidogyne enterolobii,nematoide da goiabeira; nematoide de galhas da goiabeira
-Zingiber officinale,Zingiberaceae,Gengibre,Meloidogyne incognita,Nematoide-das-galhas
-Zingiber officinale,Zingiberaceae,Gengibre,Meloidogyne javanica,Nematoide-das-galhas
-Zingiber officinale,Zingiberaceae,Gengibre,Meloidogyne spp.,Nematoide
-Zingiber officinale,Zingiberaceae,Gengibre,Mocis latipes,Curuquêre dos capinzais
-Zingiber officinale,Zingiberaceae,Gengibre,Oryza sativa,arroz; arroz-preto; arroz-vermelho
-Zingiber officinale,Zingiberaceae,Gengibre,Panicum maximum,capim-coloninho (1); capim-colonião; capim-guiné
-Zingiber officinale,Zingiberaceae,Gengibre,Pennisetum americanum,milheto
-Zingiber officinale,Zingiberaceae,Gengibre,Pennisetum setosum,capim-avião; capim-custódio; capim-mandante
-Zingiber officinale,Zingiberaceae,Gengibre,Pentalonia nigronervosa,Pulgão
-Zingiber officinale,Zingiberaceae,Gengibre,Phyllosticta zingiberi,Mancha-de-phyllosticta
-Zingiber officinale,Zingiberaceae,Gengibre,Phytophthora nicotianae var. parasitica,Gomose
-Zingiber officinale,Zingiberaceae,Gengibre,Portulaca oleracea,beldroega; bredo-de-porco; ora-pro-nobis
-Zingiber officinale,Zingiberaceae,Gengibre,Pratylenchus brachyurus,Nematoide das lesões radiculares
-Zingiber officinale,Zingiberaceae,Gengibre,Pratylenchus spp.,Nematoide
-Zingiber officinale,Zingiberaceae,Gengibre,Rottboellia exaltata,capim-alto; capim-camalote; rabo-de-lagarto
-Zingiber officinale,Zingiberaceae,Gengibre,Sclerotium rolfsii,Mofo-cinzento
-Zingiber officinale,Zingiberaceae,Gengibre,Setaria geniculata,bambuzinho; capim-rabo-de-gato (1); capim-rabo-de-raposa (1)
-Zingiber officinale,Zingiberaceae,Gengibre,Sonchus oleraceus,chicória-brava; serralha; serralha-lisa
-Zingiber officinale,Zingiberaceae,Gengibre,Sorghum halepense,capim-argentino; capim-cevada; capim-massambará
-Zingiber officinale,Zingiberaceae,Gengibre,Spodoptera frugiperda,Tripes
-Zingiber officinale,Zingiberaceae,Gengibre,Triticum aestivum,trigo
-Zingiber officinale,Zingiberaceae,Gengibre,Zea mays,milho
 Sesamum indicum,Pedaliaceae,Gergelim,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
 Sesamum indicum,Pedaliaceae,Gergelim,Acanthospermum hispidum,carrapicho-de-carneiro (1); chifre-de-veado; espinho-de-carneiro (1)
 Sesamum indicum,Pedaliaceae,Gergelim,Alternaria helianthi,Mancha-de-alternária
@@ -8076,9 +7504,6 @@ Paullinia cupana,Sapindaceae,Guaraná,Spermacoce latifolia,erva-de-lagarto (2); 
 Paullinia cupana,Sapindaceae,Guaraná,Sphaerotheca fuliginea,Oídio
 Paullinia cupana,Sapindaceae,Guaraná,Tetranychus urticae,Ácaro rajado
 Paullinia cupana,Sapindaceae,Guaraná,Zea mays,milho
-Mentha piperita,Labiatae,Hortelã,Myzus persicae,Pulgão-verde
-Mentha piperita,Labiatae,Hortelã,Podosphaera spp.,-
-Mentha piperita,Labiatae,Hortelã,Septoria lactucae,Septoriose
 Colocasia esculenta,Araceae,Inhame,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
 Colocasia esculenta,Araceae,Inhame,Acanthospermum hispidum,carrapicho-de-carneiro (1); chifre-de-veado; espinho-de-carneiro (1)
 Colocasia esculenta,Araceae,Inhame,Ageratum conyzoides,catinga-de-bode; erva-de-são-joão (1); mentrasto
@@ -8739,30 +8164,6 @@ Macadamia integrifolia,Proteaceae,Macadâmia,Sphaerotheca fuliginea,Oídio
 Macadamia integrifolia,Proteaceae,Macadâmia,Talinum paniculatum,bunda-mole; bênção-de-deus; lígua-de-vaca
 Macadamia integrifolia,Proteaceae,Macadâmia,Tetranychus urticae,Ácaro-rajado
 Macadamia integrifolia,Proteaceae,Macadâmia,Zea mays,milho
-Acrocomia aculeata,Palmae,Macaúba,Agrotis ipsilon,Lagarta-rosca
-Acrocomia aculeata,Palmae,Macaúba,Amaranthus hybridus,bredo (3); caruru-branco; caruru-roxo
-Acrocomia aculeata,Palmae,Macaúba,Bemisia tabaci raça B,mosca branca
-Acrocomia aculeata,Palmae,Macaúba,Bidens pilosa,fura-capa; pico-pico; picão (1)
-Acrocomia aculeata,Palmae,Macaúba,Bipolaris incurvata,.
-Acrocomia aculeata,Palmae,Macaúba,Brachiaria plantaginea,capim-marmelada (1); capim-papuã; capim-são-paulo
-Acrocomia aculeata,Palmae,Macaúba,Brassolis sophorae,Borboleta do Coqueiro; Lagarta-das-palmeiras; Mandruvá
-Acrocomia aculeata,Palmae,Macaúba,Cenchrus echinatus,
-Acrocomia aculeata,Palmae,Macaúba,Colletotrichum gloeosporioides,Antracnose
-Acrocomia aculeata,Palmae,Macaúba,Commelina benghalensis,marianinha (1); mata-brasil (1); trapoeraba (1)
-Acrocomia aculeata,Palmae,Macaúba,Conyza bonariensis,arranha-gato (1); buva; rabo-de-foguete (1)
-Acrocomia aculeata,Palmae,Macaúba,Digitaria horizontalis,capim-colchão (1); capim-de-roça; capim-milhã (2)
-Acrocomia aculeata,Palmae,Macaúba,Digitaria insularis,capim amargoso; capim açu; capim flexa
-Acrocomia aculeata,Palmae,Macaúba,Digitaria sanguinalis,capim-colchão (2); capim-das-roças (2); milhã (1)
-Acrocomia aculeata,Palmae,Macaúba,Eleusine indica,capim-da-cidade (2); capim-de-pomar; capim-pé-de-galinha (1)
-Acrocomia aculeata,Palmae,Macaúba,Emilia sonchifolia,bela-emilia; falsa-serralha; pincel
-Acrocomia aculeata,Palmae,Macaúba,Euphorbia heterophylla,Leiteiro
-Acrocomia aculeata,Palmae,Macaúba,Ipomoea grandifolia,campainha (5); corda-de-viola (5); corriola (4)
-Acrocomia aculeata,Palmae,Macaúba,Lasiodiplodia theobromae,.
-Acrocomia aculeata,Palmae,Macaúba,Opsiphanes invirae,Lagarta do coco; Lagarta do coqueiro; Lagarta-desfolhadora
-Acrocomia aculeata,Palmae,Macaúba,Podosphaera spp.,-
-Acrocomia aculeata,Palmae,Macaúba,Sida cordifolia,guanxuma (2); malva (1); malva-branca (1)
-Acrocomia aculeata,Palmae,Macaúba,Sida rhombifolia,guanxuma (3); mata-pasto (4); relógio (1)
-Acrocomia aculeata,Palmae,Macaúba,Talinum paniculatum,bunda-mole; bênção-de-deus; lígua-de-vaca
 Ricinus communis,Euphorbiaceae,Mamona,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
 Ricinus communis,Euphorbiaceae,Mamona,Aeschynomene rudis,angiquinho (1); maricazinho (1); paquinha
 Ricinus communis,Euphorbiaceae,Mamona,Ageratum conyzoides,catinga-de-bode; erva-de-são-joão (1); mentrasto
@@ -9328,13 +8729,6 @@ Mangifera indica,Anacardiaceae,Manga,Xanthomonas campestris,Queima bacteriana
 Mangifera indica,Anacardiaceae,Manga,Xanthomonas campestris pv. mangiferaeindicae,Mancha-angular
 Mangifera indica,Anacardiaceae,Manga,Zea mays,milho
 Mangifera indica,Anacardiaceae,Manga,pleuroprucha asthenaria,Traça dos cachos
-Ocimum basilicum,Labiatae,Manjericão,Alternaria alternata,Mancha-de-alternaria
-Ocimum basilicum,Labiatae,Manjericão,Myzus persicae,Pulgão-verde
-Ocimum basilicum,Labiatae,Manjericão,Podosphaera spp.,-
-Ocimum basilicum,Labiatae,Manjericão,Septoria lactucae,Septoriose
-Origanum majorana,Labiatae,Manjerona,Alternaria alternata,Mancha-de-alternaria
-Origanum majorana,Labiatae,Manjerona,Podosphaera spp.,-
-Origanum majorana,Labiatae,Manjerona,Septoria lactucae,Septoriose
 Passiflora edulis,Passifloraceae,Maracujá,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
 Passiflora edulis,Passifloraceae,Maracujá,Acanthospermum hispidum,carrapicho-de-carneiro (1); chifre-de-veado; espinho-de-carneiro (1)
 Passiflora edulis,Passifloraceae,Maracujá,Ageratum conyzoides,catinga-de-bode; erva-de-são-joão (1); mentrasto
@@ -9473,120 +8867,6 @@ Passiflora edulis,Passifloraceae,Maracujá,Thrips tabaci,Tripes
 Passiflora edulis,Passifloraceae,Maracujá,Xanthomonas axonopodis pv. passiflorae,Mancha-bacteriana; Mancha-bacteriana do maracujazeiro
 Passiflora edulis,Passifloraceae,Maracujá,Xanthomonas campestris pv. passiflorae,Bacteriose; Mancha-bacteriana-oleosa
 Passiflora edulis,Passifloraceae,Maracujá,Zea mays,milho
-Cydonia oblonga,Rosaceae,Marmelo,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
-Cydonia oblonga,Rosaceae,Marmelo,Acanthospermum hispidum,carrapicho-de-carneiro (1); chifre-de-veado; espinho-de-carneiro (1)
-Cydonia oblonga,Rosaceae,Marmelo,Aeschynomene denticulata,angiquinho (2); corticeirinha (1); maricazinho (2)
-Cydonia oblonga,Rosaceae,Marmelo,Ageratum conyzoides,catinga-de-bode; erva-de-são-joão (1); mentrasto
-Cydonia oblonga,Rosaceae,Marmelo,Alternanthera tenella,apaga-fogo (2); corrente; periquito (2)
-Cydonia oblonga,Rosaceae,Marmelo,Amaranthus deflexus,bredo (2); bredo-rasteiro; caruru (1)
-Cydonia oblonga,Rosaceae,Marmelo,Amaranthus hybridus,bredo (3); caruru-branco; caruru-roxo
-Cydonia oblonga,Rosaceae,Marmelo,Amaranthus spinosus,bredo-branco; bredo-de-espinho; caruru-de-espinho
-Cydonia oblonga,Rosaceae,Marmelo,Amaranthus viridis,bredo (1); caruru (2); caruru-de-mancha
-Cydonia oblonga,Rosaceae,Marmelo,Anastrepha fraterculus,Mosca das frutas sul americanas
-Cydonia oblonga,Rosaceae,Marmelo,Andropogon bicornis,capim-de-bezerra; capim-peba; capim-rabo-de-burro
-Cydonia oblonga,Rosaceae,Marmelo,Aphis pomi,Pulgão-verde-da-macieira
-Cydonia oblonga,Rosaceae,Marmelo,Avena sativa,aveia
-Cydonia oblonga,Rosaceae,Marmelo,Avena strigosa,aveia-brasileira; aveia-preta; aveia-voluntária
-Cydonia oblonga,Rosaceae,Marmelo,Bidens pilosa,fura-capa; pico-pico; picão (1)
-Cydonia oblonga,Rosaceae,Marmelo,Botrytis sp.,Mofo cinzento
-Cydonia oblonga,Rosaceae,Marmelo,Brachiaria brizantha,braquiarão; braquiária-brizanta; braquiária-do-alto
-Cydonia oblonga,Rosaceae,Marmelo,Brachiaria decumbens,braquiária; braquiária-decumbens; capim-braquiária
-Cydonia oblonga,Rosaceae,Marmelo,Brachiaria mutica,capim-angola; capim-branco (1); capim-de-planta
-Cydonia oblonga,Rosaceae,Marmelo,Brachiaria plantaginea,capim-marmelada (1); capim-papuã; capim-são-paulo
-Cydonia oblonga,Rosaceae,Marmelo,Brachiaria subquadripara,tanner-grass; tenner-grass
-Cydonia oblonga,Rosaceae,Marmelo,Brassica rapa,colza; mostarda (3); mostarda-selvagem
-Cydonia oblonga,Rosaceae,Marmelo,Cenchrus echinatus,capim-amoroso; capim-carrapicho; capim-roseta
-Cydonia oblonga,Rosaceae,Marmelo,Ceratitis capitata,Mosca do Mediterrânio
-Cydonia oblonga,Rosaceae,Marmelo,Chamaesyce hirta,erva-andorinha (2); erva-de-cobre; erva-de-sangue
-Cydonia oblonga,Rosaceae,Marmelo,Chamaesyce hyssopifolia,burra-leiteira; erva-andorinha (1); erva-de-santa luzia (1)
-Cydonia oblonga,Rosaceae,Marmelo,Chamaesyce prostrata,beldroega-pequena; erva-de-santa-luzia (3); quebra-pedra (3)
-Cydonia oblonga,Rosaceae,Marmelo,Chenopodium ambrosioides,anserina-vermífuga; erva-de-santa-maria; mastruço (4)
-Cydonia oblonga,Rosaceae,Marmelo,Chloris pycnothrix,capim-cebola; capim-fino (2); capim-pé-de-galinha (2)
-Cydonia oblonga,Rosaceae,Marmelo,Chloris retusa,capim-coqueirinho
-Cydonia oblonga,Rosaceae,Marmelo,Colletotrichum gloeosporioides,Antracnose
-Cydonia oblonga,Rosaceae,Marmelo,Commelina benghalensis,marianinha (1); mata-brasil (1); trapoeraba (1)
-Cydonia oblonga,Rosaceae,Marmelo,Conyza bonariensis,arranha-gato (1); buva; rabo-de-foguete (1)
-Cydonia oblonga,Rosaceae,Marmelo,Cynodon dactylon,capim-da-cidade; capim-de-burro (1); grama-bermuda
-Cydonia oblonga,Rosaceae,Marmelo,Cyperus ferax,capim-de-cheiro (2); chufa; junquinho (1)
-Cydonia oblonga,Rosaceae,Marmelo,Cyperus flavus,junquinho (4); junça (4); tiririca (4)
-Cydonia oblonga,Rosaceae,Marmelo,Cyperus rotundus,alho; capim-dandá; junça-aromática
-Cydonia oblonga,Rosaceae,Marmelo,Cyperus sesquiflorus,capim-de-cheiro (1); capim-santo; junquinho (9)
-Cydonia oblonga,Rosaceae,Marmelo,Desmodium tortuosum,carrapicho (4); carrapicho-beiço-de-boi (2); desmodio
-Cydonia oblonga,Rosaceae,Marmelo,Dichondra microcalyx,cobre-verde; corriola (13); dinheiro-em-penca
-Cydonia oblonga,Rosaceae,Marmelo,Digitaria decumbens,capim-colchão (4); capim-das-hortas; capim-das-roças (1)
-Cydonia oblonga,Rosaceae,Marmelo,Digitaria horizontalis,capim-colchão (1); capim-de-roça; capim-milhã (2)
-Cydonia oblonga,Rosaceae,Marmelo,Digitaria insularis,capim amargoso; capim açu; capim flexa
-Cydonia oblonga,Rosaceae,Marmelo,Digitaria sanguinalis,capim-colchão (2); capim-das-roças (2); milhã (1)
-Cydonia oblonga,Rosaceae,Marmelo,Diodia ocimifolia,diodia; poaia-do-campo (3)
-Cydonia oblonga,Rosaceae,Marmelo,Echinochloa crusgalli,capim-arroz (2); capim-canevão; capim-jaú
-Cydonia oblonga,Rosaceae,Marmelo,Echinochloa cruspavonis,canevão; capim-arroz (3); capim-jaú (2)
-Cydonia oblonga,Rosaceae,Marmelo,Eleusine indica,capim-da-cidade (2); capim-de-pomar; capim-pé-de-galinha (1)
-Cydonia oblonga,Rosaceae,Marmelo,Emilia sonchifolia,bela-emilia; falsa-serralha; pincel
-Cydonia oblonga,Rosaceae,Marmelo,Entomosporium mespili,Entomosporiose; Requeima
-Cydonia oblonga,Rosaceae,Marmelo,Eragrostis pilosa,capim-barbicha-de-alemão; capim-mimoso (2); capim-orvalho
-Cydonia oblonga,Rosaceae,Marmelo,Eriosoma lanigerum,Pulgão-lanígero; Pulgão-lanígero-da-macieira
-Cydonia oblonga,Rosaceae,Marmelo,Euphorbia heterophylla,Leiteiro
-Cydonia oblonga,Rosaceae,Marmelo,Euphorbia heterophylla,amendoim-bravo; café-do-diabo; flor-de-poetas
-Cydonia oblonga,Rosaceae,Marmelo,Galinsoga parviflora,botão-de-ouro (3); fazendeiro (2); picão-branco (1)
-Cydonia oblonga,Rosaceae,Marmelo,Gnaphalium spicatum,erva-branca; erva-macia; macela-branca
-Cydonia oblonga,Rosaceae,Marmelo,Grapholita molesta,Mariposa-oriental
-Cydonia oblonga,Rosaceae,Marmelo,Heliothrips haemorrhoidalis,Tripes
-Cydonia oblonga,Rosaceae,Marmelo,Hyparrhenia rufa,capim-jaraguá; capim-provisório; capim-vermelho
-Cydonia oblonga,Rosaceae,Marmelo,Imperata brasiliensis,capim-agreste (2); capim-massapé; capim-sapé
-Cydonia oblonga,Rosaceae,Marmelo,Ipomoea aristolochiaefolia,campainha (1); corda-de-viola (1); corriola (1)
-Cydonia oblonga,Rosaceae,Marmelo,Ipomoea grandifolia,campainha (5); corda-de-viola (5); corriola (4)
-Cydonia oblonga,Rosaceae,Marmelo,Ipomoea indivisa,campainha (7); corda-de-viola (8); corriola (6)
-Cydonia oblonga,Rosaceae,Marmelo,Ipomoea nil,amarra-amarra (2); campainha (8); corda-de-viola (9)
-Cydonia oblonga,Rosaceae,Marmelo,Ipomoea quamoclit,cardeal; corda-de-viola (16); esqueleto
-Cydonia oblonga,Rosaceae,Marmelo,Leonurus sibiricus,chá-de-frade; cordão-de-são-francisco (2); erva-macaé
-Cydonia oblonga,Rosaceae,Marmelo,Lepidium virginicum,mastruz (1); mastruço (2); mentrusto (1)
-Cydonia oblonga,Rosaceae,Marmelo,Lolium multiflorum,azevém; azevém-anual; azevém-italiano
-Cydonia oblonga,Rosaceae,Marmelo,Malvastrum coromandelianum,guanxuma (1); guaxima (2); malvastro
-Cydonia oblonga,Rosaceae,Marmelo,Melinis minutiflora,capim-catingueiro; capim-gordo; capim-gordura
-Cydonia oblonga,Rosaceae,Marmelo,Mikania cordifolia,cipó-cabeludo; erva-de-cobra; erva-de-sapo
-Cydonia oblonga,Rosaceae,Marmelo,Monilinia fructicola,Podridão dos frutos ; Podridão parda
-Cydonia oblonga,Rosaceae,Marmelo,Myzus persicae,pulgão verde
-Cydonia oblonga,Rosaceae,Marmelo,Nicandra physaloides,balão; bexiga; joá-de-capote (1)
-Cydonia oblonga,Rosaceae,Marmelo,Oryza sativa,arroz; arroz-preto; arroz-vermelho
-Cydonia oblonga,Rosaceae,Marmelo,Oxalis oxyptera,azedinha (4); trevo (2)
-Cydonia oblonga,Rosaceae,Marmelo,Panicum maximum,capim-coloninho (1); capim-colonião; capim-guiné
-Cydonia oblonga,Rosaceae,Marmelo,Panonychus ulmi,Ácaro-vermelho-europeu
-Cydonia oblonga,Rosaceae,Marmelo,Parthenium hysterophorus,coentro-do-mato; fazendeiro (1); losna-branca
-Cydonia oblonga,Rosaceae,Marmelo,Paspalum conjugatum,capim-azedo; capim-forquilha; capim-marreca
-Cydonia oblonga,Rosaceae,Marmelo,Paspalum conspersum,capim-de-mula; capim-do-brejo; capim-guaçu
-Cydonia oblonga,Rosaceae,Marmelo,Paspalum notatum,capim-bahia; capim-batatais; grama-batatais
-Cydonia oblonga,Rosaceae,Marmelo,Paspalum paniculatum,capim-da-guiné; capim-de-burro (2); grama-da-guiné
-Cydonia oblonga,Rosaceae,Marmelo,Paspalum urvillei,capim-da-roça (1); capim-das-estradas; milhã-grande
-Cydonia oblonga,Rosaceae,Marmelo,Pennisetum clandestinum,capim-kikuio; kikuyo; quicuio
-Cydonia oblonga,Rosaceae,Marmelo,Pennisetum purpureum,capim-cameroon; capim-elefante; capim-napier
-Cydonia oblonga,Rosaceae,Marmelo,Pennisetum setosum,capim-avião; capim-custódio; capim-mandante
-Cydonia oblonga,Rosaceae,Marmelo,Phyllanthus niruri,arrebenta-pedra (2); erva-pombinha (2); fura-parede
-Cydonia oblonga,Rosaceae,Marmelo,Phyllanthus tenellus,arrebenta-pedra (1); erva-pombinha (1); quebra-pedra (1)
-Cydonia oblonga,Rosaceae,Marmelo,Podosphaera leucotricha,Oídio
-Cydonia oblonga,Rosaceae,Marmelo,Podosphaera spp.,-
-Cydonia oblonga,Rosaceae,Marmelo,Portulaca oleracea,beldroega; bredo-de-porco; ora-pro-nobis
-Cydonia oblonga,Rosaceae,Marmelo,Pteridium aquilinum,pluma-grande; samambaia; samambaia-das-taperas
-Cydonia oblonga,Rosaceae,Marmelo,Raphanus raphanistrum,nabiça (1); nabo (1); nabo-bravo
-Cydonia oblonga,Rosaceae,Marmelo,Raphanus sativus,nabiça (2); nabo (2); rabanete
-Cydonia oblonga,Rosaceae,Marmelo,Rhynchelytrum repens,capim-favorito; capim-gafanhoto; capim-molambo
-Cydonia oblonga,Rosaceae,Marmelo,Richardia brasiliensis,poaia; poaia-branca; poaia-do-campo (2)
-Cydonia oblonga,Rosaceae,Marmelo,Saccharum officinarum,cana-de-açucar
-Cydonia oblonga,Rosaceae,Marmelo,Senecio brasiliensis,flor-das-almas; flor-de-finados; maria-mole (2)
-Cydonia oblonga,Rosaceae,Marmelo,Sida cordifolia,guanxuma (2); malva (1); malva-branca (1)
-Cydonia oblonga,Rosaceae,Marmelo,Sida glaziovii,guanxuma-branca; malva-guaxima; mata-pasto (3)
-Cydonia oblonga,Rosaceae,Marmelo,Sida rhombifolia,guanxuma (3); mata-pasto (4); relógio (1)
-Cydonia oblonga,Rosaceae,Marmelo,Solanum americanum,erva-de-bicho (1); erva-moura; maria-pretinha
-Cydonia oblonga,Rosaceae,Marmelo,Solanum paniculatum,gerobeba; jupeba; jurubeba (2)
-Cydonia oblonga,Rosaceae,Marmelo,Sonchus oleraceus,chicória-brava; serralha; serralha-lisa
-Cydonia oblonga,Rosaceae,Marmelo,Sorghum bicolor,sorgo
-Cydonia oblonga,Rosaceae,Marmelo,Sorghum halepense,capim-argentino; capim-cevada; capim-massambará
-Cydonia oblonga,Rosaceae,Marmelo,Spermacoce latifolia,erva-de-lagarto (2); erva-quente (2); perpetua-do-mato (2)
-Cydonia oblonga,Rosaceae,Marmelo,Tetranychus evansi,Ácaro-vermelho
-Cydonia oblonga,Rosaceae,Marmelo,Tridax procumbens,erva-de-touro
-Cydonia oblonga,Rosaceae,Marmelo,Venturia inaequalis,Sarna; Sarna-da-macieira
-Cydonia oblonga,Rosaceae,Marmelo,Vicia sativa,avica; ervilhaca
-Cydonia oblonga,Rosaceae,Marmelo,Xanthium strumarium,carrapicho-bravo (2); carrapicho-de-carneiro (2); carrapicho-grande (2)
-Cydonia oblonga,Rosaceae,Marmelo,Zea mays,milho
 Cucumis anguria,Cucurbitaceae,Maxixe,Agrotis ipsilon,Lagarta rosca
 Cucumis anguria,Cucurbitaceae,Maxixe,Alternaria cucumerina,Mancha de alternaria
 Cucumis anguria,Cucurbitaceae,Maxixe,Alternaria solani,Pinta preta grande
@@ -9619,208 +8899,6 @@ Cucumis anguria,Cucurbitaceae,Maxixe,Spodoptera frugiperda,Lagarta-militar
 Cucumis anguria,Cucurbitaceae,Maxixe,Tetranychus urticae,Ácaro rajado
 Cucumis anguria,Cucurbitaceae,Maxixe,Triticum aestivum,trigo
 Cucumis anguria,Cucurbitaceae,Maxixe,Zea mays,milho
-Lepidium meyenii,Cruciferae,Maçã,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
-Lepidium meyenii,Cruciferae,Maçã,Acanthospermum hispidum,carrapicho-de-carneiro (1); chifre-de-veado; espinho-de-carneiro (1)
-Lepidium meyenii,Cruciferae,Maçã,Aeschynomene denticulata,angiquinho (2); corticeirinha (1); maricazinho (2)
-Lepidium meyenii,Cruciferae,Maçã,Aeschynomene rudis,angiquinho (1); maricazinho (1); paquinha
-Lepidium meyenii,Cruciferae,Maçã,Ageratum conyzoides,catinga-de-bode; erva-de-são-joão (1); mentrasto
-Lepidium meyenii,Cruciferae,Maçã,Alternanthera tenella,apaga-fogo (2); corrente; periquito (2)
-Lepidium meyenii,Cruciferae,Maçã,Alternaria alternata,Mancha-de-Alternaria
-Lepidium meyenii,Cruciferae,Maçã,Amaranthus deflexus,bredo (2); bredo-rasteiro; caruru (1)
-Lepidium meyenii,Cruciferae,Maçã,Amaranthus hybridus,bredo (3); caruru-branco; caruru-roxo
-Lepidium meyenii,Cruciferae,Maçã,Amaranthus retroflexus,bredo (5); caruru (4); caruru-gigante
-Lepidium meyenii,Cruciferae,Maçã,Amaranthus spinosus,bredo-branco; bredo-de-espinho; caruru-de-espinho
-Lepidium meyenii,Cruciferae,Maçã,Amaranthus viridis,bredo (1); caruru (2); caruru-de-mancha
-Lepidium meyenii,Cruciferae,Maçã,Anastrepha fraterculus,Mosca-das-frutas; Mosca-sul-americana
-Lepidium meyenii,Cruciferae,Maçã,Anastrepha grandis,Mosca das frutas
-Lepidium meyenii,Cruciferae,Maçã,Anastrepha spp.,Mosca das frutas
-Lepidium meyenii,Cruciferae,Maçã,Andropogon bicornis,capim-de-bezerra; capim-peba; capim-rabo-de-burro
-Lepidium meyenii,Cruciferae,Maçã,Andropogon leucostachyus,capim-colchão (5); capim-membeca; capim-rabo-de-raposa (1)
-Lepidium meyenii,Cruciferae,Maçã,Antirrhinum orontium,boca-de-leão-selvagem
-Lepidium meyenii,Cruciferae,Maçã,Avena sativa,aveia
-Lepidium meyenii,Cruciferae,Maçã,Avena strigosa,aveia-brasileira; aveia-preta; aveia-voluntária
-Lepidium meyenii,Cruciferae,Maçã,Axonopus compressus,capitinga; grama-argentina; grama-missioneira
-Lepidium meyenii,Cruciferae,Maçã,Baccharis dracunculifolia,alecrim-de-vassoura; vassoura (1); vassoureira
-Lepidium meyenii,Cruciferae,Maçã,Bidens pilosa,fura-capa; pico-pico; picão (1)
-Lepidium meyenii,Cruciferae,Maçã,Bidens subalternans,picão-preto
-Lepidium meyenii,Cruciferae,Maçã,Bonagota cranaodes,Lagarta-enroladeira-da-folha
-Lepidium meyenii,Cruciferae,Maçã,Bonagota salubricola,Lagarta-enroladeira
-Lepidium meyenii,Cruciferae,Maçã,Botryosphaeria dothidea,Podridão-branca; Seca-do-ramo
-Lepidium meyenii,Cruciferae,Maçã,Botrytis cinerea,Mofo-cinzento; Podridão-da-flor
-Lepidium meyenii,Cruciferae,Maçã,Brachiaria brizantha,braquiarão; braquiária-brizanta; braquiária-do-alto
-Lepidium meyenii,Cruciferae,Maçã,Brachiaria decumbens,braquiária; braquiária-decumbens; capim-braquiária
-Lepidium meyenii,Cruciferae,Maçã,Brachiaria mutica,capim-angola; capim-branco (1); capim-de-planta
-Lepidium meyenii,Cruciferae,Maçã,Brachiaria plantaginea,capim-marmelada (1); capim-papuã; capim-são-paulo
-Lepidium meyenii,Cruciferae,Maçã,Brachiaria subquadripara,tanner-grass; tenner-grass
-Lepidium meyenii,Cruciferae,Maçã,Brassica rapa,colza; mostarda (3); mostarda-selvagem
-Lepidium meyenii,Cruciferae,Maçã,Bromus catharticus,aveia-louca; cevadilha; falsa-cevada
-Lepidium meyenii,Cruciferae,Maçã,Cenchrus echinatus,
-Lepidium meyenii,Cruciferae,Maçã,Cenchrus echinatus,capim-amoroso; capim-carrapicho; capim-roseta
-Lepidium meyenii,Cruciferae,Maçã,Centella asiatica,centela; corcel; pata-de-mula
-Lepidium meyenii,Cruciferae,Maçã,Ceratitis capitata,Mosca-das-frutas; Mosca-do-mediterrâneo
-Lepidium meyenii,Cruciferae,Maçã,Chamaecrista nictitans,falsa-dormideira; falsa-sensitiva; mata-pasto (1)
-Lepidium meyenii,Cruciferae,Maçã,Chamaesyce hirta,erva-andorinha (2); erva-de-cobre; erva-de-sangue
-Lepidium meyenii,Cruciferae,Maçã,Chamaesyce hyssopifolia,burra-leiteira; erva-andorinha (1); erva-de-santa luzia (1)
-Lepidium meyenii,Cruciferae,Maçã,Chamaesyce prostrata,beldroega-pequena; erva-de-santa-luzia (3); quebra-pedra (3)
-Lepidium meyenii,Cruciferae,Maçã,Chenopodium ambrosioides,anserina-vermífuga; erva-de-santa-maria; mastruço (4)
-Lepidium meyenii,Cruciferae,Maçã,Chloris pycnothrix,capim-cebola; capim-fino (2); capim-pé-de-galinha (2)
-Lepidium meyenii,Cruciferae,Maçã,Chloris retusa,capim-coqueirinho
-Lepidium meyenii,Cruciferae,Maçã,Cladosporium carpophilum,Sarna
-Lepidium meyenii,Cruciferae,Maçã,Colletotrichum gloeosporioides,Antracnose; Mancha-foliar-da-gala
-Lepidium meyenii,Cruciferae,Maçã,Colletotrichum spp.,Mancha foliar da gala; Podridão amarga
-Lepidium meyenii,Cruciferae,Maçã,Commelina benghalensis,marianinha (1); mata-brasil (1); trapoeraba (1)
-Lepidium meyenii,Cruciferae,Maçã,Conyza bonariensis,arranha-gato (1); buva; rabo-de-foguete (1)
-Lepidium meyenii,Cruciferae,Maçã,Cryptosporiopsis perennans,Podridão Olho-de-boi
-Lepidium meyenii,Cruciferae,Maçã,Cydia pomonella,Bicho-da-maçã; Cydia
-Lepidium meyenii,Cruciferae,Maçã,Cynodon dactylon,capim-da-cidade; capim-de-burro (1); grama-bermuda
-Lepidium meyenii,Cruciferae,Maçã,Cyperus difformis,junquinho (6); junça (5); tiririca (10)
-Lepidium meyenii,Cruciferae,Maçã,Cyperus esculentus,junquinho (2); junça (1); tiririca-amarela
-Lepidium meyenii,Cruciferae,Maçã,Cyperus ferax,capim-de-cheiro (2); chufa; junquinho (1)
-Lepidium meyenii,Cruciferae,Maçã,Cyperus flavus,junquinho (4); junça (4); tiririca (4)
-Lepidium meyenii,Cruciferae,Maçã,Cyperus rotundus,alho; capim-dandá; junça-aromática
-Lepidium meyenii,Cruciferae,Maçã,Cyperus sesquiflorus,capim-de-cheiro (1); capim-santo; junquinho (9)
-Lepidium meyenii,Cruciferae,Maçã,Desmodium tortuosum,carrapicho (4); carrapicho-beiço-de-boi (2); desmodio
-Lepidium meyenii,Cruciferae,Maçã,Dichondra microcalyx,cobre-verde; corriola (13); dinheiro-em-penca
-Lepidium meyenii,Cruciferae,Maçã,Digitaria ciliaris,capim-colchão (3); capim-da-roça (2); capim-tinga
-Lepidium meyenii,Cruciferae,Maçã,Digitaria decumbens,capim-colchão (4); capim-das-hortas; capim-das-roças (1)
-Lepidium meyenii,Cruciferae,Maçã,Digitaria horizontalis,
-Lepidium meyenii,Cruciferae,Maçã,Digitaria horizontalis,capim-colchão (1); capim-de-roça; capim-milhã (2)
-Lepidium meyenii,Cruciferae,Maçã,Digitaria insularis,capim amargoso; capim açu; capim flexa
-Lepidium meyenii,Cruciferae,Maçã,Digitaria sanguinalis,capim-colchão (2); capim-das-roças (2); milhã (1)
-Lepidium meyenii,Cruciferae,Maçã,Diodia ocimifolia,diodia; poaia-do-campo (3)
-Lepidium meyenii,Cruciferae,Maçã,Echinochloa colona,capim-arroz (1); capim-coloninho (2); capim-jaú (1)
-Lepidium meyenii,Cruciferae,Maçã,Echinochloa crusgalli,capim-arroz (2); capim-canevão; capim-jaú
-Lepidium meyenii,Cruciferae,Maçã,Echinochloa cruspavonis,canevão; capim-arroz (3); capim-jaú (2)
-Lepidium meyenii,Cruciferae,Maçã,Eclipta alba,agrião-do-brejo; erva-de-botão (1); lanceta
-Lepidium meyenii,Cruciferae,Maçã,Eleusine indica,capim-da-cidade (2); capim-de-pomar; capim-pé-de-galinha (1)
-Lepidium meyenii,Cruciferae,Maçã,Elsinoe piri,Antracnose-maculata
-Lepidium meyenii,Cruciferae,Maçã,Emilia sonchifolia,bela-emilia; falsa-serralha; pincel
-Lepidium meyenii,Cruciferae,Maçã,Entomosporium maculatum,Entemosporiose
-Lepidium meyenii,Cruciferae,Maçã,Entomosporium mespili,Entomosporiose; Requeima
-Lepidium meyenii,Cruciferae,Maçã,Eragrostis pilosa,capim-barbicha-de-alemão; capim-mimoso (2); capim-orvalho
-Lepidium meyenii,Cruciferae,Maçã,Eriosoma lanigerum,Pulgão-lanígero; Pulgão-lanígero-da-macieira
-Lepidium meyenii,Cruciferae,Maçã,Eupatorium maximilianii,mata-pasto (8)
-Lepidium meyenii,Cruciferae,Maçã,Euphorbia brasiliensis,Erva-andorinha
-Lepidium meyenii,Cruciferae,Maçã,Euphorbia heterophylla,
-Lepidium meyenii,Cruciferae,Maçã,Euphorbia heterophylla,Leiteiro
-Lepidium meyenii,Cruciferae,Maçã,Euphorbia heterophylla,amendoim-bravo; café-do-diabo; flor-de-poetas
-Lepidium meyenii,Cruciferae,Maçã,Euphorbia hirta,Erva-de-santa-maria
-Lepidium meyenii,Cruciferae,Maçã,Fimbristylis miliacea,cabelo-de-negro; cuminho; falso-cominho
-Lepidium meyenii,Cruciferae,Maçã,Galinsoga parviflora,botão-de-ouro (3); fazendeiro (2); picão-branco (1)
-Lepidium meyenii,Cruciferae,Maçã,Gloeodes pomigena,Fuligem
-Lepidium meyenii,Cruciferae,Maçã,Glomerella cingulata,Podridão amarga
-Lepidium meyenii,Cruciferae,Maçã,Glycine max,soja
-Lepidium meyenii,Cruciferae,Maçã,Gnaphalium pensylvanicum,macela (1); macelinha; macio (1)
-Lepidium meyenii,Cruciferae,Maçã,Gnaphalium spicatum,erva-branca; erva-macia; macela-branca
-Lepidium meyenii,Cruciferae,Maçã,Grapholita molesta,Mariposa-oriental
-Lepidium meyenii,Cruciferae,Maçã,Guadua angustifolia,bambu-taquara; taboca; taquara
-Lepidium meyenii,Cruciferae,Maçã,Hemiberlesia lataniae,Cochonilha-amarela; Cochonilha-do-lenho
-Lepidium meyenii,Cruciferae,Maçã,Hyparrhenia rufa,capim-jaraguá; capim-provisório; capim-vermelho
-Lepidium meyenii,Cruciferae,Maçã,Hypochoeris radicata,almeirão-de-roseta; almeirão-do-campo (1)
-Lepidium meyenii,Cruciferae,Maçã,Hyptis suaveolens,bamburral; betônica-brava (2); cheirosa (2)
-Lepidium meyenii,Cruciferae,Maçã,Imperata brasiliensis,capim-agreste (2); capim-massapé; capim-sapé
-Lepidium meyenii,Cruciferae,Maçã,Indigofera hirsuta,anil (1); anil-roxo; anileira (1)
-Lepidium meyenii,Cruciferae,Maçã,Ipomoea acuminata,Corda-de-viola
-Lepidium meyenii,Cruciferae,Maçã,Ipomoea aristolochiaefolia,campainha (1); corda-de-viola (1); corriola (1)
-Lepidium meyenii,Cruciferae,Maçã,Ipomoea grandifolia,campainha (5); corda-de-viola (5); corriola (4)
-Lepidium meyenii,Cruciferae,Maçã,Ipomoea indivisa,campainha (7); corda-de-viola (8); corriola (6)
-Lepidium meyenii,Cruciferae,Maçã,Ipomoea nil,amarra-amarra (2); campainha (8); corda-de-viola (9)
-Lepidium meyenii,Cruciferae,Maçã,Ipomoea purpurea,campainha (9); corda-de-viola (10); corriola (8)
-Lepidium meyenii,Cruciferae,Maçã,Ipomoea quamoclit,cardeal; corda-de-viola (16); esqueleto
-Lepidium meyenii,Cruciferae,Maçã,Ipomoea sp.,
-Lepidium meyenii,Cruciferae,Maçã,Ipomoea triloba,Corda de viola; Corriola
-Lepidium meyenii,Cruciferae,Maçã,Leonotis nepetifolia,carda-de-leão; cordão-de-frade; cordão-de-são-francisco (1)
-Lepidium meyenii,Cruciferae,Maçã,Leonurus sibiricus,chá-de-frade; cordão-de-são-francisco (2); erva-macaé
-Lepidium meyenii,Cruciferae,Maçã,Lepidium ruderale,agrião; mastruço (5); mastruço-do-sul
-Lepidium meyenii,Cruciferae,Maçã,Lepidium virginicum,mastruz (1); mastruço (2); mentrusto (1)
-Lepidium meyenii,Cruciferae,Maçã,Lolium multiflorum,azevém; azevém-anual; azevém-italiano
-Lepidium meyenii,Cruciferae,Maçã,Luziola peruviana,arrozinho; grama-boiadeira; pastinho-d´água
-Lepidium meyenii,Cruciferae,Maçã,Malvastrum coromandelianum,guanxuma (1); guaxima (2); malvastro
-Lepidium meyenii,Cruciferae,Maçã,Medicago sativa,alfafa; alfafa-verdadeira
-Lepidium meyenii,Cruciferae,Maçã,Melinis minutiflora,capim-catingueiro; capim-gordo; capim-gordura
-Lepidium meyenii,Cruciferae,Maçã,Mikania cordifolia,cipó-cabeludo; erva-de-cobra; erva-de-sapo
-Lepidium meyenii,Cruciferae,Maçã,Monilinia fructicola,Podridão-parda
-Lepidium meyenii,Cruciferae,Maçã,Murdannia nudiflora,trapoeraba (4); trapoerabinha
-Lepidium meyenii,Cruciferae,Maçã,Neofabraea perennans,Podridão Olho de Boi
-Lepidium meyenii,Cruciferae,Maçã,Neonectria galligena,CANCRO EUROPEU
-Lepidium meyenii,Cruciferae,Maçã,Nicandra physaloides,balão; bexiga; joá-de-capote (1)
-Lepidium meyenii,Cruciferae,Maçã,Oryza sativa,arroz; arroz-preto; arroz-vermelho
-Lepidium meyenii,Cruciferae,Maçã,Oxalis oxyptera,azedinha (4); trevo (2)
-Lepidium meyenii,Cruciferae,Maçã,Panicum cayennense,capim-branco (3); capim-caiana; penacho
-Lepidium meyenii,Cruciferae,Maçã,Panicum maximum,capim-coloninho (1); capim-colonião; capim-guiné
-Lepidium meyenii,Cruciferae,Maçã,Panonychus ulmi,Ácaro-da-macieira; Ácaro-vermelho-europeu
-Lepidium meyenii,Cruciferae,Maçã,Parthenium hysterophorus,coentro-do-mato; fazendeiro (1); losna-branca
-Lepidium meyenii,Cruciferae,Maçã,Paspalum conjugatum,capim-azedo; capim-forquilha; capim-marreca
-Lepidium meyenii,Cruciferae,Maçã,Paspalum conspersum,capim-de-mula; capim-do-brejo; capim-guaçu
-Lepidium meyenii,Cruciferae,Maçã,Paspalum dilatatum,capim-comprido; capim-melado; grama-comprida
-Lepidium meyenii,Cruciferae,Maçã,Paspalum maritimum,capim-gengibre; capim-gengibrão; capim-jacaré
-Lepidium meyenii,Cruciferae,Maçã,Paspalum notatum,capim-bahia; capim-batatais; grama-batatais
-Lepidium meyenii,Cruciferae,Maçã,Paspalum paniculatum,capim-da-guiné; capim-de-burro (2); grama-da-guiné
-Lepidium meyenii,Cruciferae,Maçã,Paspalum urvillei,capim-da-roça (1); capim-das-estradas; milhã-grande
-Lepidium meyenii,Cruciferae,Maçã,Penicillium expansum,Bolor-azul
-Lepidium meyenii,Cruciferae,Maçã,Penicillium sp,Podridão pós-colheita
-Lepidium meyenii,Cruciferae,Maçã,Pennisetum americanum,milheto
-Lepidium meyenii,Cruciferae,Maçã,Pennisetum clandestinum,capim-kikuio; kikuyo; quicuio
-Lepidium meyenii,Cruciferae,Maçã,Pennisetum purpureum,capim-cameroon; capim-elefante; capim-napier
-Lepidium meyenii,Cruciferae,Maçã,Pennisetum setosum,capim-avião; capim-custódio; capim-mandante
-Lepidium meyenii,Cruciferae,Maçã,Phyllanthus niruri,arrebenta-pedra (2); erva-pombinha (2); fura-parede
-Lepidium meyenii,Cruciferae,Maçã,Phyllanthus tenellus,arrebenta-pedra (1); erva-pombinha (1); quebra-pedra (1)
-Lepidium meyenii,Cruciferae,Maçã,Phytophthora cactorum,Podridão-da-raiz; Podridão-do-colo
-Lepidium meyenii,Cruciferae,Maçã,Pinnaspis aspidistrae,Cochonilha-escama-farinha
-Lepidium meyenii,Cruciferae,Maçã,Plantago major,plantagem (1); tanchagem (2); tanchagem-maior
-Lepidium meyenii,Cruciferae,Maçã,Plantago tomentosa,plantagem (3); tanchagem (1)
-Lepidium meyenii,Cruciferae,Maçã,Podosphaera leucotricha,Oídio
-Lepidium meyenii,Cruciferae,Maçã,Polygonum persicaria,cataia; erva-de-bicho (4); persicaria-de-pé-vermelho
-Lepidium meyenii,Cruciferae,Maçã,Portulaca oleracea,beldroega; bredo-de-porco; ora-pro-nobis
-Lepidium meyenii,Cruciferae,Maçã,Pseudaulacaspis pentagona,Cochonilha-branca; Cochonilha-do-lenho
-Lepidium meyenii,Cruciferae,Maçã,Pteridium aquilinum,pluma-grande; samambaia; samambaia-das-taperas
-Lepidium meyenii,Cruciferae,Maçã,Pterocaulon virgatum,barbasco; branqueja; calça-de-velho
-Lepidium meyenii,Cruciferae,Maçã,Quadraspidiotus perniciosus,Cochonilha; Piolho-de-são-josé
-Lepidium meyenii,Cruciferae,Maçã,Raphanus raphanistrum,nabiça (1); nabo (1); nabo-bravo
-Lepidium meyenii,Cruciferae,Maçã,Raphanus sativus,nabiça (2); nabo (2); rabanete
-Lepidium meyenii,Cruciferae,Maçã,Rhynchelytrum repens,capim-favorito; capim-gafanhoto; capim-molambo
-Lepidium meyenii,Cruciferae,Maçã,Richardia brasiliensis,poaia; poaia-branca; poaia-do-campo (2)
-Lepidium meyenii,Cruciferae,Maçã,Rosellinia necatrix,Podridão-de-raízes
-Lepidium meyenii,Cruciferae,Maçã,Rumex crispus,azeda-crespa; lígua-de-vaca-crespa; língua-de-vaca (1)
-Lepidium meyenii,Cruciferae,Maçã,Rumex obtusifolius,labaça; língua-de-vaca (2)
-Lepidium meyenii,Cruciferae,Maçã,Saccharum officinarum,cana-de-açucar
-Lepidium meyenii,Cruciferae,Maçã,Schizothyrium pomi,Sujeira-de-mosca
-Lepidium meyenii,Cruciferae,Maçã,Senecio brasiliensis,flor-das-almas; flor-de-finados; maria-mole (2)
-Lepidium meyenii,Cruciferae,Maçã,Senna obtusifolia,fedegoso-branco; mata-pasto (5); mata-pasto-liso
-Lepidium meyenii,Cruciferae,Maçã,Senna occidentalis,fedegoso; mamangá; manjerioba
-Lepidium meyenii,Cruciferae,Maçã,Setaria geniculata,bambuzinho; capim-rabo-de-gato (1); capim-rabo-de-raposa (1)
-Lepidium meyenii,Cruciferae,Maçã,Setaria poiretiana,capim-canoão; capim-jiriva; capim-leque
-Lepidium meyenii,Cruciferae,Maçã,Sida cordifolia,guanxuma (2); malva (1); malva-branca (1)
-Lepidium meyenii,Cruciferae,Maçã,Sida glaziovii,guanxuma-branca; malva-guaxima; mata-pasto (3)
-Lepidium meyenii,Cruciferae,Maçã,Sida rhombifolia,guanxuma (3); mata-pasto (4); relógio (1)
-Lepidium meyenii,Cruciferae,Maçã,Solanum americanum,erva-de-bicho (1); erva-moura; maria-pretinha
-Lepidium meyenii,Cruciferae,Maçã,Solanum paniculatum,gerobeba; jupeba; jurubeba (2)
-Lepidium meyenii,Cruciferae,Maçã,Solidago chilensis,arnica-do-brasil; erva-lanceta; espiga-de-ouro
-Lepidium meyenii,Cruciferae,Maçã,Sonchus oleraceus,chicória-brava; serralha; serralha-lisa
-Lepidium meyenii,Cruciferae,Maçã,Sorghum arundinaceum,falso-massambará; sorgo-selvagem
-Lepidium meyenii,Cruciferae,Maçã,Sorghum bicolor,sorgo
-Lepidium meyenii,Cruciferae,Maçã,Sorghum halepense,capim-argentino; capim-cevada; capim-massambará
-Lepidium meyenii,Cruciferae,Maçã,Spergula arvensis,esparguta (1); espérgula; gorga (2)
-Lepidium meyenii,Cruciferae,Maçã,Spermacoce alata,erva-de-lagarto (1); erva-quente (1); perpetua-do-mato (1)
-Lepidium meyenii,Cruciferae,Maçã,Spermacoce latifolia,erva-de-lagarto (2); erva-quente (2); perpetua-do-mato (2)
-Lepidium meyenii,Cruciferae,Maçã,Stachys arvensis,hortelã-das-raças (1); hortelã-das-roças (3); orelha-de-urso (1)
-Lepidium meyenii,Cruciferae,Maçã,Sternocolaspis quatuordecimcostata,Besouro-de-limeira
-Lepidium meyenii,Cruciferae,Maçã,Synedrellopsis grisebachii,agrião-do-pasto; agriãozinho; poejinho
-Lepidium meyenii,Cruciferae,Maçã,Tagetes minuta,cravo-de-defunto (2); cravo-do-mato; rabo-de-foguete (2)
-Lepidium meyenii,Cruciferae,Maçã,Talinum paniculatum,bunda-mole; bênção-de-deus; lígua-de-vaca
-Lepidium meyenii,Cruciferae,Maçã,Taraxacum officinale,amargosa; dente-de-leão; dente-de-leão-dos-jardins
-Lepidium meyenii,Cruciferae,Maçã,Thalia geniculata,arumarana; caeté; paquiviri
-Lepidium meyenii,Cruciferae,Maçã,Trema micrantha,crindiúva; grandiúva; pau-pólvora
-Lepidium meyenii,Cruciferae,Maçã,Tridax procumbens,erva-de-touro
-Lepidium meyenii,Cruciferae,Maçã,Trifolium repens,flor-de-primavera; trevo (3); trevo-branco
-Lepidium meyenii,Cruciferae,Maçã,Triticum aestivum,trigo
-Lepidium meyenii,Cruciferae,Maçã,Urochloa decumbens,Capim-Braquiária
-Lepidium meyenii,Cruciferae,Maçã,Venturia inaequalis,Sarna; Sarna-da-macieira
-Lepidium meyenii,Cruciferae,Maçã,Vernonia ferruginea,assa-peixe (1); assa-peixe-de-santana; assa-peixe-do-pará
-Lepidium meyenii,Cruciferae,Maçã,Vicia sativa,avica; ervilhaca
-Lepidium meyenii,Cruciferae,Maçã,Xanthium strumarium,carrapicho-bravo (2); carrapicho-de-carneiro (2); carrapicho-grande (2)
-Lepidium meyenii,Cruciferae,Maçã,Zea mays,milho
-Lepidium meyenii,Cruciferae,Maçã,indigosfera hirsuta,Anileira
 Citrullus lanatus,Cucurbitaceae,Melancia,Acidovorax avenae subsp. citrulli,Mancha-aquosa da melancia
 Citrullus lanatus,Cucurbitaceae,Melancia,Agrotis ipsilon,Lagarta-rosca
 Citrullus lanatus,Cucurbitaceae,Melancia,Alternanthera tenella,apaga-fogo (2); corrente; periquito (2)
@@ -10516,34 +9594,6 @@ Zea mays,Gramineae,Milho OGM,Spermacoce latifolia,erva-de-lagarto (2); erva-quen
 Zea mays,Gramineae,Milho OGM,Urochloa decumbens,Capim-Braquiária
 Zea mays,Gramineae,Milho OGM,Xanthium strumarium,carrapicho-bravo (2); carrapicho-de-carneiro (2); carrapicho-grande (2)
 Zea mays,Gramineae,Milho OGM,Zea mays,milho
-Vaccinium myrtillus,Ericaceae,Mirtilo,Alternaria tenuissima,Mancha-de-alternaria
-Vaccinium myrtillus,Ericaceae,Mirtilo,Aphis gossypii,Pulgão-das-inflorescências
-Vaccinium myrtillus,Ericaceae,Mirtilo,Armillaria spp.,Podridão-radicular
-Vaccinium myrtillus,Ericaceae,Mirtilo,Botrytis cinerea,Mofo - Cinzento
-Vaccinium myrtillus,Ericaceae,Mirtilo,Botrytis sp.,Mofo cinzento
-Vaccinium myrtillus,Ericaceae,Mirtilo,Cercospora spp.,Cercosporiose; Mancha-de-Cercospora
-Vaccinium myrtillus,Ericaceae,Mirtilo,Colletotrichum acutatum,Antracnose
-Vaccinium myrtillus,Ericaceae,Mirtilo,Colletotrichum gloeosporioides,Antracnose
-Vaccinium myrtillus,Ericaceae,Mirtilo,Diabrotica speciosa,Larva-Alfinete
-Vaccinium myrtillus,Ericaceae,Mirtilo,Drosophila suzukii,Drosófila
-Vaccinium myrtillus,Ericaceae,Mirtilo,Mycosphaerella fragariae,Mancha-de-Mycosphaerella; Mancha-foliar
-Vaccinium myrtillus,Ericaceae,Mirtilo,Myzus persicae,Pulgão-verde
-Vaccinium myrtillus,Ericaceae,Mirtilo,Phomopsis obscurans,Crestamento-das-folhas ; Mancha-de-Dendrophoma
-Vaccinium myrtillus,Ericaceae,Mirtilo,Podosphaera spp.,-
-Vaccinium myrtillus,Ericaceae,Mirtilo,Pucciniastrum vaccinii,ferrugem do mirtilo
-Vaccinium myrtillus,Ericaceae,Mirtilo,Spodoptera eridania,Lagarta-das-folhas
-Vaccinium myrtillus,Ericaceae,Mirtilo,Spodoptera frugiperda,Lagarta militar
-Vaccinium myrtillus,Ericaceae,Mirtilo,Tetranychus cinnabarinus,Ácaro-vermelho
-Vaccinium myrtillus,Ericaceae,Mirtilo,Tetranychus urticae,Ácaro rajado
-Vaccinium myrtillus,Ericaceae,Mirtilo,Tolype innocens,Lagarta- urticante
-Afzelia africana,Leguminosae,Mogno Africano,Amaranthus hybridus,bredo (3); caruru-branco; caruru-roxo
-Afzelia africana,Leguminosae,Mogno Africano,Brachiaria brizantha,braquiarão; braquiária-brizanta; braquiária-do-alto
-Afzelia africana,Leguminosae,Mogno Africano,Brachiaria decumbens,braquiária; braquiária-decumbens; capim-braquiária
-Afzelia africana,Leguminosae,Mogno Africano,Conyza bonariensis,arranha-gato (1); buva; rabo-de-foguete (1)
-Afzelia africana,Leguminosae,Mogno Africano,Digitaria horizontalis,capim-colchão (1); capim-de-roça; capim-milhã (2)
-Afzelia africana,Leguminosae,Mogno Africano,Digitaria insularis,capim amargoso; capim açu; capim flexa
-Afzelia africana,Leguminosae,Mogno Africano,Panicum maximum,capim-coloninho (1); capim-colonião; capim-guiné
-Afzelia africana,Leguminosae,Mogno Africano,Sida rhombifolia,guanxuma (3); mata-pasto (4); relógio (1)
 Fragaria x ananassa,Rosaceae,Morango,Amaranthus hybridus,bredo (3); caruru-branco; caruru-roxo
 Fragaria x ananassa,Rosaceae,Morango,Amaranthus viridis,bredo (1); caruru (2); caruru-de-mancha
 Fragaria x ananassa,Rosaceae,Morango,Aphis gossypii,Pulgão-do-algodoeiro
@@ -12014,132 +11064,6 @@ Brassica oleracea var. capitata,Cruciferae,Repolho,Trichoplusia ni,Falsa-medidei
 Brassica oleracea var. capitata,Cruciferae,Repolho,Triticum aestivum,trigo
 Brassica oleracea var. capitata,Cruciferae,Repolho,Urtica circularis,ortiga; queimadeira; urtiga
 Brassica oleracea var. capitata,Cruciferae,Repolho,Zea mays,milho
-Punica granatum,Punicaceae,Romã,Acanthospermum australe,carrapichinho (1); carrapicho-rasteiro; maroto
-Punica granatum,Punicaceae,Romã,Acanthospermum hispidum,carrapicho-de-carneiro (1); chifre-de-veado; espinho-de-carneiro (1)
-Punica granatum,Punicaceae,Romã,Ageratum conyzoides,catinga-de-bode; erva-de-são-joão (1); mentrasto
-Punica granatum,Punicaceae,Romã,Alternanthera tenella,apaga-fogo (2); corrente; periquito (2)
-Punica granatum,Punicaceae,Romã,Alternaria alternata,Mancha-de-alternaria
-Punica granatum,Punicaceae,Romã,Alternaria spp.,Coração-negro
-Punica granatum,Punicaceae,Romã,Amaranthus deflexus,bredo (2); bredo-rasteiro; caruru (1)
-Punica granatum,Punicaceae,Romã,Amaranthus hybridus,bredo (3); caruru-branco; caruru-roxo
-Punica granatum,Punicaceae,Romã,Amaranthus spinosus,bredo-branco; bredo-de-espinho; caruru-de-espinho
-Punica granatum,Punicaceae,Romã,Amaranthus viridis,bredo (1); caruru (2); caruru-de-mancha
-Punica granatum,Punicaceae,Romã,Anastrepha fraterculus,Mosca - sul- americana
-Punica granatum,Punicaceae,Romã,Anastrepha obliqua,mosca-das-indias-ocidentais
-Punica granatum,Punicaceae,Romã,Andropogon bicornis,capim-de-bezerra; capim-peba; capim-rabo-de-burro
-Punica granatum,Punicaceae,Romã,Aonidiella comperei,Cochonilha
-Punica granatum,Punicaceae,Romã,Aphis gossypii,pulgão-do-algodão
-Punica granatum,Punicaceae,Romã,Asperisporium caricae,-
-Punica granatum,Punicaceae,Romã,Aulacaspis tubercularis,Cochonilha branca
-Punica granatum,Punicaceae,Romã,Avena sativa,aveia
-Punica granatum,Punicaceae,Romã,Bactrocera carambolae,Mosca da carambola
-Punica granatum,Punicaceae,Romã,Bemisia tabaci,Mosca-branca
-Punica granatum,Punicaceae,Romã,Bemisia tabaci raça B,Mosca branca
-Punica granatum,Punicaceae,Romã,Bidens pilosa,fura-capa; pico-pico; picão (1)
-Punica granatum,Punicaceae,Romã,Brachiaria decumbens,braquiária; braquiária-decumbens; capim-braquiária
-Punica granatum,Punicaceae,Romã,Brachiaria mutica,capim-angola; capim-branco (1); capim-de-planta
-Punica granatum,Punicaceae,Romã,Brachiaria plantaginea,capim-marmelada (1); capim-papuã; capim-são-paulo
-Punica granatum,Punicaceae,Romã,Brachiaria subquadripara,tanner-grass; tenner-grass
-Punica granatum,Punicaceae,Romã,Brassica rapa,colza; mostarda (3); mostarda-selvagem
-Punica granatum,Punicaceae,Romã,Cenchrus echinatus,
-Punica granatum,Punicaceae,Romã,Cenchrus echinatus,capim-amoroso; capim-carrapicho; capim-roseta
-Punica granatum,Punicaceae,Romã,Ceratitis capitata,Mosca do mediterâneo
-Punica granatum,Punicaceae,Romã,Cercospora punicae,-
-Punica granatum,Punicaceae,Romã,Chamaesyce hirta,erva-andorinha (2); erva-de-cobre; erva-de-sangue
-Punica granatum,Punicaceae,Romã,Chamaesyce hyssopifolia,burra-leiteira; erva-andorinha (1); erva-de-santa luzia (1)
-Punica granatum,Punicaceae,Romã,Chamaesyce prostrata,beldroega-pequena; erva-de-santa-luzia (3); quebra-pedra (3)
-Punica granatum,Punicaceae,Romã,Chenopodium ambrosioides,anserina-vermífuga; erva-de-santa-maria; mastruço (4)
-Punica granatum,Punicaceae,Romã,Chloris pycnothrix,capim-cebola; capim-fino (2); capim-pé-de-galinha (2)
-Punica granatum,Punicaceae,Romã,Chloris retusa,capim-coqueirinho
-Punica granatum,Punicaceae,Romã,Colletotrichum gloeosporioides,Antracnose
-Punica granatum,Punicaceae,Romã,Commelina benghalensis,marianinha (1); mata-brasil (1); trapoeraba (1)
-Punica granatum,Punicaceae,Romã,Conyza bonariensis,arranha-gato (1); buva; rabo-de-foguete (1)
-Punica granatum,Punicaceae,Romã,Cryptoblabes gnidiella,Traça dos cachos
-Punica granatum,Punicaceae,Romã,Cynodon dactylon,capim-da-cidade; capim-de-burro (1); grama-bermuda
-Punica granatum,Punicaceae,Romã,Cyperus flavus,junquinho (4); junça (4); tiririca (4)
-Punica granatum,Punicaceae,Romã,Cyperus rotundus,alho; capim-dandá; junça-aromática
-Punica granatum,Punicaceae,Romã,Cyperus sesquiflorus,capim-de-cheiro (1); capim-santo; junquinho (9)
-Punica granatum,Punicaceae,Romã,Desmodium tortuosum,carrapicho (4); carrapicho-beiço-de-boi (2); desmodio
-Punica granatum,Punicaceae,Romã,Dichondra microcalyx,cobre-verde; corriola (13); dinheiro-em-penca
-Punica granatum,Punicaceae,Romã,Digitaria decumbens,capim-colchão (4); capim-das-hortas; capim-das-roças (1)
-Punica granatum,Punicaceae,Romã,Digitaria horizontalis,capim-colchão (1); capim-de-roça; capim-milhã (2)
-Punica granatum,Punicaceae,Romã,Digitaria insularis,capim amargoso; capim açu; capim flexa
-Punica granatum,Punicaceae,Romã,Digitaria sanguinalis,capim-colchão (2); capim-das-roças (2); milhã (1)
-Punica granatum,Punicaceae,Romã,Diodia ocimifolia,diodia; poaia-do-campo (3)
-Punica granatum,Punicaceae,Romã,Ecdytolopha aurantiana,Bicho-furão
-Punica granatum,Punicaceae,Romã,Echinochloa crusgalli,capim-arroz (2); capim-canevão; capim-jaú
-Punica granatum,Punicaceae,Romã,Echinochloa cruspavonis,canevão; capim-arroz (3); capim-jaú (2)
-Punica granatum,Punicaceae,Romã,Eleusine indica,capim-da-cidade (2); capim-de-pomar; capim-pé-de-galinha (1)
-Punica granatum,Punicaceae,Romã,Emilia sonchifolia,bela-emilia; falsa-serralha; pincel
-Punica granatum,Punicaceae,Romã,Empoasca kraemeri,Cigarrinha-verde
-Punica granatum,Punicaceae,Romã,Eragrostis pilosa,capim-barbicha-de-alemão; capim-mimoso (2); capim-orvalho
-Punica granatum,Punicaceae,Romã,Erysiphe polygoni,Oídio
-Punica granatum,Punicaceae,Romã,Euphorbia heterophylla,amendoim-bravo; café-do-diabo; flor-de-poetas
-Punica granatum,Punicaceae,Romã,Frankliniella schultzei,Tripes
-Punica granatum,Punicaceae,Romã,Galinsoga parviflora,botão-de-ouro (3); fazendeiro (2); picão-branco (1)
-Punica granatum,Punicaceae,Romã,Glomerella cingulata,Antracnose
-Punica granatum,Punicaceae,Romã,Gnaphalium spicatum,erva-branca; erva-macia; macela-branca
-Punica granatum,Punicaceae,Romã,Gymnandrosoma aurantianum,Bicho-furão
-Punica granatum,Punicaceae,Romã,Hyparrhenia rufa,capim-jaraguá; capim-provisório; capim-vermelho
-Punica granatum,Punicaceae,Romã,Imperata brasiliensis,capim-agreste (2); capim-massapé; capim-sapé
-Punica granatum,Punicaceae,Romã,Ipomoea aristolochiaefolia,campainha (1); corda-de-viola (1); corriola (1)
-Punica granatum,Punicaceae,Romã,Ipomoea nil,amarra-amarra (2); campainha (8); corda-de-viola (9)
-Punica granatum,Punicaceae,Romã,Ipomoea quamoclit,cardeal; corda-de-viola (16); esqueleto
-Punica granatum,Punicaceae,Romã,Lasiodiplodia theobromae,podridão da raiz
-Punica granatum,Punicaceae,Romã,Leonurus sibiricus,chá-de-frade; cordão-de-são-francisco (2); erva-macaé
-Punica granatum,Punicaceae,Romã,Lepidium virginicum,mastruz (1); mastruço (2); mentrusto (1)
-Punica granatum,Punicaceae,Romã,Leptoglossus gonagra,Percevejo-escuro
-Punica granatum,Punicaceae,Romã,Lolium multiflorum,azevém; azevém-anual; azevém-italiano
-Punica granatum,Punicaceae,Romã,Melinis minutiflora,capim-catingueiro; capim-gordo; capim-gordura
-Punica granatum,Punicaceae,Romã,Mikania cordifolia,cipó-cabeludo; erva-de-cobra; erva-de-sapo
-Punica granatum,Punicaceae,Romã,Myzus persicae,Pulgão-verde
-Punica granatum,Punicaceae,Romã,Nicandra physaloides,balão; bexiga; joá-de-capote (1)
-Punica granatum,Punicaceae,Romã,Oidium caricae,Oídio
-Punica granatum,Punicaceae,Romã,Oidium mangiferae,Oídio
-Punica granatum,Punicaceae,Romã,Orthezia praelonga,Cochonilha
-Punica granatum,Punicaceae,Romã,Oryza sativa,arroz; arroz-preto; arroz-vermelho
-Punica granatum,Punicaceae,Romã,Ovulariopsis papayae,Oídio
-Punica granatum,Punicaceae,Romã,Oxalis oxyptera,azedinha (4); trevo (2)
-Punica granatum,Punicaceae,Romã,Panicum maximum,capim-coloninho (1); capim-colonião; capim-guiné
-Punica granatum,Punicaceae,Romã,Parthenium hysterophorus,coentro-do-mato; fazendeiro (1); losna-branca
-Punica granatum,Punicaceae,Romã,Paspalum conjugatum,capim-azedo; capim-forquilha; capim-marreca
-Punica granatum,Punicaceae,Romã,Paspalum conspersum,capim-de-mula; capim-do-brejo; capim-guaçu
-Punica granatum,Punicaceae,Romã,Paspalum notatum,capim-bahia; capim-batatais; grama-batatais
-Punica granatum,Punicaceae,Romã,Paspalum paniculatum,capim-da-guiné; capim-de-burro (2); grama-da-guiné
-Punica granatum,Punicaceae,Romã,Paspalum urvillei,capim-da-roça (1); capim-das-estradas; milhã-grande
-Punica granatum,Punicaceae,Romã,Pennisetum clandestinum,capim-kikuio; kikuyo; quicuio
-Punica granatum,Punicaceae,Romã,Pennisetum purpureum,capim-cameroon; capim-elefante; capim-napier
-Punica granatum,Punicaceae,Romã,Pennisetum setosum,capim-avião; capim-custódio; capim-mandante
-Punica granatum,Punicaceae,Romã,Phyllanthus niruri,arrebenta-pedra (2); erva-pombinha (2); fura-parede
-Punica granatum,Punicaceae,Romã,Phyllanthus tenellus,arrebenta-pedra (1); erva-pombinha (1); quebra-pedra (1)
-Punica granatum,Punicaceae,Romã,Phyllocoptruta oleivora,Ácaro da falsa ferrugem
-Punica granatum,Punicaceae,Romã,Phytophthora cinnamomi,Podridão-das-raízes
-Punica granatum,Punicaceae,Romã,Phytophthora palmivora,Podridão-parda
-Punica granatum,Punicaceae,Romã,Podosphaera spp.,-
-Punica granatum,Punicaceae,Romã,Polyphagotarsonemus latus,Ácaro branco
-Punica granatum,Punicaceae,Romã,Portulaca oleracea,beldroega; bredo-de-porco; ora-pro-nobis
-Punica granatum,Punicaceae,Romã,Pseudocercospora punicae,Cercosporiose-da-romã
-Punica granatum,Punicaceae,Romã,Pteridium aquilinum,pluma-grande; samambaia; samambaia-das-taperas
-Punica granatum,Punicaceae,Romã,Raphanus raphanistrum,nabiça (1); nabo (1); nabo-bravo
-Punica granatum,Punicaceae,Romã,Rhynchelytrum repens,capim-favorito; capim-gafanhoto; capim-molambo
-Punica granatum,Punicaceae,Romã,Richardia brasiliensis,poaia; poaia-branca; poaia-do-campo (2)
-Punica granatum,Punicaceae,Romã,Saccharum officinarum,cana-de-açucar
-Punica granatum,Punicaceae,Romã,Saissetia oleae,Cochonilha parda
-Punica granatum,Punicaceae,Romã,Selenothrips rubrocinctus,Tripes-do-cacaueiro
-Punica granatum,Punicaceae,Romã,Senecio brasiliensis,flor-das-almas; flor-de-finados; maria-mole (2)
-Punica granatum,Punicaceae,Romã,Sida cordifolia,guanxuma (2); malva (1); malva-branca (1)
-Punica granatum,Punicaceae,Romã,Sida glaziovii,guanxuma-branca; malva-guaxima; mata-pasto (3)
-Punica granatum,Punicaceae,Romã,Sida rhombifolia,guanxuma (3); mata-pasto (4); relógio (1)
-Punica granatum,Punicaceae,Romã,Solanum americanum,erva-de-bicho (1); erva-moura; maria-pretinha
-Punica granatum,Punicaceae,Romã,Solanum paniculatum,gerobeba; jupeba; jurubeba (2)
-Punica granatum,Punicaceae,Romã,Sonchus oleraceus,chicória-brava; serralha; serralha-lisa
-Punica granatum,Punicaceae,Romã,Sorghum halepense,capim-argentino; capim-cevada; capim-massambará
-Punica granatum,Punicaceae,Romã,Spermacoce latifolia,erva-de-lagarto (2); erva-quente (2); perpetua-do-mato (2)
-Punica granatum,Punicaceae,Romã,Sphaceloma punicae,Sarna
-Punica granatum,Punicaceae,Romã,Sphaerotheca fuliginea,Oídio
-Punica granatum,Punicaceae,Romã,Tetranychus urticae,Ácaro rajado
-Punica granatum,Punicaceae,Romã,Zea mays,milho
-Punica granatum,Punicaceae,Romã,Zeuzera pyrina,Traça
 Eruca sativa,Cruciferae,Rúcula,Agrotis ipsilon,Lagarta rosca
 Eruca sativa,Cruciferae,Rúcula,Alternaria brassicae,Mancha-de-Alternaria; Mancha-preta
 Eruca sativa,Cruciferae,Rúcula,Amaranthus viridis,bredo (1); caruru (2); caruru-de-mancha

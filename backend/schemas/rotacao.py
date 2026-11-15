@@ -194,3 +194,23 @@ class EcoCropLookupResponse(BaseModel):
     query: str
     found: bool
     crop: Optional[EcoCropProfileResponse] = None
+
+
+class CulturaCatalogoItem(BaseModel):
+    id: str
+    scientific_name: str
+    official_name: str
+    popular_names: List[str] = Field(default_factory=list)
+    family: Optional[str] = None
+    cat: Optional[str] = None
+    gmin: Optional[int] = None
+    gmax: Optional[int] = None
+    image_url: Optional[str] = None
+
+
+class PragaCatalogoItem(BaseModel):
+    id: str
+    official_name: str
+    popular_names: List[str] = Field(default_factory=list)
+    scientific_name: Optional[str] = None
+    category: str = "Praga / Doença"
