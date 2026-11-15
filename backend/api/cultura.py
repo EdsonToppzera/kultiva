@@ -9,11 +9,13 @@ from backend.schemas.rotacao import (
     CulturaCreate,
     CulturaResponse,
     CulturaUpdate,
+    EcoCropLookupResponse,
     GAEZAptidaoResponse,
     RotacaoCreate,
     RotacaoResponse,
     RotacaoUpdate,
 )
+from backend.services.ecocrop_service import EcoCropDataProvider
 from backend.services.gaez_service import GAEZDataProvider
 
 router = APIRouter(prefix="/culturas", tags=["Culturas (Catálogo M2)"])
@@ -77,6 +79,11 @@ def _validar_terreno_opcional(terreno_id: Optional[int], db: Session) -> None:
 def get_gaez_provider() -> GAEZDataProvider:
     """Provedor de dependência para o cliente direto do FAO GAEZ v5."""
     return GAEZDataProvider(data_path="data")
+
+
+def get_ecocrop_provider() -> EcoCropDataProvider:
+    """Provedor de dependência para o cliente direto da base FAO ECOCROP."""
+    return EcoCropDataProvider(data_path="data")
 
 
 @router.get("/aptidao-gaez", response_model=GAEZAptidaoResponse)
@@ -197,6 +204,48 @@ def consultar_aptidao_gaez(
         "culturas_avaliadas": culturas_ordenadas,
         "culturas_sincronizadas": culturas_sincronizadas,
     }
+
+
+@router.get("/ecocrop", response_model=EcoCropLookupResponse)
+def consultar_ecocrop(
+    q: Optional[str] = Query(default=None, description="Nome popular, científico ou código GAEZ/EcoPort"),
+    nome: Optional[str] = Query(default=None),
+    scientific_name: Optional[str] = Query(default=None),
+    crop_code: Optional[str] = Query(default=None),
+    ecoport_code: Optional[str] = Query(default=None),
+    cultura_id: Optional[int] = Query(default=None, gt=0),
+    db: Session = Depends(get_db),
+    ecocrop_provider: Any = Depends(get_ecocrop_provider),
+):
+    """
+    Consulta diretamente a zona de conforto climático (TMIN/TMAX, TOPMIN/TOPMAX,
+    RMIN/RMAX, GMIN/GMAX) e taxonomia (Scientific Name e Family) na base FAO ECOCROP.
+    """
+    termo = ecoport_code or scientific_name or crop_code or nome or q
+    if not termo and cultura_id is not None:
+        cultura_db = _obter_cultura_ou_404(cultura_id, db)
+        termo = cultura_db.nome
+
+    if not termo or not str(termo).strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Informe 'q', 'scientific_name', 'crop_code', 'ecoport_code', 'nome' ou 'cultura_id'.",
+        )
+
+    res = ecocrop_provider.lookup_crop(str(termo).strip())
+    if not isinstance(res, dict) or res.get("data_quality") == "no_data":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Não foi possível consultar os dados da base ECOCROP.",
+        )
+
+    if not res.get("found") or res.get("crop") is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Cultura '{termo}' não encontrada na base ECOCROP.",
+        )
+
+    return res
 
 
 @router.get("/", response_model=List[CulturaResponse])

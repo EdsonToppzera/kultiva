@@ -25,6 +25,7 @@ GAEZ_SUITABILITY_CROPS: dict[str, dict[str, Any]] = {
     "MZE": {
         "crop_code": "MZE",
         "gaez_caption": "Maize",
+        "scientific_name": "Zea mays",
         "nome": "Milho",
         "aliases": ["milho", "maize"],
         "group": "graminea",
@@ -39,6 +40,7 @@ GAEZ_SUITABILITY_CROPS: dict[str, dict[str, Any]] = {
     "CSV": {
         "crop_code": "CSV",
         "gaez_caption": "Cassava",
+        "scientific_name": "Manihot esculenta",
         "nome": "Mandioca",
         "aliases": ["mandioca", "macaxeira", "aipim", "cassava"],
         "group": "tuberculo",
@@ -53,6 +55,7 @@ GAEZ_SUITABILITY_CROPS: dict[str, dict[str, Any]] = {
     "COW": {
         "crop_code": "COW",
         "gaez_caption": "Cowpea",
+        "scientific_name": "Vigna unguiculata",
         "nome": "Feijão-caupi",
         "aliases": [
             "feijao-caupi",
@@ -76,6 +79,7 @@ GAEZ_SUITABILITY_CROPS: dict[str, dict[str, Any]] = {
     "PHB": {
         "crop_code": "PHB",
         "gaez_caption": "Phaseolus bean",
+        "scientific_name": "Phaseolus vulgaris",
         "nome": "Feijão-carioca",
         "aliases": [
             "feijao-carioca",
@@ -96,6 +100,7 @@ GAEZ_SUITABILITY_CROPS: dict[str, dict[str, Any]] = {
     "SRG": {
         "crop_code": "SRG",
         "gaez_caption": "Sorghum",
+        "scientific_name": "Sorghum bicolor",
         "nome": "Sorgo",
         "aliases": ["sorgo", "sorghum", "sorgo forrageiro"],
         "group": "graminea",
@@ -110,6 +115,7 @@ GAEZ_SUITABILITY_CROPS: dict[str, dict[str, Any]] = {
     "PML": {
         "crop_code": "PML",
         "gaez_caption": "Pearl millet",
+        "scientific_name": "Pennisetum glaucum",
         "nome": "Milheto",
         "aliases": ["milheto", "pearl millet"],
         "group": "graminea",
@@ -124,6 +130,7 @@ GAEZ_SUITABILITY_CROPS: dict[str, dict[str, Any]] = {
     "GRD": {
         "crop_code": "GRD",
         "gaez_caption": "Groundnut",
+        "scientific_name": "Arachis hypogaea",
         "nome": "Amendoim",
         "aliases": ["amendoim", "groundnut", "mendubi"],
         "group": "leguminosa",
@@ -138,6 +145,7 @@ GAEZ_SUITABILITY_CROPS: dict[str, dict[str, Any]] = {
     "SOY": {
         "crop_code": "SOY",
         "gaez_caption": "Soybean",
+        "scientific_name": "Glycine max",
         "nome": "Soja",
         "aliases": ["soja", "soybean"],
         "group": "leguminosa",
@@ -152,6 +160,7 @@ GAEZ_SUITABILITY_CROPS: dict[str, dict[str, Any]] = {
     "SPO": {
         "crop_code": "SPO",
         "gaez_caption": "Sweet potato",
+        "scientific_name": "Ipomoea batatas",
         "nome": "Batata-doce",
         "aliases": ["batata-doce", "batata doce", "sweet potato"],
         "group": "tuberculo",
@@ -166,6 +175,7 @@ GAEZ_SUITABILITY_CROPS: dict[str, dict[str, Any]] = {
     "PIG": {
         "crop_code": "PIG",
         "gaez_caption": "Pigeonpea",
+        "scientific_name": "Cajanus cajan",
         "nome": "Crotalária / Guandu",
         "aliases": [
             "crotalaria",
@@ -189,6 +199,7 @@ GAEZ_SUITABILITY_CROPS: dict[str, dict[str, Any]] = {
     "WMEL": {
         "crop_code": "WMEL",
         "gaez_caption": "Watermelon",
+        "scientific_name": "Citrullus lanatus",
         "nome": "Abóbora / Melancia",
         "aliases": ["abobora", "jerimum", "abobora-cabotia", "melancia", "watermelon"],
         "group": "cucurbitacea",
@@ -203,6 +214,7 @@ GAEZ_SUITABILITY_CROPS: dict[str, dict[str, Any]] = {
     "SES": {
         "crop_code": "SES",
         "gaez_caption": "Sesame",
+        "scientific_name": "Sesamum indicum",
         "nome": "Gergelim",
         "aliases": ["gergelim", "sesame"],
         "group": "oleaginosa",
@@ -217,6 +229,7 @@ GAEZ_SUITABILITY_CROPS: dict[str, dict[str, Any]] = {
     "SFL": {
         "crop_code": "SFL",
         "gaez_caption": "Sunflower",
+        "scientific_name": "Helianthus annuus",
         "nome": "Girassol",
         "aliases": ["girassol", "sunflower"],
         "group": "oleaginosa",
@@ -710,6 +723,7 @@ class GAEZDataProvider:
             crops_payload[code] = {
                 "crop_code": code,
                 "gaez_caption": meta["gaez_caption"],
+                "scientific_name": meta.get("scientific_name"),
                 "nome": meta["nome"],
                 "group": meta["group"],
                 "fixes_nitrogen": meta["fixes_nitrogen"],
