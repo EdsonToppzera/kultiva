@@ -14,6 +14,7 @@ import {
   Target,
   TrendingUp,
 } from "lucide-react";
+import { KultivaLoader } from "../../../components/KultivaLoader";
 import { KultivaLogo } from "../../../components/KultivaLogo";
 import { NetworkStatusBadge } from "../../../components/NetworkStatusBadge";
 import { Button } from "../../../components/ui/button";
@@ -159,7 +160,7 @@ function TargetCropCombobox({
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = React.useState("");
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const filteredCrops = useCatalogSearch(
+  const { items: filteredCrops, isLoading } = useCatalogSearch(
     open,
     searchQuery,
     crops,
@@ -264,52 +265,63 @@ function TargetCropCombobox({
             />
 
             <CommandList>
-              <CommandEmpty>
-                {t("onboarding.priorities.targetCropEmpty", {
-                  query: searchQuery,
-                })}
-              </CommandEmpty>
+              {isLoading ? (
+                <KultivaLoader
+                  fullscreen={false}
+                  size="sm"
+                  label={t("onboarding.cropHistory.loadingCrops")}
+                  className="w-full py-6"
+                />
+              ) : (
+                <>
+                  <CommandEmpty>
+                    {t("onboarding.priorities.targetCropEmpty", {
+                      query: searchQuery,
+                    })}
+                  </CommandEmpty>
 
-              <CommandGroup>
-                {filteredCrops.map((crop) => {
-                  const isSelected = value?.id === crop.id;
+                  <CommandGroup>
+                    {filteredCrops.map((crop) => {
+                      const isSelected = value?.id === crop.id;
 
-                  return (
-                    <CommandItem
-                      key={crop.id}
-                      value={crop.officialName}
-                      keywords={crop.popularNames}
-                      onSelect={() => handleSelect(crop)}
-                      className={cn(
-                        isSelected && "border-[#511D4E] bg-[#FCF59B]/25"
-                      )}
-                    >
-                      <CropThumbnail crop={crop} size="sm" />
+                      return (
+                        <CommandItem
+                          key={crop.id}
+                          value={crop.officialName}
+                          keywords={crop.popularNames}
+                          onSelect={() => handleSelect(crop)}
+                          className={cn(
+                            isSelected && "border-[#511D4E] bg-[#FCF59B]/25"
+                          )}
+                        >
+                          <CropThumbnail crop={crop} size="sm" />
 
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-base font-bold text-[#1F1C18]">
-                          {crop.officialName}
-                        </p>
-                        <p className="mt-0.5 line-clamp-2 text-xs text-[#7A756B]">
-                          {formatPopularNames(crop.popularNames)}
-                        </p>
-                      </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-base font-bold text-[#1F1C18]">
+                              {crop.officialName}
+                            </p>
+                            <p className="mt-0.5 line-clamp-2 text-xs text-[#7A756B]">
+                              {formatPopularNames(crop.popularNames)}
+                            </p>
+                          </div>
 
-                      {isSelected ? (
-                        <Check
-                          className="h-5 w-5 shrink-0 text-[#511D4E]"
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <ChevronRight
-                          className="h-5 w-5 shrink-0 text-[#511D4E]"
-                          aria-hidden="true"
-                        />
-                      )}
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
+                          {isSelected ? (
+                            <Check
+                              className="h-5 w-5 shrink-0 text-[#511D4E]"
+                              aria-hidden="true"
+                            />
+                          ) : (
+                            <ChevronRight
+                              className="h-5 w-5 shrink-0 text-[#511D4E]"
+                              aria-hidden="true"
+                            />
+                          )}
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                </>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>
@@ -336,7 +348,7 @@ function TargetPestCombobox({
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = React.useState("");
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const filteredPests = useCatalogSearch(
+  const { items: filteredPests, isLoading } = useCatalogSearch(
     open,
     searchQuery,
     pests,
@@ -447,61 +459,72 @@ function TargetPestCombobox({
             />
 
             <CommandList>
-              <CommandEmpty>
-                {t("onboarding.priorities.targetPestEmpty", {
-                  query: searchQuery,
-                })}
-              </CommandEmpty>
+              {isLoading ? (
+                <KultivaLoader
+                  fullscreen={false}
+                  size="sm"
+                  label={t("onboarding.priorities.loadingPests")}
+                  className="w-full py-6"
+                />
+              ) : (
+                <>
+                  <CommandEmpty>
+                    {t("onboarding.priorities.targetPestEmpty", {
+                      query: searchQuery,
+                    })}
+                  </CommandEmpty>
 
-              <CommandGroup>
-                {filteredPests.map((pest) => {
-                  const isSelected = value?.id === pest.id;
+                  <CommandGroup>
+                    {filteredPests.map((pest) => {
+                      const isSelected = value?.id === pest.id;
 
-                  return (
-                    <CommandItem
-                      key={pest.id}
-                      value={pest.officialName}
-                      keywords={pest.popularNames}
-                      onSelect={() => handleSelect(pest)}
-                      className={cn(
-                        isSelected && "border-[#511D4E] bg-[#FCF59B]/25"
-                      )}
-                    >
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#E6E4DA] bg-[#F2F1EA] text-[#511D4E]">
-                        <Bug className="h-5 w-5" aria-hidden="true" />
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <p className="truncate text-base font-bold text-[#1F1C18]">
-                            {pest.officialName}
-                          </p>
-                          {pest.category && (
-                            <span className="inline-flex shrink-0 items-center rounded-full bg-[#EFECE3] px-2 py-0.5 text-[10px] font-semibold text-[#511D4E]">
-                              {pest.category}
-                            </span>
+                      return (
+                        <CommandItem
+                          key={pest.id}
+                          value={pest.officialName}
+                          keywords={pest.popularNames}
+                          onSelect={() => handleSelect(pest)}
+                          className={cn(
+                            isSelected && "border-[#511D4E] bg-[#FCF59B]/25"
                           )}
-                        </div>
-                        <p className="mt-0.5 line-clamp-2 text-xs text-[#7A756B]">
-                          {formatPopularNames(pest.popularNames)}
-                        </p>
-                      </div>
+                        >
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#E6E4DA] bg-[#F2F1EA] text-[#511D4E]">
+                            <Bug className="h-5 w-5" aria-hidden="true" />
+                          </div>
 
-                      {isSelected ? (
-                        <Check
-                          className="h-5 w-5 shrink-0 text-[#511D4E]"
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <ChevronRight
-                          className="h-5 w-5 shrink-0 text-[#511D4E]"
-                          aria-hidden="true"
-                        />
-                      )}
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <p className="truncate text-base font-bold text-[#1F1C18]">
+                                {pest.officialName}
+                              </p>
+                              {pest.category && (
+                                <span className="inline-flex shrink-0 items-center rounded-full bg-[#EFECE3] px-2 py-0.5 text-[10px] font-semibold text-[#511D4E]">
+                                  {pest.category}
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-0.5 line-clamp-2 text-xs text-[#7A756B]">
+                              {formatPopularNames(pest.popularNames)}
+                            </p>
+                          </div>
+
+                          {isSelected ? (
+                            <Check
+                              className="h-5 w-5 shrink-0 text-[#511D4E]"
+                              aria-hidden="true"
+                            />
+                          ) : (
+                            <ChevronRight
+                              className="h-5 w-5 shrink-0 text-[#511D4E]"
+                              aria-hidden="true"
+                            />
+                          )}
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                </>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>
