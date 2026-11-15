@@ -80,3 +80,82 @@ export const PESTS_DICTIONARY: PestOption[] = [
   },
 ];
 
+export const PESTS_DICTIONARY_EN: PestOption[] = [
+  {
+    id: "lagarta-do-cartucho",
+    officialName: "Fall armyworm",
+    popularNames: ["spodoptera", "corn leafworm", "cutworm"],
+    category: "Insect",
+  },
+  {
+    id: "cigarrinha-do-milho",
+    officialName: "Corn leafhopper",
+    popularNames: ["leafhopper", "corn stunt"],
+    category: "Insect",
+  },
+  {
+    id: "mosca-branca",
+    officialName: "Whitefly",
+    popularNames: ["silverleaf whitefly", "bemisia"],
+    category: "Insect",
+  },
+  {
+    id: "pulgao",
+    officialName: "Aphid",
+    popularNames: ["plant louse", "greenfly"],
+    category: "Insect",
+  },
+  {
+    id: "formiga-cortadeira",
+    officialName: "Leafcutter ant",
+    popularNames: ["saúva ant", "quenquém", "leaf ant"],
+    category: "Insect",
+  },
+  {
+    id: "nematoides",
+    officialName: "Nematodes",
+    popularNames: ["root-knot nematode", "root galls", "root worms"],
+    category: "Soil / Root",
+  },
+  {
+    id: "podridao-radicular",
+    officialName: "Root rot",
+    popularNames: ["damping off", "root blight", "soil fungus"],
+    category: "Disease",
+  },
+  {
+    id: "antracnose",
+    officialName: "Anthracnose",
+    popularNames: ["black spot", "leaf blight"],
+    category: "Disease",
+  },
+  {
+    id: "broca-da-raiz",
+    officialName: "Root borer",
+    popularNames: ["cassava borer", "root beetle"],
+    category: "Insect",
+  },
+  {
+    id: "percevejo",
+    officialName: "Stink bug",
+    popularNames: ["brown stink bug", "shield bug"],
+    category: "Insect",
+  },
+  {
+    id: "acaro",
+    officialName: "Mite",
+    popularNames: ["two-spotted spider mite", "red mite", "spider web mite"],
+    category: "Pest",
+  },
+  {
+    id: "murcha-bacteriana",
+    officialName: "Bacterial wilt",
+    popularNames: ["wilt disease", "soil wilt"],
+    category: "Disease",
+  },
+];
+
+export function getPestsDictionary(lang: "pt" | "en"): PestOption[] {
+  return lang === "en" ? PESTS_DICTIONARY_EN : PESTS_DICTIONARY;
+}
+

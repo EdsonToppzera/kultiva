@@ -810,26 +810,6 @@ interface PragaCatalogoApiItem {
   category?: string;
 }
 
-function filterLocalCrops(query: string): CropOption[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return CROPS_DICTIONARY;
-  return CROPS_DICTIONARY.filter(
-    (crop) =>
-      crop.officialName.toLowerCase().includes(q) ||
-      crop.popularNames.some((name) => name.toLowerCase().includes(q))
-  );
-}
-
-function filterLocalPests(query: string): PestOption[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return PESTS_DICTIONARY;
-  return PESTS_DICTIONARY.filter(
-    (pest) =>
-      pest.officialName.toLowerCase().includes(q) ||
-      pest.popularNames.some((name) => name.toLowerCase().includes(q))
-  );
-}
-
 export async function buscarCulturasCatalogo(
   query = "",
   limit = 30,
@@ -852,11 +832,11 @@ export async function buscarCulturasCatalogo(
       }
     );
     if (!response.ok) {
-      return filterLocalCrops(query);
+      return [];
     }
     const data = (await response.json()) as CulturaCatalogoApiItem[];
     if (!Array.isArray(data) || data.length === 0) {
-      return query.trim() ? [] : CROPS_DICTIONARY;
+      return [];
     }
     return data.map((item) => ({
       id: item.id,
@@ -868,38 +848,49 @@ export async function buscarCulturasCatalogo(
     if (err instanceof DOMException && err.name === "AbortError") {
       throw err;
     }
-    return filterLocalCrops(query);
+    return [];
   }
 }
 
 export async function buscarPragasCatalogo(
   query = "",
   limit = 30,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  lang: "pt" | "en" = "pt"
 ): Promise<PestOption[]> {
   try {
-    const params = new URLSearchParams({ q: query.trim(), limit: String(limit) });
+    const params = new URLSearchParams({
+      q: query.trim(),
+      limit: String(limit),
+      lang,
+    });
     const response = await fetch(
       `${API_BASE_URL}/culturas/pragas/buscar?${params.toString()}`,
-      { signal }
+      {
+        signal,
+        headers: {
+          "Accept-Language": lang === "en" ? "en-US,en;q=0.9" : "pt-BR,pt;q=0.9",
+        },
+      }
     );
     if (!response.ok) {
-      return filterLocalPests(query);
+      return [];
     }
     const data = (await response.json()) as PragaCatalogoApiItem[];
     if (!Array.isArray(data) || data.length === 0) {
-      return query.trim() ? [] : PESTS_DICTIONARY;
+      return [];
     }
     return data.map((item) => ({
       id: item.id,
       officialName: capitalizeLabel(item.official_name),
       popularNames: item.popular_names.map(capitalizeLabel),
-      category: item.category ?? "Praga / Doença",
+      category:
+        item.category ?? (lang === "en" ? "Pest / Disease" : "Praga / Doença"),
     }));
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
       throw err;
     }
-    return filterLocalPests(query);
+    return [];
   }
 }

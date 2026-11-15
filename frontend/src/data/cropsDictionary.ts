@@ -1,3 +1,4 @@
+import i18n from "../i18n";
 import type { CropOption } from "../features/onboarding/types/cropHistory.types";
 
 /**
@@ -101,8 +102,9 @@ export function formatPopularNames(
   if (popularNames.length > maxItems) {
     return `${quoted.join(", ")}, ...`;
   }
+  const conj = i18n.language?.startsWith("en") ? "and" : "e";
   if (quoted.length === 1) return quoted[0];
-  if (quoted.length === 2) return `${quoted[0]} e ${quoted[1]}`;
-  return `${quoted.slice(0, -1).join(", ")} e ${quoted[quoted.length - 1]}`;
+  if (quoted.length === 2) return `${quoted[0]} ${conj} ${quoted[1]}`;
+  return `${quoted.slice(0, -1).join(", ")} ${conj} ${quoted[quoted.length - 1]}`;
 }
 

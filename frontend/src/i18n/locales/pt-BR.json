@@ -178,6 +178,7 @@
       "targetPestLabel": "QUAL PRAGA OU DOENÇA QUER COMBATER?",
       "targetPestSearch": "Buscar praga ou doença...",
       "targetPestPlaceholder": "Ex: Lagarta, formiga, nematoide...",
+      "targetPestEmpty": "Nenhuma praga encontrada para \"{{query}}\". Tente outro nome popular ou científico.",
       "targetPestEmpty": "Nenhuma praga encontrada para \"{{query}}\". Escolha uma opção da lista ou tente outro nome popular.",
       "finish": "Ver caminhos de plantio",
       "options": {

@@ -187,18 +187,30 @@ def process_agrofit(
     sci_to_family, syn_to_sci = load_ecocrop_lookup(processed_dir)
 
     seen_pairs: Set[Tuple[str, str, str]] = set()
+    herbicide_pests: Set[str] = set()
+    non_herbicide_pests: Set[str] = set()
     raw_rows = 0
 
     with raw_path.open("r", encoding="utf-8", errors="replace", newline="") as src:
         reader = csv.DictReader(src, delimiter=";")
         for row in reader:
             raw_rows += 1
+            classe = (row.get("CLASSE") or "").lower()
             cultura = " ".join((row.get("CULTURA") or "").split())
             praga_sci = " ".join((row.get("PRAGA_NOME_CIENTIFICO") or "").split())
             praga_comum = " ".join((row.get("PRAGA_NOME_COMUM") or "").split())
             if not cultura or (not praga_sci and not praga_comum):
                 continue
+            if praga_sci:
+                if "herbicida" in classe:
+                    herbicide_pests.add(praga_sci.lower())
+                else:
+                    non_herbicide_pests.add(praga_sci.lower())
             seen_pairs.add((cultura, praga_sci, praga_comum))
+
+    weeds_out_path = processed_dir / "agrofit_weeds.txt"
+    only_weeds = sorted(herbicide_pests - non_herbicide_pests)
+    weeds_out_path.write_text("\n".join(only_weeds) + ("\n" if only_weeds else ""), encoding="utf-8")
 
     all_out_path = processed_dir / "agrofit_cultura_pragas.csv"
     join_out_path = processed_dir / "cultura_pragas_ecocrop_join.csv"

@@ -34,14 +34,8 @@ import {
   PopoverTrigger,
 } from "../../../components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "../../../components/ui/radio-group";
-import {
-  CROPS_DICTIONARY,
-  formatPopularNames,
-} from "../../../data/cropsDictionary";
-import {
-  PESTS_DICTIONARY,
-  type PestOption,
-} from "../../../data/pestsDictionary";
+import { formatPopularNames } from "../../../data/cropsDictionary";
+import type { PestOption } from "../../../data/pestsDictionary";
 import { useCatalogSearch } from "../../../hooks/useCatalogSearch";
 import { cn } from "../../../lib/utils";
 import {
@@ -405,9 +399,16 @@ function TargetPestCombobox({
                   <Bug className="h-5 w-5" aria-hidden="true" />
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-base font-bold text-[#1F1C18]">
-                    {value.officialName}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <p className="truncate text-base font-bold text-[#1F1C18]">
+                      {value.officialName}
+                    </p>
+                    {value.category && (
+                      <span className="inline-flex shrink-0 items-center rounded-full bg-[#EFECE3] px-2 py-0.5 text-[10px] font-semibold text-[#511D4E]">
+                        {value.category}
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-0.5 line-clamp-2 text-xs text-[#7A756B]">
                     {formatPopularNames(value.popularNames)}
                   </p>
@@ -459,7 +460,7 @@ function TargetPestCombobox({
 
             <CommandList>
               <CommandEmpty>
-                {t("onboarding.priorities.targetCropEmpty", {
+                {t("onboarding.priorities.targetPestEmpty", {
                   query: searchQuery,
                 })}
               </CommandEmpty>
@@ -483,9 +484,16 @@ function TargetPestCombobox({
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-base font-bold text-[#1F1C18]">
-                          {pest.officialName}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <p className="truncate text-base font-bold text-[#1F1C18]">
+                            {pest.officialName}
+                          </p>
+                          {pest.category && (
+                            <span className="inline-flex shrink-0 items-center rounded-full bg-[#EFECE3] px-2 py-0.5 text-[10px] font-semibold text-[#511D4E]">
+                              {pest.category}
+                            </span>
+                          )}
+                        </div>
                         <p className="mt-0.5 line-clamp-2 text-xs text-[#7A756B]">
                           {formatPopularNames(pest.popularNames)}
                         </p>
@@ -533,10 +541,13 @@ export interface PrioritiesStepProps {
  * Tela de Onboarding — Passo 4: Prioridades.
  * Permite selecionar o objetivo principal e buscar uma cultura específica via Combobox fuzzy quando aplicável.
  */
+const EMPTY_CROPS: CropOption[] = [];
+const EMPTY_PESTS: PestOption[] = [];
+
 export function PrioritiesStep({
   options = PRIORITY_OPTIONS,
-  crops = CROPS_DICTIONARY,
-  pests = PESTS_DICTIONARY,
+  crops = EMPTY_CROPS,
+  pests = EMPTY_PESTS,
   initialValue = null,
   initialTargetCrop = null,
   initialTargetPest = null,

@@ -1,5 +1,7 @@
 import re
-from typing import Any, Dict, List, Optional
+from functools import lru_cache
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
@@ -255,11 +257,33 @@ def consultar_ecocrop(
 _PEST_SUFFIX_RE = re.compile(r"\s*\(\d+\)\s*$")
 
 
+@lru_cache(maxsize=1)
+def _load_agrofit_weeds() -> Set[str]:
+    weeds_path = (
+        Path(__file__).resolve().parents[2]
+        / "data"
+        / "processed"
+        / "agrofit_weeds.txt"
+    )
+    if not weeds_path.exists():
+        return set()
+    return {
+        line.strip().lower()
+        for line in weeds_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    }
+
+
 def _garantir_catalogo_ecocrop_agrofit(db: Session) -> None:
     if db.query(models.CulturaLimite).count() == 0:
         seed_ecocrop(db=db)
-    if db.query(models.CulturaPraga).count() == 0:
-        seed_agrofit(db=db)
+    if db.query(models.CulturaPraga).count() == 0 or (
+        db.query(models.CulturaPraga)
+        .filter(models.CulturaPraga.praga_nome_cientifico == "Cenchrus echinatus")
+        .first()
+        is None
+    ):
+        seed_agrofit(db=db, replace=True)
 
 
 def _limpar_nomes_populares_praga(raw: Optional[str]) -> List[str]:
@@ -411,9 +435,117 @@ def buscar_culturas_catalogo(
     return items[:limit]
 
 
+_PEST_EN_BY_SCI_PREFIX: List[tuple[str, str, List[str]]] = [
+    ("bemisia tabaci", "Whitefly", ["Whitefly", "Silverleaf whitefly"]),
+    ("spodoptera frugiperda", "Fall armyworm", ["Fall armyworm", "Corn leafworm"]),
+    ("colletotrichum", "Anthracnose", ["Anthracnose", "Black spot"]),
+    ("tetranychus urticae", "Two-spotted spider mite", ["Two-spotted spider mite", "Red spider mite"]),
+    ("diabrotica speciosa", "Cucumber beetle", ["Cucumber beetle", "Rootworm"]),
+    ("alternaria solani", "Early blight", ["Early blight", "Alternaria leaf spot"]),
+    ("sclerotinia sclerotiorum", "White mold", ["White mold", "Sclerotinia stem rot"]),
+    ("helicoverpa armigera", "Cotton bollworm", ["Cotton bollworm", "Corn earworm"]),
+    ("myzus persicae", "Green peach aphid", ["Green peach aphid", "Aphid"]),
+    ("aphis gossypii", "Cotton aphid", ["Cotton aphid", "Melon aphid"]),
+    ("frankliniella", "Thrips", ["Thrips", "Western flower thrips"]),
+    ("phytophthora infestans", "Late blight", ["Late blight", "Potato blight"]),
+    ("pseudoperonospora cubensis", "Downy mildew", ["Downy mildew", "Cucurbit downy mildew"]),
+    ("polyphagotarsonemus latus", "Broad mite", ["Broad mite", "Tropical mite"]),
+    ("anticarsia gemmatalis", "Velvetbean caterpillar", ["Velvetbean caterpillar", "Soybean caterpillar"]),
+    ("phaeoisariopsis griseola", "Angular leaf spot", ["Angular leaf spot"]),
+    ("botrytis cinerea", "Gray mold", ["Gray mold", "Botrytis blight"]),
+    ("sphaerotheca fuliginea", "Powdery mildew", ["Powdery mildew"]),
+    ("meloidogyne", "Root-knot nematode", ["Root-knot nematode", "Nematodes"]),
+    ("atta", "Leafcutter ant", ["Leafcutter ant", "Saúva ant"]),
+    ("acromyrmex", "Leafcutter ant", ["Leafcutter ant", "Quenquém ant"]),
+    ("dalbulus maidis", "Corn leafhopper", ["Corn leafhopper", "Corn stunt"]),
+    ("ralstonia solanacearum", "Bacterial wilt", ["Bacterial wilt", "Brown rot"]),
+    ("neoleucinodes elegantalis", "Tomato fruit borer", ["Tomato fruit borer"]),
+    ("tuta absoluta", "Tomato leafminer", ["Tomato leafminer", "South American tomato pinworm"]),
+    ("thrips tabaci", "Onion thrips", ["Onion thrips", "Thrips"]),
+    ("anastrepha", "Fruit fly", ["Fruit fly", "South American fruit fly"]),
+    ("ceratitis capitata", "Mediterranean fruit fly", ["Mediterranean fruit fly", "Medfly"]),
+    ("euschistus heros", "Neotropical brown stink bug", ["Brown stink bug", "Stink bug"]),
+    ("nezara viridula", "Southern green stink bug", ["Green stink bug", "Stink bug"]),
+    ("fusarium", "Fusarium wilt", ["Fusarium wilt", "Root rot"]),
+    ("rhizoctonia solani", "Root rot", ["Root rot", "Damping off"]),
+    ("puccinia", "Rust", ["Rust", "Leaf rust"]),
+    ("cercospora", "Cercospora leaf spot", ["Cercospora leaf spot", "Leaf spot"]),
+    ("xanthomonas", "Bacterial spot", ["Bacterial spot", "Bacterial blight"]),
+    ("cenchrus echinatus", "Southern sandbur", ["Southern sandbur", "Sandbur grass"]),
+    ("digitaria horizontalis", "Jamaican crabgrass", ["Jamaican crabgrass", "Crabgrass"]),
+    ("digitaria insularis", "Sourgrass", ["Sourgrass"]),
+    ("euphorbia heterophylla", "Wild poinsettia", ["Wild poinsettia", "Mexican fireplant"]),
+    ("brachiaria", "Signalgrass", ["Signalgrass"]),
+    ("eleusine indica", "Goosegrass", ["Goosegrass", "Crowfootgrass"]),
+    ("zea mays", "Volunteer corn", ["Volunteer corn", "Corn"]),
+    ("oryza sativa", "Volunteer rice", ["Volunteer rice", "Red rice"]),
+    ("amaranthus", "Pigweed", ["Pigweed", "Amaranth"]),
+    ("cynodon dactylon", "Bermudagrass", ["Bermudagrass"]),
+    ("galinsoga parviflora", "Gallant soldier", ["Gallant soldier", "Quickweed"]),
+    ("portulaca oleracea", "Common purslane", ["Common purslane", "Purslane"]),
+    ("panicum maximum", "Guinea grass", ["Guinea grass"]),
+    ("echinochloa", "Barnyardgrass", ["Barnyardgrass"]),
+    ("bidens pilosa", "Beggarticks", ["Beggarticks", "Blackjack"]),
+    ("sorghum halepense", "Johnsongrass", ["Johnsongrass"]),
+    ("commelina benghalensis", "Tropical spiderwort", ["Tropical spiderwort", "Dayflower"]),
+    ("cyperus", "Nutsedge", ["Nutsedge"]),
+]
+
+_PEST_EN_BY_PT_KEYWORD: List[tuple[str, str]] = [
+    ("mosca-branca", "Whitefly"),
+    ("mosca branca", "Whitefly"),
+    ("lagarta-do-cartucho", "Fall armyworm"),
+    ("lagarta-militar", "Fall armyworm"),
+    ("lagarta", "Caterpillar"),
+    ("antracnose", "Anthracnose"),
+    ("ácaro-rajado", "Two-spotted spider mite"),
+    ("acaro-rajado", "Two-spotted spider mite"),
+    ("ácaro", "Mite"),
+    ("acaro", "Mite"),
+    ("pulgão", "Aphid"),
+    ("pulgao", "Aphid"),
+    ("tripes", "Thrips"),
+    ("mofo branco", "White mold"),
+    ("mofo-branco", "White mold"),
+    ("mofo-cinzento", "Gray mold"),
+    ("míldio", "Downy mildew"),
+    ("oídio", "Powdery mildew"),
+    ("ferrugem", "Rust"),
+    ("nematoide", "Nematodes"),
+    ("formiga", "Leafcutter ant"),
+    ("cigarrinha", "Leafhopper"),
+    ("percevejo", "Stink bug"),
+    ("vaquinha", "Cucumber beetle"),
+    ("podridão", "Root rot"),
+    ("murcha", "Wilt"),
+    ("cochonilha", "Scale insect"),
+    ("broca", "Borer"),
+    ("mancha", "Leaf spot"),
+    ("requeima", "Late blight"),
+    ("pinta-preta", "Early blight"),
+]
+
+
+def _traduzir_praga_para_en(
+    sci_name: Optional[str],
+    popular_names: List[str],
+    official_pt: str,
+) -> tuple[str, List[str]]:
+    sci_low = (sci_name or "").strip().lower()
+    for prefix, en_official, en_pops in _PEST_EN_BY_SCI_PREFIX:
+        if sci_low.startswith(prefix):
+            return en_official, en_pops
+    joined_pt = " ".join([official_pt, *popular_names]).lower()
+    for kw, en_name in _PEST_EN_BY_PT_KEYWORD:
+        if kw in joined_pt:
+            return en_name, [en_name]
+    return official_pt, popular_names
+
+
 @router.get("/pragas/buscar", response_model=List[PragaCatalogoItem])
 def buscar_pragas_catalogo(
     q: str = Query(default="", description="Termo de busca (nome popular ou científico da praga)."),
+    lang: str = Query(default="pt", pattern="^(pt|en)$", description="Idioma dos nomes populares (pt ou en)."),
     limit: int = Query(default=30, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
@@ -425,7 +557,7 @@ def buscar_pragas_catalogo(
         models.CulturaPraga.praga_nome_comum,
     )
     termo = q.strip()
-    if termo:
+    if termo and lang == "pt":
         pattern = f"%{termo}%"
         query = query.filter(
             or_(
@@ -460,20 +592,41 @@ def buscar_pragas_catalogo(
                 entry["seen"].add(low)
                 entry["popular_names"].append(pop)
 
+    termo_low = termo.lower()
+    weed_set = _load_agrofit_weeds()
     items: List[tuple[int, PragaCatalogoItem]] = []
     for key, data in grouped.items():
         popular_names: List[str] = data["popular_names"]
         sci_name: Optional[str] = data["scientific_name"]
         official_name = popular_names[0] if popular_names else (sci_name or key)
+        display_pops = popular_names if popular_names else [official_name]
+        is_weed = bool(sci_name and sci_name.lower() in weed_set)
+        category = (
+            ("Weed" if lang == "en" else "Erva daninha")
+            if is_weed
+            else ("Pest / Disease" if lang == "en" else "Praga / Doença")
+        )
+
+        if lang == "en":
+            official_name, display_pops = _traduzir_praga_para_en(
+                sci_name, display_pops, official_name
+            )
+            if termo_low:
+                haystack = " ".join(
+                    [official_name, sci_name or "", *display_pops]
+                ).lower()
+                if termo_low not in haystack:
+                    continue
+
         items.append(
             (
                 data["count"],
                 PragaCatalogoItem(
                     id=key.lower().replace(" ", "-"),
                     official_name=official_name,
-                    popular_names=popular_names if popular_names else [official_name],
+                    popular_names=display_pops,
                     scientific_name=sci_name,
-                    category="Praga / Doença",
+                    category=category,
                 ),
             )
         )

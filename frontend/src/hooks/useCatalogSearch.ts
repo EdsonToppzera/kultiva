@@ -36,7 +36,9 @@ export function useCatalogSearch<T>(
         }
       } catch (err) {
         if (!(err instanceof DOMException && err.name === "AbortError")) {
-          // Fallback silencioso para os itens locais já carregados
+          if (!controller.signal.aborted) {
+            setItems([]);
+          }
         }
       }
     }, 180);
