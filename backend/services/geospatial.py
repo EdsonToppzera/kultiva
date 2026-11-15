@@ -148,8 +148,9 @@ class INASADataProvider(ABC):
 class MockNASADataProvider(INASADataProvider):
     """Implementação temporária usando os NetCDFs sintéticos com clip espacial."""
 
-    def __init__(self, data_path: str = "data"):
+    def __init__(self, data_path: str = "data", profile: str | None = None):
         self.data_path = data_path
+        self.profile = profile
 
     def load_and_harmonize_netcdf(
         self,
@@ -207,8 +208,12 @@ class MockNASADataProvider(INASADataProvider):
             "precipitation": (GPM_FILE, "precipitation"),
         }
         paths = {k: os.path.join(self.data_path, v[0]) for k, v in sources.items()}
-        if not all(os.path.exists(p) for p in paths.values()):
-            generate_synthetic_netcdf(self.data_path)
+        if (
+            not all(os.path.exists(p) for p in paths.values())
+            or self.profile is not None
+            or os.getenv("NASA_MOCK_PROFILE")
+        ):
+            generate_synthetic_netcdf(self.data_path, profile=self.profile)
 
         series: dict[str, Any] = {}
         qualities: list[str] = []
@@ -578,6 +583,7 @@ def get_nasa_data_provider(
     data_path: str = "data",
     provider_type: str | None = None,
     credentials: dict[str, Any] | None = None,
+    profile: str | None = None,
 ) -> INASADataProvider:
     """Seleciona MockNASADataProvider (padrão) ou RealNASADataProvider via NASA_PROVIDER."""
     selected = (
@@ -587,7 +593,7 @@ def get_nasa_data_provider(
     )
     if str(selected).strip().lower() == "real":
         return RealNASADataProvider(credentials=credentials, data_path=data_path)
-    return MockNASADataProvider(data_path=data_path)
+    return MockNASADataProvider(data_path=data_path, profile=profile)
 
 
 create_nasa_provider = get_nasa_data_provider
