@@ -1203,7 +1203,7 @@ class RotationExplainerAgent:
                 self.llm = FakeListLLM(responses=[_DEFAULT_MOCK_RESPONSE])
             else:
                 self.llm = ChatGoogleGenerativeAI(
-                    model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+                    model=os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite"),
                     temperature=0.2,
                     google_api_key=api_key,
                 )
