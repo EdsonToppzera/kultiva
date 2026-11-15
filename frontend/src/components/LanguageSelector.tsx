@@ -21,14 +21,14 @@ export function LanguageSelector({ className }: { className?: string }) {
     LANGUAGE_OPTIONS.find((opt) => opt.code === language) ?? LANGUAGE_OPTIONS[0];
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} className="w-auto shrink-0">
       <PopoverTrigger asChild>
         <button
           type="button"
           aria-label="Selecionar idioma"
           aria-expanded={open}
           className={cn(
-            "inline-flex items-center gap-1 rounded-full border border-[#E6E4DA] bg-white px-2.5 py-1 text-xs font-semibold text-[#511D4E] shadow-2xs transition-colors hover:border-[#511D4E]/50 hover:bg-[#F7F6F0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#511D4E]",
+            "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-[#E6E4DA] bg-white px-2.5 py-1 text-xs font-semibold text-[#511D4E] shadow-2xs transition-colors hover:border-[#511D4E]/50 hover:bg-[#F7F6F0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#511D4E]",
             className
           )}
         >
@@ -47,7 +47,8 @@ export function LanguageSelector({ className }: { className?: string }) {
       <PopoverContent
         align="end"
         sideOffset={6}
-        className="w-48 rounded-2xl border border-[#E6E4DA] bg-white p-1.5 shadow-md"
+        style={{ width: "max-content", minWidth: "190px" }}
+        className="rounded-2xl border border-[#E6E4DA] bg-white p-1.5 shadow-md"
       >
         <div role="menu" aria-label="Idiomas disponíveis" className="flex flex-col gap-0.5">
           {LANGUAGE_OPTIONS.map((opt) => {
@@ -63,7 +64,7 @@ export function LanguageSelector({ className }: { className?: string }) {
                   setOpen(false);
                 }}
                 className={cn(
-                  "flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-semibold transition-colors",
+                  "flex w-full items-center justify-between gap-3 whitespace-nowrap rounded-xl px-3 py-2 text-left text-xs font-semibold transition-colors",
                   isActive
                     ? "bg-[#FCF59B]/45 text-[#511D4E]"
                     : "text-[#1F1C18] hover:bg-[#F7F6F0]"
@@ -71,7 +72,7 @@ export function LanguageSelector({ className }: { className?: string }) {
               >
                 <span>{opt.label}</span>
                 {isActive && (
-                  <Check className="h-3.5 w-3.5 text-[#511D4E]" aria-hidden="true" />
+                  <Check className="h-3.5 w-3.5 shrink-0 text-[#511D4E]" aria-hidden="true" />
                 )}
               </button>
             );
