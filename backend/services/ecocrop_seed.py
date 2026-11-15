@@ -43,20 +43,34 @@ def _insert_in_batches(
         db.bulk_insert_mappings(model, rows[start : start + batch_size])
 
 
+def _load_synonyms_csv(csv_path: Path) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    if not csv_path.exists():
+        return rows
+    with csv_path.open("r", encoding="utf-8", newline="") as f:
+        for row in csv.DictReader(f):
+            sci = _to_str(row.get("scientific_name"))
+            syn = _to_str(row.get("synonym"))
+            if sci and syn:
+                rows.append({"scientific_name": sci, "synonym": syn})
+    return rows
+
+
 def seed_ecocrop(
     db: Session,
     *,
     processed_dir: Optional[Path] = None,
     reset: bool = False,
 ) -> Tuple[int, int]:
-    """Populate ``culturas_limites`` and ``culturas_sinonimos`` from processed CSVs.
+    """Populate ``culturas_limites``, ``culturas_sinonimos_pt`` and ``culturas_sinonimos_en``.
 
     Returns:
         Tuple ``(limites_inserted, sinonimos_inserted)``.
     """
     target_dir = processed_dir or DEFAULT_PROCESSED_DIR
     limites_csv = target_dir / "ecocrop_culturas_limites.csv"
-    sinonimos_csv = target_dir / "ecocrop_culturas_sinonimos.csv"
+    sinonimos_pt_csv = target_dir / "ecocrop_culturas_sinonimos_pt.csv"
+    sinonimos_en_csv = target_dir / "ecocrop_culturas_sinonimos_en.csv"
 
     if not limites_csv.exists():
         logger.warning(
@@ -69,7 +83,8 @@ def seed_ecocrop(
         return 0, 0
 
     if reset and existing > 0:
-        db.query(models.CulturaSinonimo).delete(synchronize_session=False)
+        db.query(models.CulturaSinonimoPt).delete(synchronize_session=False)
+        db.query(models.CulturaSinonimoEn).delete(synchronize_session=False)
         db.query(models.CulturaLimite).delete(synchronize_session=False)
         db.flush()
 
@@ -103,18 +118,16 @@ def seed_ecocrop(
 
     _insert_in_batches(db, models.CulturaLimite, limites_rows)
 
-    sinonimos_rows: List[Dict[str, Any]] = []
-    if sinonimos_csv.exists():
-        with sinonimos_csv.open("r", encoding="utf-8", newline="") as f:
-            for row in csv.DictReader(f):
-                sci = _to_str(row.get("scientific_name"))
-                syn = _to_str(row.get("synonym"))
-                if sci and syn:
-                    sinonimos_rows.append({"scientific_name": sci, "synonym": syn})
-        _insert_in_batches(db, models.CulturaSinonimo, sinonimos_rows)
+    sinonimos_pt_rows = _load_synonyms_csv(sinonimos_pt_csv)
+    if sinonimos_pt_rows:
+        _insert_in_batches(db, models.CulturaSinonimoPt, sinonimos_pt_rows)
+
+    sinonimos_en_rows = _load_synonyms_csv(sinonimos_en_csv)
+    if sinonimos_en_rows:
+        _insert_in_batches(db, models.CulturaSinonimoEn, sinonimos_en_rows)
 
     db.commit()
-    return len(limites_rows), len(sinonimos_rows)
+    return len(limites_rows), len(sinonimos_pt_rows) + len(sinonimos_en_rows)
 
 
 def seed_agrofit(

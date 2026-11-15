@@ -134,8 +134,13 @@ class CulturaLimite(Base):
     lispa = Column(String, nullable=True)
     cat = Column(String, nullable=True, index=True)
 
-    sinonimos = relationship(
-        "CulturaSinonimo",
+    sinonimos_pt = relationship(
+        "CulturaSinonimoPt",
+        back_populates="cultura",
+        cascade="all, delete-orphan",
+    )
+    sinonimos_en = relationship(
+        "CulturaSinonimoEn",
         back_populates="cultura",
         cascade="all, delete-orphan",
     )
@@ -146,10 +151,10 @@ class CulturaLimite(Base):
     )
 
 
-class CulturaSinonimo(Base):
-    """Nomes populares (sinônimos regionais) vinculados a uma espécie do EcoCrop."""
+class CulturaSinonimoPt(Base):
+    """Nomes populares em português vinculados a uma espécie do EcoCrop."""
 
-    __tablename__ = "culturas_sinonimos"
+    __tablename__ = "culturas_sinonimos_pt"
 
     id = Column(Integer, primary_key=True, index=True)
     scientific_name = Column(
@@ -160,7 +165,24 @@ class CulturaSinonimo(Base):
     )
     synonym = Column(String, nullable=False, index=True)
 
-    cultura = relationship("CulturaLimite", back_populates="sinonimos")
+    cultura = relationship("CulturaLimite", back_populates="sinonimos_pt")
+
+
+class CulturaSinonimoEn(Base):
+    """Nomes populares em inglês vinculados a uma espécie do EcoCrop."""
+
+    __tablename__ = "culturas_sinonimos_en"
+
+    id = Column(Integer, primary_key=True, index=True)
+    scientific_name = Column(
+        String,
+        ForeignKey("culturas_limites.scientific_name", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    synonym = Column(String, nullable=False, index=True)
+
+    cultura = relationship("CulturaLimite", back_populates="sinonimos_en")
 
 
 class CulturaPraga(Base):

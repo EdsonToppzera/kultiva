@@ -10,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
+import { LanguageSelector } from "../components/LanguageSelector";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import {
@@ -185,6 +186,8 @@ export function PlantationsPage({
                   <span>{isSeedingDemo ? "Carregando..." : "Demo"}</span>
                 </Button>
               )}
+
+              <LanguageSelector />
 
               <button
                 type="button"

@@ -281,33 +281,38 @@ def _limpar_nomes_populares_praga(raw: Optional[str]) -> List[str]:
 @router.get("/catalogo/buscar", response_model=List[CulturaCatalogoItem])
 def buscar_culturas_catalogo(
     q: str = Query(default="", description="Termo de busca (nome científico ou popular)."),
+    lang: str = Query(default="pt", pattern="^(pt|en)$", description="Idioma dos nomes populares (pt em uso; en reservado para expansão)."),
     limit: int = Query(default=30, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     """Busca culturas na base integrada EcoCrop + AGROFIT por qualquer nome popular ou científico."""
     _garantir_catalogo_ecocrop_agrofit(db)
 
+    syn_model = (
+        models.CulturaSinonimoPt if lang == "pt" else models.CulturaSinonimoEn
+    )
+
     termo = q.strip()
     if termo:
         pattern = f"%{termo}%"
         syn_sci_subq = (
-            db.query(models.CulturaSinonimo.scientific_name)
-            .filter(models.CulturaSinonimo.synonym.ilike(pattern))
+            db.query(syn_model.scientific_name)
+            .filter(syn_model.synonym.ilike(pattern))
         )
-        praga_sci_subq = (
-            db.query(models.CulturaPraga.scientific_name)
-            .filter(models.CulturaPraga.cultura_agrofit.ilike(pattern))
-        )
+        filters = [
+            models.CulturaLimite.scientific_name.ilike(pattern),
+            models.CulturaLimite.scientific_name.in_(syn_sci_subq),
+        ]
+        if lang == "pt":
+            praga_sci_subq = (
+                db.query(models.CulturaPraga.scientific_name)
+                .filter(models.CulturaPraga.cultura_agrofit.ilike(pattern))
+            )
+            filters.append(models.CulturaLimite.scientific_name.in_(praga_sci_subq))
+
         matched_rows = (
             db.query(models.CulturaLimite)
-            .filter(
-                or_(
-                    models.CulturaLimite.scientific_name.ilike(pattern),
-                    models.CulturaLimite.comname.ilike(pattern),
-                    models.CulturaLimite.scientific_name.in_(syn_sci_subq),
-                    models.CulturaLimite.scientific_name.in_(praga_sci_subq),
-                )
-            )
+            .filter(or_(*filters))
             .order_by(models.CulturaLimite.scientific_name.asc())
             .limit(limit * 3)
             .all()
@@ -340,22 +345,23 @@ def buscar_culturas_catalogo(
     sci_names = [row.scientific_name for row in matched_rows]
 
     agrofit_names_map: Dict[str, List[str]] = {}
-    for sci, agro_name in (
-        db.query(
-            models.CulturaPraga.scientific_name,
-            models.CulturaPraga.cultura_agrofit,
-        )
-        .filter(models.CulturaPraga.scientific_name.in_(sci_names))
-        .distinct()
-        .all()
-    ):
-        if agro_name:
-            agrofit_names_map.setdefault(sci, []).append(agro_name.strip())
+    if lang == "pt":
+        for sci, agro_name in (
+            db.query(
+                models.CulturaPraga.scientific_name,
+                models.CulturaPraga.cultura_agrofit,
+            )
+            .filter(models.CulturaPraga.scientific_name.in_(sci_names))
+            .distinct()
+            .all()
+        ):
+            if agro_name:
+                agrofit_names_map.setdefault(sci, []).append(agro_name.strip())
 
     synonyms_map: Dict[str, List[str]] = {}
     for sci, syn in (
-        db.query(models.CulturaSinonimo.scientific_name, models.CulturaSinonimo.synonym)
-        .filter(models.CulturaSinonimo.scientific_name.in_(sci_names))
+        db.query(syn_model.scientific_name, syn_model.synonym)
+        .filter(syn_model.scientific_name.in_(sci_names))
         .all()
     ):
         if syn:
@@ -365,11 +371,11 @@ def buscar_culturas_catalogo(
     for row in matched_rows:
         sci = row.scientific_name
         pt_names = sorted(agrofit_names_map.get(sci, []), key=len)
-        ecocrop_syns = synonyms_map.get(sci, [])
+        lang_syns = synonyms_map.get(sci, [])
 
         merged_popular: List[str] = []
         seen_pop: set[str] = set()
-        for candidate in [*pt_names, *ecocrop_syns]:
+        for candidate in [*pt_names, *lang_syns]:
             key = candidate.lower()
             if candidate and key not in seen_pop:
                 seen_pop.add(key)
@@ -395,7 +401,7 @@ def buscar_culturas_catalogo(
             )
         )
 
-    # Prioriza culturas com nome oficial em português (presentes no AGROFIT)
+    # Prioriza culturas com nome oficial no idioma ativo
     items.sort(
         key=lambda item: (
             0 if item.scientific_name in agrofit_names_map else 1,

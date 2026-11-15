@@ -833,10 +833,15 @@ function filterLocalPests(query: string): PestOption[] {
 export async function buscarCulturasCatalogo(
   query = "",
   limit = 30,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  lang: "pt" | "en" = "pt"
 ): Promise<CropOption[]> {
   try {
-    const params = new URLSearchParams({ q: query.trim(), limit: String(limit) });
+    const params = new URLSearchParams({
+      q: query.trim(),
+      limit: String(limit),
+      lang,
+    });
     const response = await fetch(
       `${API_BASE_URL}/culturas/catalogo/buscar?${params.toString()}`,
       { signal }

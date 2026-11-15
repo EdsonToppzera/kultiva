@@ -13,6 +13,7 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
+import { LanguageSelector } from "../components/LanguageSelector";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import type {
@@ -426,10 +427,13 @@ export function AreaCalendarPage({
               Kultiva
             </span>
 
-            <Badge variant={badgeConfig.variant} aria-live="polite">
-              <StatusIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              <span>{badgeConfig.label}</span>
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant={badgeConfig.variant} aria-live="polite">
+                <StatusIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>{badgeConfig.label}</span>
+              </Badge>
+              <LanguageSelector />
+            </div>
           </header>
 
           {/* Localização */}

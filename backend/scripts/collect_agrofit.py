@@ -137,7 +137,8 @@ def load_ecocrop_lookup(
 ) -> Tuple[Dict[str, str], Dict[str, str]]:
     """Load EcoCrop ``scientific_name -> family`` and ``normalized_synonym -> scientific_name``."""
     limites_csv = processed_dir / "ecocrop_culturas_limites.csv"
-    sinonimos_csv = processed_dir / "ecocrop_culturas_sinonimos.csv"
+    sinonimos_pt_csv = processed_dir / "ecocrop_culturas_sinonimos_pt.csv"
+    sinonimos_en_csv = processed_dir / "ecocrop_culturas_sinonimos_en.csv"
 
     sci_to_family: Dict[str, str] = {}
     with limites_csv.open("r", encoding="utf-8", newline="") as f:
@@ -147,13 +148,14 @@ def load_ecocrop_lookup(
                 sci_to_family[sci] = (row.get("family") or "").strip()
 
     syn_to_sci: Dict[str, str] = {}
-    if sinonimos_csv.exists():
-        with sinonimos_csv.open("r", encoding="utf-8", newline="") as f:
-            for row in csv.DictReader(f):
-                sci = (row.get("scientific_name") or "").strip()
-                syn = normalize_text(row.get("synonym") or "")
-                if syn and sci in sci_to_family and syn not in syn_to_sci:
-                    syn_to_sci[syn] = sci
+    for syn_csv in (sinonimos_pt_csv, sinonimos_en_csv):
+        if syn_csv.exists():
+            with syn_csv.open("r", encoding="utf-8", newline="") as f:
+                for row in csv.DictReader(f):
+                    sci = (row.get("scientific_name") or "").strip()
+                    syn = normalize_text(row.get("synonym") or "")
+                    if syn and sci in sci_to_family and syn not in syn_to_sci:
+                        syn_to_sci[syn] = sci
 
     return sci_to_family, syn_to_sci
 

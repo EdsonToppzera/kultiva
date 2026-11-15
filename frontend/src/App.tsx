@@ -7,6 +7,7 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
+import { LanguageSelector } from "./components/LanguageSelector";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
 import { CropHistoryStep } from "./features/onboarding/components/CropHistoryStep";
@@ -259,17 +260,20 @@ export function App() {
                 Kultiva
               </span>
 
-              <Badge
-                variant={isOnline ? "saved" : "offline"}
-                aria-live="polite"
-              >
-                {isOnline ? (
-                  <Wifi className="h-3.5 w-3.5" aria-hidden="true" />
-                ) : (
-                  <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
-                )}
-                <span>{isOnline ? "Salvo" : "Sem internet"}</span>
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant={isOnline ? "saved" : "offline"}
+                  aria-live="polite"
+                >
+                  {isOnline ? (
+                    <Wifi className="h-3.5 w-3.5" aria-hidden="true" />
+                  ) : (
+                    <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
+                  )}
+                  <span>{isOnline ? "Salvo" : "Sem internet"}</span>
+                </Badge>
+                <LanguageSelector />
+              </div>
             </header>
 
             <main className="mt-8">
