@@ -124,6 +124,15 @@ def _format_breakdown_highlights(breakdown: dict[str, Any] | None) -> str:
         val = _to_float(breakdown.get(key))
         if val is not None:
             items.append(f"{label}: {round(val * 100)}%")
+
+    gaez_suit = _to_float(breakdown.get("gaez_suitability"))
+    if gaez_suit is not None:
+        items.append(f"aptidão FAO GAEZ: {round(gaez_suit * 100)}%")
+
+    yield_kg = _to_float(breakdown.get("attainable_yield_kg_ha"))
+    if yield_kg is not None and yield_kg > 0:
+        items.append(f"produtividade atingível estimada: {round(yield_kg)} kg/ha")
+
     return ", ".join(items)
 
 
@@ -183,6 +192,22 @@ def _format_context(
             parts.append(f"chuva estimada: {rain_est:.0f} mm")
         if field_metrics.get("is_bare_field_period") is True:
             parts.append("solo com sinal de estar descoberto e seco no período")
+
+        gaez = field_metrics.get("gaez")
+        if isinstance(gaez, dict):
+            input_level = gaez.get("input_level")
+            if input_level:
+                parts.append(f"regime FAO GAEZ: {input_level}")
+            soil = gaez.get("soil")
+            if isinstance(soil, dict) and soil:
+                if soil.get("soil_group"):
+                    parts.append(f"solo HWSD v2.01: {soil['soil_group']}")
+                if soil.get("limiting_factor"):
+                    parts.append(f"fator limitante do solo: {soil['limiting_factor']}")
+                if soil.get("slope_range_pct"):
+                    parts.append(
+                        f"declividade: {soil['slope_range_pct']} (risco de erosão {soil.get('erosion_risk', 'não informado')})"
+                    )
 
     if isinstance(farmer_priorities, dict) and farmer_priorities:
         prio_bits = [f"{k}: {v}" for k, v in farmer_priorities.items() if v is not None]

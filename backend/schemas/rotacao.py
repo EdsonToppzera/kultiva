@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -118,3 +118,45 @@ class RotacaoResponse(RotacaoBase):
     criado_em: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class GAEZSoilResponse(BaseModel):
+    hwsd_code: Optional[int] = None
+    soil_group: Optional[str] = None
+    limiting_factor_code: Optional[int] = None
+    limiting_factor: Optional[str] = None
+    soil_quality_class: Optional[int] = None
+    soil_quality_index: Optional[float] = None
+    slope_class: Optional[int] = None
+    slope_range_pct: Optional[str] = None
+    erosion_risk: Optional[str] = None
+
+
+class GAEZCropSuitabilityResponse(BaseModel):
+    crop_code: str
+    gaez_caption: str
+    nome: str
+    group: str
+    fixes_nitrogen: bool
+    suitability_raw: float
+    suitability_index: float
+    suitability_score_100: float
+    suitability_class: str
+    attainable_yield_kg_ha: float
+    cmip6_future_suitability_index: Optional[float] = None
+    cmip6_suitability_delta: float = 0.0
+    cmip6_future_yield_kg_ha: Optional[float] = None
+    climate_resilience: str = "estavel"
+    consumo_agua_mm: float
+    tempo_colheita_dias: int
+
+
+class GAEZAptidaoResponse(BaseModel):
+    origem: str = "fao_gaez_v5"
+    data_quality: str
+    input_level: str
+    ssp_scenario: str
+    centroid: Dict[str, float]
+    soil: GAEZSoilResponse
+    culturas_avaliadas: List[GAEZCropSuitabilityResponse]
+    culturas_sincronizadas: List[CulturaResponse] = Field(default_factory=list)

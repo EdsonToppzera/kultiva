@@ -478,6 +478,164 @@ class CropSimulator:
             return "medium"
         return "low"
 
+    @staticmethod
+    def _extract_gaez_context(
+        field_metrics: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
+        if not isinstance(field_metrics, dict):
+            return None
+        gaez = field_metrics.get("gaez")
+        if isinstance(gaez, dict) and gaez.get("data_quality") == "gaez_v5_cog":
+            return gaez
+        return None
+
+    @staticmethod
+    def _build_gaez_features_for_strategy(
+        strategy_name: str,
+        gaez_data: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
+        if not isinstance(gaez_data, dict):
+            return None
+        crops_map = gaez_data.get("crops")
+        if not isinstance(crops_map, dict) or not crops_map:
+            return None
+
+        from backend.services.gaez_service import resolve_crop_code
+
+        raw_parts = strategy_name.replace("(Atual)", "").replace("→", "->").split("->")
+        matched: list[dict[str, Any]] = []
+        for part in raw_parts:
+            code = resolve_crop_code(part)
+            if code and isinstance(crops_map.get(code), dict):
+                matched.append(crops_map[code])
+
+        if not matched:
+            return None
+
+        avg_suit = sum(float(c.get("suitability_index", 0.0)) for c in matched) / len(matched)
+        avg_yield = sum(
+            float(c.get("attainable_yield_kg_ha", 0.0)) for c in matched
+        ) / len(matched)
+        avg_cmip6_delta = sum(
+            float(c.get("cmip6_suitability_delta", 0.0)) for c in matched
+        ) / len(matched)
+        soil_info = gaez_data.get("soil") if isinstance(gaez_data.get("soil"), dict) else {}
+        return {
+            "gaez_suitability": round(_clamp(avg_suit), 4),
+            "attainable_yield_kg_ha": round(max(0.0, avg_yield), 1),
+            "cmip6_suitability_delta": round(avg_cmip6_delta, 4),
+            "soil_quality_index": _to_float(soil_info.get("soil_quality_index")),
+            "input_level": str(gaez_data.get("input_level", "")),
+        }
+
+    @classmethod
+    def _build_gaez_rotation_candidates(
+        cls,
+        gaez_data: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        """
+        Gera estratégias candidatas de rotação diretamente dos dados de
+        'Suitability and Attainable Yield' (RES05-SUX/YLX) retornados pelo FAO GAEZ v5.
+        """
+        crops_map = gaez_data.get("crops")
+        if not isinstance(crops_map, dict) or not crops_map:
+            return []
+
+        viable = [
+            item
+            for item in crops_map.values()
+            if isinstance(item, dict) and float(item.get("suitability_index", 0.0)) > 0.0
+        ]
+        if not viable:
+            viable = [item for item in crops_map.values() if isinstance(item, dict)]
+
+        def _rank_key(c: dict[str, Any]) -> tuple[float, float]:
+            return (
+                float(c.get("suitability_index", 0.0)),
+                float(c.get("attainable_yield_kg_ha", 0.0)),
+            )
+
+        legumes = sorted(
+            [c for c in viable if c.get("fixes_nitrogen")],
+            key=_rank_key,
+            reverse=True,
+        )[:4]
+        non_legumes = sorted(
+            [c for c in viable if not c.get("fixes_nitrogen")],
+            key=_rank_key,
+            reverse=True,
+        )[:4]
+
+        soil_info = gaez_data.get("soil") if isinstance(gaez_data.get("soil"), dict) else {}
+        soil_q = _to_float(soil_info.get("soil_quality_index"))
+        input_level = str(gaez_data.get("input_level", ""))
+
+        candidates: list[dict[str, Any]] = []
+        seen_names: set[str] = set()
+        for nl in non_legumes:
+            for lg in legumes:
+                strat_name = f"{nl['nome']} -> {lg['nome']}"
+                norm_key = strat_name.lower().replace(" ", "")
+                if norm_key in seen_names:
+                    continue
+                seen_names.add(norm_key)
+
+                avg_suit = (
+                    float(nl.get("suitability_index", 0.0))
+                    + float(lg.get("suitability_index", 0.0))
+                ) / 2.0
+                avg_yield = (
+                    float(nl.get("attainable_yield_kg_ha", 0.0))
+                    + float(lg.get("attainable_yield_kg_ha", 0.0))
+                ) / 2.0
+                avg_delta = (
+                    float(nl.get("cmip6_suitability_delta", 0.0))
+                    + float(lg.get("cmip6_suitability_delta", 0.0))
+                ) / 2.0
+                avg_water = (
+                    float(nl.get("water_demand", 0.55))
+                    + float(lg.get("water_demand", 0.55))
+                ) / 2.0
+                avg_heat = (
+                    float(nl.get("heat_tolerance", 0.70))
+                    + float(lg.get("heat_tolerance", 0.70))
+                ) / 2.0
+                avg_soil = _clamp(
+                    (
+                        float(nl.get("soil_benefit", 0.65))
+                        + float(lg.get("soil_benefit", 0.80))
+                    )
+                    / 2.0
+                    + 0.05
+                )
+                avg_market = (
+                    float(nl.get("market", 0.70)) + float(lg.get("market", 0.75))
+                ) / 2.0
+
+                candidates.append(
+                    {
+                        "strategy": strat_name,
+                        "water_demand": round(_clamp(avg_water), 3),
+                        "heat_tolerance": round(_clamp(avg_heat), 3),
+                        "soil_benefit": round(avg_soil, 3),
+                        "market": round(_clamp(avg_market), 3),
+                        "benefits": (
+                            f"Aptidão FAO GAEZ v5 ({input_level or 'LRLM'}) de "
+                            f"{round(avg_suit * 100)}% (produtividade atingível média "
+                            f"~{round(avg_yield)} kg/ha) com fixação biológica de nitrogênio"
+                        ),
+                        "preferred": False,
+                        "gaez_features": {
+                            "gaez_suitability": round(_clamp(avg_suit), 4),
+                            "attainable_yield_kg_ha": round(max(0.0, avg_yield), 1),
+                            "cmip6_suitability_delta": round(avg_delta, 4),
+                            "soil_quality_index": soil_q,
+                            "input_level": input_level,
+                        },
+                    }
+                )
+        return candidates
+
     def _score(
         self,
         metrics: dict[str, float],
@@ -489,6 +647,7 @@ class CropSimulator:
         history_adjustment: float = 0.0,
         temporal_features: dict[str, Any] | None = None,
         is_bare_field: bool = False,
+        gaez_features: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         supply = self._water_supply(metrics)
         gap = water_demand - supply
@@ -531,30 +690,60 @@ class CropSimulator:
         temporal_adj = (temporal_stability - 0.75) * 0.10
         bare_soil_bonus = 0.03 if (is_bare_field and soil_benefit >= 0.75) else 0.0
 
-        raw_viability = (
-            0.65 * formula_viability
-            + 0.35 * ml_model_score
-            + temporal_adj
-            + bare_soil_bonus
-        )
+        score_breakdown: dict[str, Any] = {
+            "water_fit": round(water_fit, 3),
+            "heat_fit": round(heat_fit, 3),
+            "soil_benefit": round(adjusted_soil, 3),
+            "market": round(market, 3),
+            "water_supply": round(supply, 3),
+            "water_demand": round(water_demand, 3),
+            "history_adjustment": round(history_adjustment, 4),
+            "ml_model_score": round(ml_model_score, 3),
+            "temporal_stability": round(temporal_stability, 3),
+            "moisture_trend": round(moisture_trend, 4),
+            "dry_spell_max": dry_spell_max,
+            "bare_soil_bonus": round(bare_soil_bonus, 3),
+        }
+
+        if isinstance(gaez_features, dict):
+            gaez_suit = _clamp(
+                float(gaez_features.get("gaez_suitability", formula_viability))
+            )
+            raw_sq = _to_float(gaez_features.get("soil_quality_index"))
+            soil_q = _clamp(raw_sq) if raw_sq is not None else adjusted_soil
+            cmip6_delta = float(gaez_features.get("cmip6_suitability_delta", 0.0))
+            cmip6_adj = _clamp(cmip6_delta * 0.25, -0.08, 0.08)
+            raw_viability = (
+                0.45 * formula_viability
+                + 0.25 * ml_model_score
+                + 0.22 * gaez_suit
+                + 0.08 * soil_q
+                + temporal_adj
+                + bare_soil_bonus
+                + cmip6_adj
+            )
+            score_breakdown["gaez_suitability"] = round(gaez_suit, 3)
+            score_breakdown["attainable_yield_kg_ha"] = round(
+                float(gaez_features.get("attainable_yield_kg_ha", 0.0)), 1
+            )
+            score_breakdown["cmip6_suitability_delta"] = round(cmip6_delta, 4)
+            score_breakdown["soil_quality_index"] = round(soil_q, 3)
+            score_breakdown["gaez_input_level"] = str(
+                gaez_features.get("input_level", "")
+            )
+        else:
+            raw_viability = (
+                0.65 * formula_viability
+                + 0.35 * ml_model_score
+                + temporal_adj
+                + bare_soil_bonus
+            )
+
         viability = _clamp(raw_viability + history_adjustment)
         return {
             "viability": round(viability, 2),
             "water_risk": self._risk_from_gap(gap),
-            "score_breakdown": {
-                "water_fit": round(water_fit, 3),
-                "heat_fit": round(heat_fit, 3),
-                "soil_benefit": round(adjusted_soil, 3),
-                "market": round(market, 3),
-                "water_supply": round(supply, 3),
-                "water_demand": round(water_demand, 3),
-                "history_adjustment": round(history_adjustment, 4),
-                "ml_model_score": round(ml_model_score, 3),
-                "temporal_stability": round(temporal_stability, 3),
-                "moisture_trend": round(moisture_trend, 4),
-                "dry_spell_max": dry_spell_max,
-                "bare_soil_bonus": round(bare_soil_bonus, 3),
-            },
+            "score_breakdown": score_breakdown,
         }
 
     # -- API pública -----------------------------------------------------
@@ -587,12 +776,47 @@ class CropSimulator:
             priorities_dict.get("pratica_atual") or _DEFAULT_CURRENT_PRACTICE
         ).strip()
 
+        gaez_data = self._extract_gaez_context(field_metrics)
+
         def normalize(name: str) -> str:
             return name.lower().replace("(atual)", "").replace("→", "->").replace(" ", "")
 
         catalog_by_norm: dict[str, dict[str, Any]] = {}
         for item in _ROTATION_CATALOG:
-            catalog_by_norm[normalize(item["strategy"])] = {**item, "preferred": False}
+            entry = {**item, "preferred": False}
+            if gaez_data is not None:
+                entry["gaez_features"] = self._build_gaez_features_for_strategy(
+                    item["strategy"], gaez_data
+                )
+                if (
+                    entry["gaez_features"] is None
+                    and normalize(item["strategy"]) != normalize(current_name)
+                ):
+                    continue
+            catalog_by_norm[normalize(item["strategy"])] = entry
+
+        if gaez_data is not None:
+            for gaez_cand in self._build_gaez_rotation_candidates(gaez_data):
+                norm_key = normalize(gaez_cand["strategy"])
+                if norm_key not in catalog_by_norm:
+                    catalog_by_norm[norm_key] = gaez_cand
+                else:
+                    existing = catalog_by_norm[norm_key]
+                    if existing.get("gaez_features") is None:
+                        existing["gaez_features"] = gaez_cand.get("gaez_features")
+                    gf = existing.get("gaez_features")
+                    if isinstance(gf, dict) and gf.get("attainable_yield_kg_ha"):
+                        existing["benefits"] = (
+                            f"{existing['benefits']} (GAEZ v5: aptidão {round(gf['gaez_suitability'] * 100)}%, "
+                            f"~{round(gf['attainable_yield_kg_ha'])} kg/ha)"
+                        )
+            if len(catalog_by_norm) < 3:
+                for item in _ROTATION_CATALOG:
+                    norm_key = normalize(item["strategy"])
+                    if norm_key not in catalog_by_norm:
+                        catalog_by_norm[norm_key] = {**item, "preferred": False}
+                    if len(catalog_by_norm) >= 3:
+                        break
 
         preferred_raw = priorities_dict.get("rotacoes_preferenciais") or []
         if isinstance(preferred_raw, list):
@@ -610,6 +834,10 @@ class CropSimulator:
                         "market": base.get("market", 0.65),
                         "benefits": base.get("benefits") or "Rotação preferencial cadastrada pelo produtor",
                         "preferred": True,
+                        "gaez_features": (
+                            base.get("gaez_features")
+                            or self._build_gaez_features_for_strategy(name, gaez_data)
+                        ),
                     }
                     catalog_by_norm[normalize(name)] = entry
                 elif isinstance(raw, dict):
@@ -651,6 +879,10 @@ class CropSimulator:
                             or "Rotação preferencial cadastrada pelo produtor"
                         ),
                         "preferred": True,
+                        "gaez_features": (
+                            base.get("gaez_features")
+                            or self._build_gaez_features_for_strategy(name, gaez_data)
+                        ),
                     }
                     catalog_by_norm[normalize(name)] = entry
 
@@ -667,6 +899,7 @@ class CropSimulator:
                 history_adjustment=history_adj,
                 temporal_features=temporal_features,
                 is_bare_field=is_bare_field,
+                gaez_features=item.get("gaez_features"),
             )
             results.append(
                 {
@@ -684,8 +917,9 @@ class CropSimulator:
             None,
         )
         if current is None:
-            # Prática atual fora do catálogo: avalia com atributos médios.
+            # Prática atual fora do catálogo: avalia com atributos médios + GAEZ se disponível.
             history_adj = _compute_history_adjustment(current_name, parsed_history)
+            current_gaez = self._build_gaez_features_for_strategy(current_name, gaez_data)
             scored = self._score(
                 metrics,
                 0.65,
@@ -696,6 +930,7 @@ class CropSimulator:
                 history_adjustment=history_adj,
                 temporal_features=temporal_features,
                 is_bare_field=is_bare_field,
+                gaez_features=current_gaez,
             )
             current = {
                 "strategy": current_name,
@@ -799,6 +1034,14 @@ class CropSimulator:
             if crop_label
             else 0.0
         )
+        gaez_data = self._extract_gaez_context(climate_data) or self._extract_gaez_context(
+            soil_data
+        )
+        gaez_features = (
+            self._build_gaez_features_for_strategy(crop_label, gaez_data)
+            if crop_label and gaez_data is not None
+            else None
+        )
         scored = self._score(
             metrics,
             water_demand=_clamp(consumo / 700.0),
@@ -809,12 +1052,19 @@ class CropSimulator:
             history_adjustment=history_adj,
             temporal_features=temporal_features,
             is_bare_field=is_bare_field,
+            gaez_features=gaez_features,
         )
-        return {
+        res_dict: dict[str, Any] = {
             "viability_score": scored["viability"],
             "water_risk": scored["water_risk"],
             "score_breakdown": scored["score_breakdown"],
         }
+        if isinstance(gaez_features, dict):
+            res_dict["gaez_suitability"] = gaez_features.get("gaez_suitability")
+            res_dict["attainable_yield_kg_ha"] = gaez_features.get(
+                "attainable_yield_kg_ha"
+            )
+        return res_dict
 
 
 def get_fallback_rotation_strategies(
