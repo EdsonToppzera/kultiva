@@ -18,7 +18,6 @@ import {
   WifiOff,
 } from "lucide-react";
 import { KultivaLogo } from "../../../components/KultivaLogo";
-import { LanguageSelector } from "../../../components/LanguageSelector";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import {
@@ -683,7 +682,6 @@ export function PrioritiesStep({
                 />
                 <span>{t(badgeInfo.labelKey)}</span>
               </Badge>
-              <LanguageSelector />
             </div>
           </header>
 

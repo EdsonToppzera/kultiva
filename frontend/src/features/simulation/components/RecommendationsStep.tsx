@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { KultivaLogo } from "../../../components/KultivaLogo";
 import { KultivaLoader } from "../../../components/KultivaLoader";
-import { LanguageSelector } from "../../../components/LanguageSelector";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import {
@@ -164,7 +163,6 @@ export function RecommendationsStep({
                 />
                 <span>{t(badgeInfo.labelKey)}</span>
               </Badge>
-              <LanguageSelector />
             </div>
           </header>
 

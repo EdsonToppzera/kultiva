@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { KultivaLoader } from "./components/KultivaLoader";
 import { KultivaLogo } from "./components/KultivaLogo";
-import { LanguageSelector } from "./components/LanguageSelector";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
 import type {
@@ -548,7 +547,6 @@ export function App() {
                   )}
                   <span>{isOnline ? t("network.saved") : t("network.offline")}</span>
                 </Badge>
-                <LanguageSelector />
               </div>
             </header>
 
