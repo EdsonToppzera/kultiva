@@ -6,11 +6,11 @@
 
 ## Estado atual (Rodadas 1, 2 e 3 concluídas · Rodada 4 / Evolução Biológica & Frontend `F3` planejada)
 
-- Suíte `backend/tests`: **verde** (70 testes cobrindo Rodadas 1, 2, 3, Dados Reais NASA e FAO GAEZ v5: `A1–A14`, `B1–B8`, `C1–C9`).
+- Suíte `backend/tests`: **verde** (75 testes cobrindo Rodadas 1, 2, 3, 4 parcial, Dados Reais NASA, FAO GAEZ v5, ECOCROP e AGROFIT: `A1–A16`, `B1–B8`, `C1–C9`).
 - **Feito (Rodada 1):** `A1–A6` (Dev A) · `B1–B4` (Dev B) · `C1–C5` (Dev C) · base de infra.
 - **Feito (Rodada 2):** `A7–A9` (Dev A) · `B5–B7` (Dev B) · `C6–C8` (Dev C).
 - **Feito (Rodada 3):** `A10–A14` ✅ · `B8` ✅ · `C9` ✅ · `F1–F2` ✅.
-- **Próxima Rodada (Rodada 4 — Pendente):** `A15` (ECOCROP) · `A16` (AGROFIT × NASA × `CropSimulator`) · `A17` (Z-score climático histórico) · `A18` (Explicação estruturada com evidências numéricas + SRTM/HLS) · `F3` (telas completas no `frontend/` com blocos numéricos).
+- **Rodada 4 (Em execução):** `A15` (ECOCROP) ✅ · `A16` (AGROFIT × NASA × `CropSimulator`) ✅ · **Pendente:** `A17` (Z-score climático histórico) · `A18` (Explicação estruturada com evidências numéricas + SRTM/HLS) · `F3` (telas completas no `frontend/` com blocos numéricos).
 
 ### Resumo do que foi entregue
 
@@ -23,6 +23,8 @@
   - **A11–A12 — Datasets reais multi-fonte + NASA POWER + ML avançado (`RandomForestRegressor` + features temporais)** (`geospatial.py`, `ml_models.py`, `mock_nasa_data.py`, `api/simulacao.py`, `docker-compose.yml`, `.env.example`, `backend/requirements.txt`): descoberta local em `data/real/`, harmonização de grades transpostas e `_FillValue`, integração/cache da API pública NASA POWER sem login, regressor `RandomForestRegressor` + estabilidade temporal no `CropSimulator`, métricas diagnósticas no `ClimateAnomalyDetector` e suporte a `perfil_climatico="real"`.
   - **A13 — Provedor direto FAO GAEZ v5 (`Suitability and Attainable Yield`, `HWSD v2.01`, `SQ-IDX`, `SLOPE-MED` e `CMIP6`)** (`backend/services/gaez_service.py`): leitura paralela direta via HTTP Range Requests nos COGs oficiais do bucket público da FAO (`RES05-SUX`, `RES05-YLX` para `HP0120` e `FP2140` SSP370, `HWSDV201`, `SQX.SQ0`, `SQ-IDX`, `SLOPE-MED`), mapeamento dos 4 regimes de manejo (`LRLM`, `HRLM`, `LILM`, `HILM`), cache por célula de 5 arc-min e retorno `no_data` sem fallbacks determinísticos inventados.
   - **A14 — Catálogo `[M2]`, Simulador `[M3]` e Agente IA calibrados pelo FAO GAEZ v5** (`api/cultura.py`, `schemas/rotacao.py`, `ml_models.py`, `llm_agent.py`, `api/simulacao.py`): endpoint `GET /api/v1/culturas/aptidao-gaez` com sincronização opcional de culturas/sementes viáveis no banco, geração e pontuação de rotações no `CropSimulator` usando `gaez_suitability`, `attainable_yield_kg_ha` (kg/ha), `soil_quality_index` e `cmip6_suitability_delta`, e contextualização de solo HWSD/produtividade no `RotationExplainerAgent`.
+  - **A15 — Provedor direto FAO ECOCROP** (`backend/services/ecocrop_service.py`, `api/cultura.py`, `schemas/rotacao.py`): leitura com cache em disco do `EcoCrop_DB.csv` (sem fallback inventado), extração de `Scientific Name`, `Family`, `TMIN`/`TMAX`, `TOPMIN`/`TOPMAX`, `RMIN`/`RMAX`, `GMIN`/`GMAX` e endpoint `GET /api/v1/culturas/ecocrop`.
+  - **A16 — Provedor direto AGROFIT (Embrapa AgroAPI) × NASA × `CropSimulator`** (`backend/services/agrofit_service.py`, `ml_models.py`, `api/simulacao.py`): consulta OAuth2/cache por `Scientific Name` na API Agrofit v1 (sem fallback inventado) cruzada com família botânica ECOCROP, `historico_cultivos`, `praga_alvo` e gatilhos climáticos NASA (SMAP/ECOSTRESS/GPM) para expor `phytosanitary_risk`, `phytosanitary_penalty`, `botanical_families`, `agrofit_pests_count` e `phytosanitary_warnings` no `score_breakdown`, **sem bloquear** culturas de subsistência.
 - **Dev B (`B1–B7`)**
   - **B1–B4 (Rodada 1):** CRUD completo do catálogo `[M2]` (`api/cultura.py`), proteção de registros seed, serviço/endpoints de relatório `[M6]` (`services/relatorio_service.py`, `api/relatorios.py`), persistência histórica em Postgres/Alembic (`services/metrics_service.py`) e testes/CI (`backend/tests/test_b1_b2_b3.py`, `.github/workflows/ci.yml`).
   - **B5 — CORS, seed inicial e CRUD completo de terrenos `[M1]`** (`main.py`, `api/terreno.py`, `schemas/terreno.py`): `CORSMiddleware` habilitado para `localhost:5173`, seed automático de `Usuario` padrão e `PUT`/`DELETE /api/v1/terrenos/{terreno_id}` com cálculo automático de área/centroide (A7).
@@ -89,8 +91,8 @@
 | A12 | ✅ | Infraestrutura Earthdata (`earthaccess`, `h5netcdf`, `EARTHDATA_TOKEN`, `NASA_POWER_FALLBACK`, `NASA_REAL_DAYS_BACK`), suporte a `perfil_climatico="real"` na simulação e testes de `A11–A12` | `requirements.txt`, `docker-compose.yml`, `.env.example`, `mock_nasa_data.py`, `api/simulacao.py`, `backend/tests/test_data_ml.py` | `POST /api/v1/simular-rotacao` suporta dados reais e suíte `pytest` verde |
 | A13 | ✅ | Provedor direto FAO GAEZ v5 COG (`RES05-SUX`/`YLX` Suitability and Attainable Yield, `HWSDV201`, `SQ-IDX`, `SQX.SQ0`, `SLOPE-MED` e `CMIP6` 2021–2040) com cache por célula e sem fallbacks inventados | `backend/services/gaez_service.py` | Extração direta dos COGs oficiais nos 4 perfis (`LRLM`, `HRLM`, `LILM`, `HILM`) |
 | A14 | ✅ | Integração "Suitability and Attainable Yield" no catálogo `[M2]` (`/culturas/aptidao-gaez`), `CropSimulator` `[M3]` e `RotationExplainerAgent` + testes de `A13–A14` | `api/cultura.py`, `schemas/rotacao.py`, `ml_models.py`, `llm_agent.py`, `api/simulacao.py`, `backend/tests/test_data_ml.py` | Culturas/rotações e IA usam aptidão GAEZ, produtividade `kg/ha`, solo HWSD e `CMIP6` |
-| A15 | ⬜ | Provedor direto **ECOCROP** (sem fallback inventado): extrair `Scientific Name`, `Family`, `TMIN`/`TMAX`, `TOPMIN`/`TOPMAX`, `RMIN`/`RMAX`, `GMIN`/`GMAX` | `backend/services/ecocrop_service.py`, `api/cultura.py` | Zona de conforto e taxonomia da planta consultáveis via nome/código científico |
-| A16 | ⬜ | Provedor direto **AGROFIT (Embrapa AgroAPI)** cruzado por `Scientific Name` + gatilhos climáticos NASA (SMAP/ECOSTRESS/POWER) no `CropSimulator` (penalização/aviso de pragas e família botânica **sem bloquear** subsistência) | `backend/services/agrofit_service.py`, `ml_models.py`, `api/simulacao.py` | Risco fitossanitário calculado no `score_breakdown` sem excluir culturas de subsistência |
+| A15 | ✅ | Provedor direto **ECOCROP** (sem fallback inventado): extrair `Scientific Name`, `Family`, `TMIN`/`TMAX`, `TOPMIN`/`TOPMAX`, `RMIN`/`RMAX`, `GMIN`/`GMAX` | `backend/services/ecocrop_service.py`, `api/cultura.py`, `schemas/rotacao.py` | Zona de conforto e taxonomia da planta consultáveis via nome/código científico |
+| A16 | ✅ | Provedor direto **AGROFIT (Embrapa AgroAPI)** cruzado por `Scientific Name` + gatilhos climáticos NASA (SMAP/ECOSTRESS/POWER) no `CropSimulator` (penalização/aviso de pragas e família botânica **sem bloquear** subsistência) | `backend/services/agrofit_service.py`, `ml_models.py`, `api/simulacao.py` | Risco fitossanitário calculado no `score_breakdown` sem excluir culturas de subsistência |
 | A17 | ⬜ | Cálculo de **Z-score de anomalia climática** contra baseline histórica do mesmo período (NASA POWER) no `ClimateAnomalyDetector` e `RealNASADataProvider` | `geospatial.py`, `ml_models.py`, `api/alertas.py` | Z-score de chuva/umidade/calor integrado à detecção `[M5]` e métricas `[M3]` |
 | A18 | ⬜ | Explicação estruturada com evidências numéricas (`RotationExplainerAgent` + schema `[M3]`) e integração de **SRTM 30 m** / cobertura **HLS** | `llm_agent.py`, `schemas/simulacao.py`, `geospatial.py` | Blocos estruturados com números reais para cards no frontend + elevação SRTM |
 
@@ -134,7 +136,7 @@
 1. ✅ **Rodada 1 concluída:** `A1–A6` · `B1–B4` · `C1–C5`.
 2. ✅ **Rodada 2 concluída:** `A7–A9` · `B5–B7` · `C6–C8`.
 3. ✅ **Rodada 3 concluída:** `A10–A14` · `B8` · `C9` · `F1–F2`.
-4. **Rodada 4 — Em planejamento/execução:** `A15` (ECOCROP) → `A16` (Agrofit × NASA) · `A17` (Z-score) · `A18` (Explicação estruturada + SRTM) · `F3` (telas finais + blocos numéricos no frontend).
+4. **Rodada 4 — Em execução:** `A15` (ECOCROP) ✅ → `A16` (Agrofit × NASA) ✅ · `A17` (Z-score) · `A18` (Explicação estruturada + SRTM) · `F3` (telas finais + blocos numéricos no frontend).
 
 ## Regras de trabalho
 

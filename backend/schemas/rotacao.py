@@ -135,6 +135,7 @@ class GAEZSoilResponse(BaseModel):
 class GAEZCropSuitabilityResponse(BaseModel):
     crop_code: str
     gaez_caption: str
+    scientific_name: Optional[str] = None
     nome: str
     group: str
     fixes_nitrogen: bool
@@ -160,3 +161,36 @@ class GAEZAptidaoResponse(BaseModel):
     soil: GAEZSoilResponse
     culturas_avaliadas: List[GAEZCropSuitabilityResponse]
     culturas_sincronizadas: List[CulturaResponse] = Field(default_factory=list)
+
+
+class EcoCropProfileResponse(BaseModel):
+    ecoport_code: Optional[str] = None
+    scientific_name: str
+    family: Optional[str] = None
+    family_canonical: Optional[str] = None
+    family_taxonomy: Optional[str] = None
+    common_names: List[str] = Field(default_factory=list)
+    tmin: Optional[float] = None
+    tmax: Optional[float] = None
+    topmin: Optional[float] = None
+    topmax: Optional[float] = None
+    rmin: Optional[float] = None
+    rmax: Optional[float] = None
+    ropmin: Optional[float] = None
+    ropmax: Optional[float] = None
+    gmin: Optional[int] = None
+    gmax: Optional[int] = None
+    phmin: Optional[float] = None
+    phmax: Optional[float] = None
+    phopmin: Optional[float] = None
+    phopmax: Optional[float] = None
+    climate_zones: Optional[str] = None
+    synonyms: Optional[str] = None
+
+
+class EcoCropLookupResponse(BaseModel):
+    origem: str = "fao_ecocrop"
+    data_quality: str
+    query: str
+    found: bool
+    crop: Optional[EcoCropProfileResponse] = None
