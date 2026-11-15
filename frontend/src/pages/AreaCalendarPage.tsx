@@ -9,14 +9,10 @@ import {
   Info,
   MapPin,
   Pause,
-  RefreshCw,
   Sun,
-  Wifi,
-  WifiOff,
 } from "lucide-react";
 import { KultivaLogo } from "../components/KultivaLogo";
-import { LanguageSelector } from "../components/LanguageSelector";
-import { Badge } from "../components/ui/badge";
+import { NetworkStatusBadge } from "../components/NetworkStatusBadge";
 import { Button } from "../components/ui/button";
 import type {
   AreaCalendarData,
@@ -87,19 +83,6 @@ const MILESTONE_DOT_CLASS: Record<CalendarMilestoneType, string> = {
   plantio: "bg-[#9AA832]",
   manejo: "bg-[#511D4E]",
   colheita: "bg-[#D97706]",
-};
-
-const NETWORK_BADGE_CONFIG: Record<
-  NetworkSyncStatus,
-  {
-    labelKey: string;
-    variant: "saved" | "offline" | "outline";
-    icon: React.ComponentType<{ className?: string }>;
-  }
-> = {
-  salvo: { labelKey: "network.saved", variant: "saved", icon: Wifi },
-  sincronizando: { labelKey: "network.saving", variant: "outline", icon: RefreshCw },
-  offline: { labelKey: "network.offline", variant: "offline", icon: WifiOff },
 };
 
 function parseIsoDate(iso: string): Date {
@@ -184,9 +167,6 @@ export function AreaCalendarPage({
   }) as string[];
   const [liveCalendarData, setLiveCalendarData] =
     React.useState<AreaCalendarData | null>(null);
-  const [isOnline, setIsOnline] = React.useState<boolean>(() =>
-    typeof navigator !== "undefined" ? navigator.onLine : true
-  );
 
   React.useEffect(() => {
     if (terrenoId == null) {
@@ -246,18 +226,6 @@ export function AreaCalendarPage({
       highlights: {},
     };
 
-  React.useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
   const [selectedDate, setSelectedDate] = React.useState<string>(
     calendarData.todayDate
   );
@@ -269,11 +237,6 @@ export function AreaCalendarPage({
   const [viewMonth, setViewMonth] = React.useState<number>(
     initialDate.getMonth()
   );
-
-  const effectiveStatus: NetworkSyncStatus =
-    networkStatus ?? (isOnline ? "salvo" : "offline");
-  const badgeConfig = NETWORK_BADGE_CONFIG[effectiveStatus];
-  const StatusIcon = badgeConfig.icon;
 
   const selectedDateObj = parseIsoDate(selectedDate);
   const selectedWeekday = weekdaysUpper[selectedDateObj.getDay()];
@@ -371,11 +334,7 @@ export function AreaCalendarPage({
             <KultivaLogo />
 
             <div className="flex items-center gap-2">
-              <Badge variant={badgeConfig.variant} aria-live="polite">
-                <StatusIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span>{t(badgeConfig.labelKey)}</span>
-              </Badge>
-              <LanguageSelector />
+              <NetworkStatusBadge status={networkStatus} />
             </div>
           </header>
 

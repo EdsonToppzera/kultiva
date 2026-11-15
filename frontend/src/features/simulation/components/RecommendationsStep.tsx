@@ -9,13 +9,10 @@ import {
   MapPin,
   RefreshCw,
   ShieldAlert,
-  Wifi,
-  WifiOff,
 } from "lucide-react";
 import { KultivaLogo } from "../../../components/KultivaLogo";
 import { KultivaLoader } from "../../../components/KultivaLoader";
-import { LanguageSelector } from "../../../components/LanguageSelector";
-import { Badge } from "../../../components/ui/badge";
+import { NetworkStatusBadge } from "../../../components/NetworkStatusBadge";
 import { Button } from "../../../components/ui/button";
 import {
   Drawer,
@@ -38,19 +35,6 @@ export {
   buildAreaSummaryFromOnboarding,
 } from "../utils/recommendationHelpers";
 import { RecommendationCard } from "./RecommendationCard";
-
-const NETWORK_BADGE_CONFIG: Record<
-  NetworkSyncStatus,
-  {
-    labelKey: string;
-    variant: "saved" | "offline" | "outline";
-    icon: React.ComponentType<{ className?: string }>;
-  }
-> = {
-  salvo: { labelKey: "network.saved", variant: "saved", icon: Wifi },
-  sincronizando: { labelKey: "network.saving", variant: "outline", icon: RefreshCw },
-  offline: { labelKey: "network.offline", variant: "offline", icon: WifiOff },
-};
 
 export interface RecommendationsStepProps {
   propertyLocation?: string;
@@ -81,9 +65,6 @@ export function RecommendationsStep({
   onBack,
 }: RecommendationsStepProps) {
   const { t } = useTranslation();
-  const [isOnline, setIsOnline] = React.useState<boolean>(() =>
-    typeof navigator !== "undefined" ? navigator.onLine : true
-  );
   const [localScenarios, setLocalScenarios] =
     React.useState<RotationScenario[]>(scenarios);
   const [activeScenarioId, setActiveScenarioId] = React.useState<string | null>(
@@ -93,18 +74,6 @@ export function RecommendationsStep({
   React.useEffect(() => {
     setLocalScenarios(scenarios);
   }, [scenarios]);
-
-  React.useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
 
   const activeScenario = React.useMemo(
     () =>
@@ -139,12 +108,6 @@ export function RecommendationsStep({
     []
   );
 
-  const resolvedNetworkStatus: NetworkSyncStatus =
-    networkStatus ?? (isOnline ? "salvo" : "offline");
-
-  const badgeInfo = NETWORK_BADGE_CONFIG[resolvedNetworkStatus];
-  const NetworkIcon = badgeInfo.icon;
-
   return (
     <div className="min-h-dvh w-full bg-[#F7F6F0] text-[#1F1C18]">
       <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between px-5 pb-10 pt-6 md:max-w-2xl lg:max-w-6xl lg:px-8 lg:py-10">
@@ -154,17 +117,7 @@ export function RecommendationsStep({
             <KultivaLogo />
 
             <div className="flex items-center gap-2">
-              <Badge variant={badgeInfo.variant} aria-live="polite">
-                <NetworkIcon
-                  className={cn(
-                    "h-3.5 w-3.5",
-                    resolvedNetworkStatus === "sincronizando" && "animate-spin"
-                  )}
-                  aria-hidden="true"
-                />
-                <span>{t(badgeInfo.labelKey)}</span>
-              </Badge>
-              <LanguageSelector />
+              <NetworkStatusBadge status={networkStatus} />
             </div>
           </header>
 
@@ -218,16 +171,21 @@ export function RecommendationsStep({
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:items-start">
-                {localScenarios.map((scenario) => (
-                  <RecommendationCard
-                    key={scenario.id}
-                    scenario={scenario}
-                    onSelectPlan={isSubmittingPlan ? undefined : onSelectPlan}
-                    onOpenDetails={(item) => setActiveScenarioId(item.id)}
-                    onSwapTrackStep={handleSwapTrackStep}
-                  />
-                ))}
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:items-start">
+                  {localScenarios.map((scenario) => (
+                    <RecommendationCard
+                      key={scenario.id}
+                      scenario={scenario}
+                      onSelectPlan={isSubmittingPlan ? undefined : onSelectPlan}
+                      onOpenDetails={(item) => setActiveScenarioId(item.id)}
+                      onSwapTrackStep={handleSwapTrackStep}
+                    />
+                  ))}
+                </div>
+                <p className="mx-auto max-w-2xl text-center text-xs leading-relaxed text-[#6D6960]">
+                  {t("simulation.decisionDisclaimer")}
+                </p>
               </div>
             )}
           </main>

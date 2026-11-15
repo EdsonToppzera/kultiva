@@ -1,87 +1,89 @@
+![Kultiva](docs/assets/kultiva-banner.jpeg)
+
 # Kultiva
 
-Aplicação **Kultiva** (NASA Space Apps Challenge): sistema de apoio à decisão para pequenos produtores rurais, unindo dados de satélite da NASA, bases agronômicas e IA para rotação de culturas resiliente.
+**Kultiva** application (NASA Space Apps Challenge): a decision-support system for smallholder farmers, combining NASA satellite data, agronomic databases, and AI for resilient crop rotation planning.
 
-## Pré-requisitos
+## Prerequisites
 
-- **Backend:** Python 3.11+ (ou Docker + Docker Compose)
-- **Frontend:** Node.js 18+ e npm
+- **Backend:** Python 3.11+ (or Docker + Docker Compose)
+- **Frontend:** Node.js 18+ and npm
 
 ---
 
-## Configuração inicial (`.env`)
+## Initial Setup (`.env`)
 
-Na raiz do projeto, crie seu arquivo `.env` a partir do exemplo:
+In the project root, create your `.env` file from the example:
 
 ```bash
 cp .env.example .env
 ```
 
-> Sem `GOOGLE_API_KEY` configurada, o agente LLM utiliza respostas determinísticas/mockadas localmente.
+> Without `GOOGLE_API_KEY` configured, the LLM agent uses local deterministic/mocked responses.
 
 ---
 
-## Como rodar o Backend
+## Running the Backend
 
-### Opção 1: Com Docker Compose (recomendado)
+### Option 1: Using Docker Compose (recommended)
 
-Sobe a API FastAPI (`http://localhost:8000`) e o banco PostgreSQL (`5432`):
+Starts the FastAPI service (`http://localhost:8000`) and PostgreSQL database (`5432`):
 
 ```bash
 docker-compose up --build
 ```
 
-### Opção 2: Localmente sem Docker
+### Option 2: Locally without Docker
 
-1. Crie e ative um ambiente virtual na raiz do projeto:
+1. Create and activate a virtual environment in the project root:
 
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate
    ```
 
-2. Instale as dependências:
+2. Install dependencies:
 
    ```bash
    pip install -r backend/requirements.txt
    ```
 
-3. (Opcional) Execute as migrações do banco, se aplicável ao seu `DATABASE_URL`:
+3. (Optional) Run database migrations, if applicable to your `DATABASE_URL`:
 
    ```bash
    alembic upgrade head
    ```
 
-4. Inicie o servidor FastAPI com *hot reload*:
+4. Start the FastAPI server with hot reload:
 
    ```bash
    uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
    ```
 
-- API disponível em: `http://localhost:8000`
-- Documentação interativa (Swagger): `http://localhost:8000/docs`
+- API available at: `http://localhost:8000`
+- Interactive API docs (Swagger): `http://localhost:8000/docs`
 
 ---
 
-## Como rodar o Frontend
+## Running the Frontend
 
-1. Acesse a pasta `frontend/` e instale as dependências:
+1. Go to the `frontend/` folder and install dependencies:
 
    ```bash
    cd frontend
    npm install
    ```
 
-2. Inicie o servidor de desenvolvimento (Vite):
+2. Start the development server (Vite):
 
    ```bash
    npm run dev
    ```
 
-- Aplicação disponível em: `http://localhost:5173`
-- Por padrão, o frontend consome a API em `http://localhost:8000/api/v1`. Caso precise apontar para outro endereço, defina `VITE_API_BASE_URL` em `frontend/.env`.
+- Application available at: `http://localhost:5173`
+- By default, the frontend consumes the API at `http://localhost:8000/api/v1`. To point to another URL, set `VITE_API_BASE_URL` in `frontend/.env`.
 
-Para validar o build de produção e checagem de tipos (`tsc --noEmit && vite build`):
+To validate the production build and type checking (`tsc --noEmit && vite build`):
 
 ```bash
 npm run build
@@ -89,16 +91,16 @@ npm run build
 
 ---
 
-## Documentação (MkDocs)
+## Documentation (MkDocs)
 
-A documentação técnica do projeto utiliza **MkDocs Material**. Para visualizá-la localmente com *live reload*:
+Project technical documentation uses **MkDocs Material**. To preview it locally with live reload:
 
 ```bash
 pip install mkdocs-material
 mkdocs serve
 ```
 
-Para validar o build estático da documentação:
+To validate the static documentation build:
 
 ```bash
 mkdocs build --strict

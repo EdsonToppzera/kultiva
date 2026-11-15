@@ -829,36 +829,11 @@ interface PragaCatalogoApiItem {
   category?: string;
 }
 
-function normalizeSearchText(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
-function filterLocalCatalog<
-  T extends { id: string; officialName: string; popularNames: string[] },
->(items: T[], query: string, limit: number): T[] {
-  const normalized = normalizeSearchText(query);
-  const filtered = normalized
-    ? items.filter(
-        (item) =>
-          normalizeSearchText(item.officialName).includes(normalized) ||
-          normalizeSearchText(item.id).includes(normalized) ||
-          item.popularNames.some((alias) =>
-            normalizeSearchText(alias).includes(normalized)
-          )
-      )
-    : items;
-  return filtered.slice(0, limit);
-}
-
 export async function buscarCulturasCatalogo(
   query = "",
   limit = 30,
   signal?: AbortSignal,
-  lang: "pt" | "en" = "pt"
+  lang: "pt" | "en" = "en"
 ): Promise<CropOption[]> {
   try {
     const params = new URLSearchParams({
@@ -876,7 +851,7 @@ export async function buscarCulturasCatalogo(
       }
     );
     if (!response.ok) {
-      return filterLocalCatalog(CROPS_DICTIONARY, query, limit);
+      return [];
     }
     const data = (await response.json()) as CulturaCatalogoApiItem[];
     if (!Array.isArray(data) || data.length === 0) {
@@ -892,7 +867,7 @@ export async function buscarCulturasCatalogo(
     if (err instanceof DOMException && err.name === "AbortError") {
       throw err;
     }
-    return filterLocalCatalog(CROPS_DICTIONARY, query, limit);
+    return [];
   }
 }
 
@@ -900,7 +875,7 @@ export async function buscarPragasCatalogo(
   query = "",
   limit = 30,
   signal?: AbortSignal,
-  lang: "pt" | "en" = "pt"
+  lang: "pt" | "en" = "en"
 ): Promise<PestOption[]> {
   try {
     const params = new URLSearchParams({
@@ -918,7 +893,7 @@ export async function buscarPragasCatalogo(
       }
     );
     if (!response.ok) {
-      return filterLocalCatalog(PESTS_DICTIONARY, query, limit);
+      return [];
     }
     const data = (await response.json()) as PragaCatalogoApiItem[];
     if (!Array.isArray(data) || data.length === 0) {
@@ -935,6 +910,6 @@ export async function buscarPragasCatalogo(
     if (err instanceof DOMException && err.name === "AbortError") {
       throw err;
     }
-    return filterLocalCatalog(PESTS_DICTIONARY, query, limit);
+    return [];
   }
 }

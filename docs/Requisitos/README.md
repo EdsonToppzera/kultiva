@@ -1,7 +1,7 @@
-# Requisitos e Regras de Negócio
-- **[M1]** Criação do terreno (OBRIGATÓRIO)
-- **[M2]** Sugestões de culturas/rotações (OBRIGATÓRIO)
-- **[M3]** Simulador de culturas/rotações (OBRIGATÓRIO*)
-- **[M4]** Calendário com atividades para o cultivo (OPCIONAL)
-- **[M5]** Alertas de mudanças climáticas (OPCIONAL)
-- **[M6]** Relatórios periódicos de adaptação (OPCIONAL)
+# Requirements and Business Rules
+- **[M1]** Plot creation (MANDATORY)
+- **[M2]** Crop/rotation suggestions (MANDATORY)
+- **[M3]** Crop/rotation simulator (MANDATORY*)
+- **[M4]** Crop activity calendar (OPTIONAL)
+- **[M5]** Climate change alerts (OPTIONAL)
+- **[M6]** Periodic adaptation reports (OPTIONAL)

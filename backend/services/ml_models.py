@@ -35,7 +35,7 @@ _ROTATION_CATALOG: list[dict[str, Any]] = [
         "heat_tolerance": 0.45,
         "soil_benefit": 0.45,
         "market": 0.95,
-        "benefits": "Mercado estabelecido e cadeia de comercialização consolidada",
+        "benefits": "Tem boa saída e venda fácil na região",
     },
     {
         "strategy": "Sorgo -> Feijão-caupi",
@@ -43,7 +43,7 @@ _ROTATION_CATALOG: list[dict[str, Any]] = [
         "heat_tolerance": 0.90,
         "soil_benefit": 0.80,
         "market": 0.60,
-        "benefits": "Alta tolerância à seca, fixa nitrogênio",
+        "benefits": "Aguenta bem a seca e ajuda a adubar a terra",
     },
     {
         "strategy": "Milheto -> Amendoim",
@@ -51,7 +51,7 @@ _ROTATION_CATALOG: list[dict[str, Any]] = [
         "heat_tolerance": 0.75,
         "soil_benefit": 0.85,
         "market": 0.70,
-        "benefits": "Melhora a estrutura do solo",
+        "benefits": "Deixa a terra mais fofa e fértil",
     },
     {
         "strategy": "Mandioca -> Crotalária",
@@ -59,7 +59,7 @@ _ROTATION_CATALOG: list[dict[str, Any]] = [
         "heat_tolerance": 0.85,
         "soil_benefit": 0.90,
         "market": 0.55,
-        "benefits": "Rústica, cobre o solo e controla nematoides",
+        "benefits": "Planta forte, cobre bem o chão e protege as raízes",
     },
     {
         "strategy": "Feijão -> Milho",
@@ -67,7 +67,7 @@ _ROTATION_CATALOG: list[dict[str, Any]] = [
         "heat_tolerance": 0.55,
         "soil_benefit": 0.70,
         "market": 0.85,
-        "benefits": "Feijão fixa nitrogênio para o milho seguinte",
+        "benefits": "O feijão aduba a terra para o milho que vem depois",
     },
 ]
 _DEFAULT_CURRENT_PRACTICE = "Milho -> Soja"
@@ -725,9 +725,10 @@ class CropSimulator:
                         "soil_benefit": round(avg_soil, 3),
                         "market": round(_clamp(avg_market), 3),
                         "benefits": (
-                            f"Aptidão FAO GAEZ v5 ({input_level or 'LRLM'}) de "
-                            f"{round(avg_suit * 100)}% (produtividade atingível média "
-                            f"~{round(avg_yield)} kg/ha) com fixação biológica de nitrogênio"
+                            f"Combina bem com a terra da região "
+                            f"(pode render perto de {round(avg_yield)} kg/ha) e ajuda a adubar o solo naturalmente"
+                            if avg_yield > 0
+                            else "Combina bem com a terra da região e ajuda a adubar o solo naturalmente"
                         ),
                         "preferred": False,
                         "gaez_features": {
@@ -963,8 +964,7 @@ class CropSimulator:
                     gf = existing.get("gaez_features")
                     if isinstance(gf, dict) and gf.get("attainable_yield_kg_ha"):
                         existing["benefits"] = (
-                            f"{existing['benefits']} (GAEZ v5: aptidão {round(gf['gaez_suitability'] * 100)}%, "
-                            f"~{round(gf['attainable_yield_kg_ha'])} kg/ha)"
+                            f"{existing['benefits']} — rende perto de {round(gf['attainable_yield_kg_ha'])} kg/ha na região"
                         )
             if len(catalog_by_norm) < 3:
                 for item in _ROTATION_CATALOG:

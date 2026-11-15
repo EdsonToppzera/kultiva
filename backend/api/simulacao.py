@@ -43,7 +43,7 @@ _ROTACOES_BASE_FALLBACK = [
         "heat_tolerance": 0.45,
         "soil_benefit": 0.45,
         "market": 0.95,
-        "benefits": "Mercado estabelecido e cadeia de comercialização consolidada",
+        "benefits": "Tem boa saída e venda fácil na região",
     },
     {
         "strategy": "Sorgo -> Feijão-caupi",
@@ -51,7 +51,7 @@ _ROTACOES_BASE_FALLBACK = [
         "heat_tolerance": 0.90,
         "soil_benefit": 0.80,
         "market": 0.60,
-        "benefits": "Alta tolerância à seca, fixa nitrogênio",
+        "benefits": "Aguenta bem a seca e ajuda a adubar a terra",
     },
     {
         "strategy": "Milheto -> Amendoim",
@@ -59,7 +59,7 @@ _ROTACOES_BASE_FALLBACK = [
         "heat_tolerance": 0.75,
         "soil_benefit": 0.85,
         "market": 0.70,
-        "benefits": "Melhora a estrutura do solo",
+        "benefits": "Deixa a terra mais fofa e fértil",
     },
 ]
 
@@ -686,60 +686,69 @@ def _montar_beneficios_e_riscos(
     culturas_rotacao: List[str],
     idioma: str = "pt",
 ) -> Tuple[List[str], List[str]]:
-    """Contextualiza benefícios e riscos agronômicos da simulação."""
+    """Contextualiza benefícios e riscos agronômicos em linguagem simples para o agricultor."""
     lang = _normalizar_idioma(idioma)
+    water_key = str(water_risk or "").strip().lower()
+    agua_prioridade = str(prioridades.get("agua", "")).lower()
+
     if lang == "en":
         from backend.services.llm_agent import _translate_strategy_name_en
 
         nome_cultura_en = _translate_strategy_name_en(nome_cultura)
         culturas_rotacao_en = [_translate_strategy_name_en(c) for c in culturas_rotacao]
         beneficios = [
-            f"Alignment of {nome_cultura_en}'s cycle with your plot planning",
-            "Use of environmental data for preventive resource management",
+            f"Fits {nome_cultura_en}'s growing cycle into your planting plan",
+            "Uses your area's rain and soil conditions to avoid losing crops",
         ]
         if culturas_rotacao_en:
             beneficios.append(
-                f"Productive diversification with rotation involving {', '.join(culturas_rotacao_en)}"
+                f"Alternates plants ({', '.join(culturas_rotacao_en)}) so the soil stays rested and healthy"
             )
 
         riscos: List[str] = []
-        agua_prioridade = str(prioridades.get("agua", "")).lower()
-        if agua_prioridade in {"escassa", "baixa", "limitada"} and consumo_agua_mm >= 400:
+        if agua_prioridade in {"escassa", "baixa", "limitada", "scarce", "low", "limited"} and consumo_agua_mm >= 400:
             riscos.append(
-                f"Plot with limited water availability compared to estimated demand of {consumo_agua_mm:.0f} mm"
+                f"Your land is short on water and this crop needs more watering (~{consumo_agua_mm:.0f} mm)"
             )
-        if water_risk.lower() in {"medium", "high", "alto", "medio", "critico"}:
+        if water_key in {"high", "alto", "critico", "crítico", "critical"}:
             riscos.append(
-                f"Water risk classified as '{water_risk}' for the analyzed climate scenario"
+                "Warning: high chance of water shortage during the season"
+            )
+        elif water_key in {"medium", "medio", "médio", "moderate", "moderado"}:
+            riscos.append(
+                "Moderate chance of dry spells: keep an eye on watering and soil cover"
             )
         if not riscos:
             riscos.append(
-                "Unexpected weather shifts may require dynamic adjustments to the management calendar"
+                "Sudden weather changes may require small adjustments to your weekly tasks"
             )
         return beneficios, riscos
 
     beneficios = [
-        f"Adequação do ciclo de {nome_cultura} ao planejamento da propriedade",
-        "Aproveitamento dos dados ambientais para manejo preventivo de recursos",
+        f"Combina com o tempo de plantio de {nome_cultura} na sua área",
+        "Usa os dados de chuva e solo da terra para ajudar a não perder a safra",
     ]
     if culturas_rotacao:
         beneficios.append(
-            f"Diversificação produtiva com rotação envolvendo {', '.join(culturas_rotacao)}"
+            f"Alterna os cultivos ({', '.join(culturas_rotacao)}) para cansar menos o solo"
         )
 
     riscos = []
-    agua_prioridade = str(prioridades.get("agua", "")).lower()
-    if agua_prioridade in {"escassa", "baixa", "limitada"} and consumo_agua_mm >= 400:
+    if agua_prioridade in {"escassa", "baixa", "limitada", "scarce", "low", "limited"} and consumo_agua_mm >= 400:
         riscos.append(
-            f"Terreno com prioridade hídrica '{agua_prioridade}' frente ao consumo estimado de {consumo_agua_mm:.0f} mm"
+            f"Sua terra tem pouca água e essa planta pede mais rega (~{consumo_agua_mm:.0f} mm)"
         )
-    if water_risk.lower() in {"medium", "high", "alto", "medio", "critico"}:
+    if water_key in {"high", "alto", "critico", "crítico", "critical"}:
         riscos.append(
-            f"Risco hídrico classificado como '{water_risk}' para o cenário climático analisado"
+            "Atenção: risco alto de faltar água durante o plantio"
+        )
+    elif water_key in {"medium", "medio", "médio", "moderate", "moderado"}:
+        riscos.append(
+            "Risco médio de faltar água: vale cuidar da cobertura do solo e da rega"
         )
     if not riscos:
         riscos.append(
-            "Variações climáticas inesperadas podem exigir ajustes dinâmicos no calendário de manejo"
+            "Mudanças de tempo inesperadas podem pedir pequenos ajustes no dia a dia da lavoura"
         )
 
     return beneficios, riscos
@@ -782,21 +791,25 @@ def _gerar_explicacao_ia(
         except Exception:
             logger.exception("Falha em servico externo da simulacao; usando fallback")
 
+    risco_pt = {"low": "baixo", "medium": "médio", "medio": "médio", "high": "alto", "critico": "crítico"}
+    risco_en = {"baixo": "low", "medio": "medium", "médio": "medium", "alto": "high", "critico": "critical"}
     if lang == "en":
+        risco_label = risco_en.get(str(water_risk or "").lower(), water_risk)
         return (
-            f"The simulation for {nome_cultura} achieved a viability score of "
-            f"{viability_score:.0%} and '{water_risk}' water risk. "
-            f"Key observed benefits: {beneficios_txt}. "
-            f"Attention points and risks: {riscos_txt}. "
+            f"For {nome_cultura}, the estimated chance of doing well is {viability_score:.0%} "
+            f"with {risco_label} water-shortage risk. "
+            f"Strong points: {beneficios_txt}. "
+            f"Watch out for: {riscos_txt}. "
             f"{_DISCLAIMER_EN}",
             True,
         )
 
+    risco_label = risco_pt.get(str(water_risk or "").lower(), water_risk)
     return (
-        f"A simulação para a cultura {nome_cultura} apresentou índice de viabilidade de "
-        f"{viability_score:.0%} e risco hídrico '{water_risk}'. "
-        f"Principais benefícios observados: {beneficios_txt}. "
-        f"Pontos de atenção e riscos: {riscos_txt}. "
+        f"Para {nome_cultura}, a chance estimada de ir bem é de {viability_score:.0%}, "
+        f"com risco {risco_label} de faltar água. "
+        f"Pontos positivos: {beneficios_txt}. "
+        f"Pontos de atenção: {riscos_txt}. "
         f"{_DISCLAIMER_PADRAO}",
         True,
     )
@@ -866,20 +879,27 @@ def _gerar_explicacoes_estrategias(
     risco_en = {"baixo": "low", "medio": "medium", "médio": "medium", "alto": "high"}
     for estrategia in rotacoes_sugeridas:
         if lang == "en":
+            from backend.services.llm_agent import _translate_benefit_en, _translate_strategy_name_en
+
             risco = risco_en.get(estrategia.water_risk.lower(), estrategia.water_risk)
-            beneficio = estrategia.benefits or "productive plot maintenance"
+            beneficio = (
+                _translate_benefit_en(estrategia.benefits)
+                if estrategia.benefits
+                else "helps protect and balance the land"
+            )
+            nome_en = _translate_strategy_name_en(estrategia.strategy)
             texto = (
-                f"Option {estrategia.strategy} achieved an estimated viability of "
-                f"{round(estrategia.viability * 100)}% and {risco} water-deficit risk. "
-                f"Practical benefit: {beneficio}."
+                f"{nome_en} has about {round(estrategia.viability * 100)}% chance of doing well "
+                f"and {risco} risk of dry-spell loss. "
+                f"In practice: {beneficio}."
             )
         else:
             risco = risco_pt.get(estrategia.water_risk.lower(), estrategia.water_risk)
-            beneficio = estrategia.benefits or "manutenção produtiva da área"
+            beneficio = estrategia.benefits or "ajuda a cuidar bem da terra"
             texto = (
-                f"A opção {estrategia.strategy} teve viabilidade estimada de "
-                f"{round(estrategia.viability * 100)}% e risco de falta de água {risco}. "
-                f"Benefício prático: {beneficio}."
+                f"{estrategia.strategy} tem cerca de {round(estrategia.viability * 100)}% de chance de dar certo, "
+                f"com risco {risco} de faltar água. "
+                f"Na prática: {beneficio}."
             )
         estrategia.explicacao = _garantir_disclaimer(texto, lang)
     return rotacoes_sugeridas, True

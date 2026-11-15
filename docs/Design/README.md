@@ -1,19 +1,19 @@
-# Design e UI/UX
+# Design & UI/UX
 
-Diretrizes de interface Mobile-First, Offline-First (PWA) e padrões visuais para evolução do frontend React/Vite (`frontend/`).
+Mobile-First, Offline-First (PWA) interface guidelines and visual standards for evolving the React/Vite frontend (`frontend/`).
 
-## Sugestões de UX Geoespacial (Inspiradas no Portal FAO GAEZ v5)
+## Geospatial UX Suggestions (Inspired by the FAO GAEZ v5 Portal)
 
-Para aproximar a camada estratégica do agricultor sem expor complexidade técnica de SIG no `frontend/src/pages/MapTerrainPage.tsx` e nas telas `[M2]`/`[M3]`:
+To bring the strategic layer closer to the farmer without exposing GIS technical complexity in `frontend/src/pages/MapTerrainPage.tsx` and the `[M2]`/`[M3]` screens:
 
-1. **Camadas WMS/WMTS Direto no Leaflet:**
-   - Consumir o serviço OGC WMS público da FAO (`https://data.apps.fao.org/geoserver/wms`) sobre o mapa interativo para visualizar aptidão regional da cultura selecionada e classe de solo sem baixar rasters completos no cliente.
-2. **Comparação Lado a Lado (Split View):**
-   - Controle deslizante dividindo o mapa entre **clima histórico (`HP0120`) vs. cenário futuro CMIP6 (`2021–2040 SSP370`)** ou entre **manejo Sequeiro (`LRLM`) vs. Irrigado (`HILM`)**.
-3. **Consulta Pontual (Feature Information):**
-   - Ao clicar em um ponto/talhão no mapa, exibir um resumo simples conectado a `GET /api/v1/culturas/aptidao-gaez` contendo:
-     - Cultura recomendada e produtividade atingível estimada (`kg/ha`);
-     - Classe de solo (HWSD v2.01) e declividade (`SLOPE-MED`);
-     - Principal fator limitante (`SQ-IDX`, ex.: retenção de nutrientes, drenagem ou acidez) traduzido para linguagem cotidiana.
-4. **Transparência nos Cards do Simulador `[M3]`:**
-   - Exibir o `score_breakdown` de forma visual (aptidão hídrica, estresse térmico, estabilidade temporal, aptidão FAO GAEZ e `kg/ha`) sempre acompanhado da explicação acessível e do aviso legal (`DISCLAIMER`).
+1. **Direct WMS/WMTS Layers in Leaflet:**
+   - Consume FAO's public OGC WMS service (`https://data.apps.fao.org/geoserver/wms`) over the interactive map to visualize regional suitability for the selected crop and soil class without downloading full rasters on the client.
+2. **Side-by-Side Comparison (Split View):**
+   - Slider splitting the map between **historical climate (`HP0120`) vs. CMIP6 future scenario (`2021–2040 SSP370`)** or between **Rainfed (`LRLM`) vs. Irrigated (`HILM`)** management.
+3. **Point-Based Query (Feature Information):**
+   - When clicking a point/plot on the map, display a simple summary connected to `GET /api/v1/culturas/aptidao-gaez` containing:
+     - Recommended crop and estimated attainable yield (`kg/ha`);
+     - Soil class (HWSD v2.01) and slope (`SLOPE-MED`);
+     - Main limiting factor (`SQ-IDX`, e.g., nutrient retention, drainage, or acidity) translated into everyday language.
+4. **Transparency in Simulator `[M3]` Cards:**
+   - Visually display `score_breakdown` (water suitability, heat stress, temporal stability, FAO GAEZ suitability, and `kg/ha`) always accompanied by the plain-language explanation and legal disclaimer (`DISCLAIMER`).

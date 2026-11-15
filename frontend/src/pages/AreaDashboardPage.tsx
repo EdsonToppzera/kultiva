@@ -14,17 +14,13 @@ import {
   Moon,
   Pause,
   Play,
-  RefreshCw,
   Sun,
   Sunrise,
   Sunset,
-  Wifi,
-  WifiOff,
   X,
 } from "lucide-react";
 import { KultivaLogo } from "../components/KultivaLogo";
-import { LanguageSelector } from "../components/LanguageSelector";
-import { Badge } from "../components/ui/badge";
+import { NetworkStatusBadge } from "../components/NetworkStatusBadge";
 import { Button } from "../components/ui/button";
 import {
   Drawer,
@@ -150,19 +146,6 @@ const REPORT_OPTIONS: FieldReportOption[] = [
   },
 ];
 
-const NETWORK_BADGE_CONFIG: Record<
-  NetworkSyncStatus,
-  {
-    labelKey: string;
-    variant: "saved" | "offline" | "outline";
-    icon: React.ComponentType<{ className?: string }>;
-  }
-> = {
-  salvo: { labelKey: "network.saved", variant: "saved", icon: Wifi },
-  sincronizando: { labelKey: "network.saving", variant: "outline", icon: RefreshCw },
-  offline: { labelKey: "network.offline", variant: "offline", icon: WifiOff },
-};
-
 export function AreaDashboardPage({
   terrenoId,
   isSimulationMode = false,
@@ -192,9 +175,6 @@ export function AreaDashboardPage({
     });
   }, [dateLabel, i18n.language]);
 
-  const [isOnline, setIsOnline] = React.useState<boolean>(() =>
-    typeof navigator !== "undefined" ? navigator.onLine : true
-  );
   const [reportDrawerOpen, setReportDrawerOpen] = React.useState(false);
   const [selectedReport, setSelectedReport] =
     React.useState<FieldReportOptionId>("choveu_nao_previsto");
@@ -264,23 +244,6 @@ export function AreaDashboardPage({
   const effectiveCropProgress = liveCropProgress ?? cropProgress ?? null;
   const effectiveActivities =
     liveActivities !== null ? liveActivities : (activities ?? []);
-
-  React.useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
-  const effectiveStatus: NetworkSyncStatus =
-    networkStatus ?? (isOnline ? "salvo" : "offline");
-  const badgeConfig = NETWORK_BADGE_CONFIG[effectiveStatus];
-  const StatusIcon = badgeConfig.icon;
 
   const groupedActivities = React.useMemo(() => {
     return PERIOD_ORDER.map((period) => {
@@ -364,11 +327,7 @@ export function AreaDashboardPage({
             <KultivaLogo />
 
             <div className="flex items-center gap-2">
-              <Badge variant={badgeConfig.variant} aria-live="polite">
-                <StatusIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span>{t(badgeConfig.labelKey)}</span>
-              </Badge>
-              <LanguageSelector />
+              <NetworkStatusBadge status={networkStatus} />
             </div>
           </header>
 

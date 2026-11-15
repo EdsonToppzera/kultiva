@@ -147,3 +147,60 @@ def test_c6_fallback_dinamico_varia_com_clima_e_prioridades():
     finally:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(bind=engine)
+
+
+def test_c6_linguagem_simples_remove_markdown_saudacoes_e_traduz_risco():
+    from langchain_core.language_models.fake import FakeListLLM
+
+    from backend.services.llm_agent import RotationExplainerAgent, STRATEGY_SEPARATOR
+
+    resposta_suja = (
+        f"Olá, amigo produtor! Que bom que você está cuidando da roça.\n"
+        f"**Estratégia: Mandioca -> Feijão-caupi** Vai bem no calor.\n"
+        f"{STRATEGY_SEPARATOR}\n"
+        f"**Estratégia: Sorgo -> Feijão-caupi** Aguenta bem a seca.\n"
+        f"{STRATEGY_SEPARATOR}\n"
+        f"**Estratégia: Milho -> Soja (Atual)** Pede bastante chuva."
+    )
+    agent = RotationExplainerAgent(llm=FakeListLLM(responses=[resposta_suja]))
+    strategies = [
+        {"strategy": "Mandioca -> Feijão-caupi", "viability": 0.9, "water_risk": "medium"},
+        {"strategy": "Sorgo -> Feijão-caupi", "viability": 0.85, "water_risk": "low"},
+        {"strategy": "Milho -> Soja (Atual)", "viability": 0.55, "water_risk": "high"},
+    ]
+    out = agent.explain_strategies(strategies)
+    assert len(out) == 3
+    for text in out:
+        assert "**" not in text
+        assert "olá, amigo produtor" not in text.lower()
+        assert "estratégia:" not in text.lower()
+        assert "decisão final" in text.lower()
+
+    engine = _setup_sqlite()
+    try:
+        app.dependency_overrides[simulacao.get_nasa_processor] = lambda: None
+        app.dependency_overrides[simulacao.get_crop_simulator] = lambda: None
+        app.dependency_overrides[simulacao.get_rotation_explainer] = lambda: None
+
+        with TestClient(app) as client:
+            resp = client.post(
+                "/api/v1/simulacoes/",
+                json={
+                    "nome_propriedade": "Sítio Simples",
+                    "nome_cultura": "Milho",
+                    "prioridades": {"agua": "escassa"},
+                    "dados_climaticos": {
+                        "umidade_solo": 0.12,
+                        "precipitacao_mm": 280.0,
+                        "temperatura_media_c": 35.0,
+                    },
+                },
+            )
+            assert resp.status_code == 200
+            body = resp.json()
+            riscos_txt = " ".join(body["riscos_identificados"]).lower()
+            assert "'high'" not in riscos_txt
+            assert "risco alto" in riscos_txt or "risco médio" in riscos_txt
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(bind=engine)

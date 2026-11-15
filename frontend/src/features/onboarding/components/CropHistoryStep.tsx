@@ -5,15 +5,11 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  RefreshCw,
   Search,
   Sprout,
-  Wifi,
-  WifiOff,
 } from "lucide-react";
 import { KultivaLogo } from "../../../components/KultivaLogo";
-import { LanguageSelector } from "../../../components/LanguageSelector";
-import { Badge } from "../../../components/ui/badge";
+import { NetworkStatusBadge } from "../../../components/NetworkStatusBadge";
 import { Button } from "../../../components/ui/button";
 import {
   Command,
@@ -29,7 +25,6 @@ import {
   PopoverTrigger,
 } from "../../../components/ui/popover";
 import {
-  CROPS_DICTIONARY,
   formatPopularNames,
 } from "../../../data/cropsDictionary";
 import { useCatalogSearch } from "../../../hooks/useCatalogSearch";
@@ -283,25 +278,12 @@ function CropComboboxField({
   );
 }
 
-const NETWORK_BADGE_CONFIG: Record<
-  NetworkSyncStatus,
-  {
-    labelKey: string;
-    variant: "saved" | "offline" | "outline";
-    icon: React.ComponentType<{ className?: string }>;
-  }
-> = {
-  salvo: { labelKey: "network.saved", variant: "saved", icon: Wifi },
-  sincronizando: { labelKey: "network.saving", variant: "outline", icon: RefreshCw },
-  offline: { labelKey: "network.offline", variant: "offline", icon: WifiOff },
-};
-
 /**
  * Tela de Onboarding — Passo 1: Histórico de Cultivos.
  * Permite selecionar os dois últimos cultivos via busca fuzzy com sinônimos regionais ou pular caso não lembre.
  */
 export function CropHistoryStep({
-  crops = CROPS_DICTIONARY,
+  crops = [],
   initialData,
   networkStatus,
   terrenoId,
@@ -312,28 +294,7 @@ export function CropHistoryStep({
   onDontRemember,
 }: CropHistoryStepProps) {
   const { t } = useTranslation();
-  const [isOnline, setIsOnline] = React.useState<boolean>(() =>
-    typeof navigator !== "undefined" ? navigator.onLine : true
-  );
-  const [syncState, setSyncState] = React.useState<NetworkSyncStatus | null>(
-    null
-  );
   const [isSaving, setIsSaving] = React.useState(false);
-
-  React.useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
-  const resolvedNetworkStatus: NetworkSyncStatus =
-    networkStatus ?? syncState ?? (isOnline ? "salvo" : "offline");
 
   const [ultimoCultivo, setUltimoCultivo] = React.useState<CropOption | null>(
     initialData?.ultimoCultivo ?? null
@@ -352,9 +313,6 @@ export function CropHistoryStep({
   const [openField, setOpenField] = React.useState<
     "ultimo" | "anterior" | null
   >(null);
-
-  const badgeInfo = NETWORK_BADGE_CONFIG[resolvedNetworkStatus];
-  const NetworkIcon = badgeInfo.icon;
 
   const canContinue =
     (ultimoCultivo !== null && cultivoAnterior !== null) || naoLembro;
@@ -394,7 +352,6 @@ export function CropHistoryStep({
 
     if (terrenoId != null) {
       setIsSaving(true);
-      setSyncState("sincronizando");
       try {
         const historicoCultivos = converterHistoricoParaLista(payloadData);
         const updated = await atualizarTerreno(terrenoId, {
@@ -409,10 +366,9 @@ export function CropHistoryStep({
                 : null,
           },
         });
-        setSyncState("salvo");
         onTerrenoUpdated?.(updated);
       } catch {
-        setSyncState("offline");
+        // Mantém fluxo offline-first se a API falhar
       } finally {
         setIsSaving(false);
       }
@@ -433,17 +389,7 @@ export function CropHistoryStep({
             <KultivaLogo />
 
             <div className="flex items-center gap-2">
-              <Badge variant={badgeInfo.variant} aria-live="polite">
-                <NetworkIcon
-                  className={cn(
-                    "h-3.5 w-3.5",
-                    resolvedNetworkStatus === "sincronizando" && "animate-spin"
-                  )}
-                  aria-hidden="true"
-                />
-                <span>{t(badgeInfo.labelKey)}</span>
-              </Badge>
-              <LanguageSelector />
+              <NetworkStatusBadge status={networkStatus} isSyncing={isSaving} />
             </div>
           </header>
 
