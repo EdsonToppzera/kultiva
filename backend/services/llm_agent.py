@@ -234,8 +234,28 @@ def _format_context(
         srtm = field_metrics.get("srtm")
         if isinstance(srtm, dict):
             elev = _to_float(srtm.get("elevation_m"))
+            slope_pct = _to_float(srtm.get("slope_pct"))
+            erosion = srtm.get("erosion_risk")
+            srtm_bits: list[str] = []
             if elev is not None:
-                parts.append(f"elevação SRTM 30m: {elev:.0f} m")
+                srtm_bits.append(f"elevação SRTM: {elev:.0f} m")
+            if slope_pct is not None:
+                srtm_bits.append(f"declividade: {slope_pct:.1f}%")
+            if erosion:
+                srtm_bits.append(f"risco de erosão {erosion}")
+            if srtm_bits:
+                parts.append(", ".join(srtm_bits))
+
+        firms = field_metrics.get("firms")
+        if isinstance(firms, dict) and firms.get("hotspots_count") is not None:
+            count = int(firms.get("hotspots_count") or 0)
+            fire_risk = firms.get("fire_risk", "baixo")
+            nearest = _to_float(firms.get("nearest_fire_km"))
+            firms_txt = f"focos de calor NASA FIRMS: {count} foco(s) (risco {fire_risk}"
+            if nearest is not None:
+                firms_txt += f", mais próximo a {nearest:.1f} km"
+            firms_txt += ")"
+            parts.append(firms_txt)
 
         hls = field_metrics.get("hls")
         if isinstance(hls, dict):
@@ -392,6 +412,8 @@ def build_strategy_evidence(
         evidence["z_scores"] = fm["z_scores"]
     if isinstance(fm.get("srtm"), dict):
         evidence["srtm"] = fm["srtm"]
+    if isinstance(fm.get("firms"), dict):
+        evidence["firms"] = fm["firms"]
     if isinstance(fm.get("hls"), dict):
         evidence["hls"] = fm["hls"]
 
@@ -424,6 +446,7 @@ def build_simulation_evidence(
         "ecocrop": fm.get("ecocrop") if isinstance(fm.get("ecocrop"), dict) else None,
         "agrofit": fm.get("agrofit") if isinstance(fm.get("agrofit"), dict) else None,
         "srtm": fm.get("srtm") if isinstance(fm.get("srtm"), dict) else None,
+        "firms": fm.get("firms") if isinstance(fm.get("firms"), dict) else None,
         "hls": fm.get("hls") if isinstance(fm.get("hls"), dict) else None,
     }
     if strategies:

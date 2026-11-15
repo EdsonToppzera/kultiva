@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
+import kinks from "@turf/kinks";
+import { polygon as turfPolygon } from "@turf/helpers";
 import {
   ApiError,
   DEFAULT_USUARIO_ID,
@@ -69,6 +71,35 @@ function calculatePolygonAreaSqMeters(points: MapCoordinate[]): number {
   }
 
   return Math.abs((total * earthRadius * earthRadius) / 2);
+}
+
+/**
+ * Verifica se o contorno do polígono possui auto-intersecções (linhas cruzadas)
+ * usando `@turf/kinks`.
+ */
+function detectPolygonSelfIntersections(points: MapCoordinate[]): {
+  hasKinks: boolean;
+  kinkCoords: [number, number][];
+} {
+  if (points.length < 4) {
+    return { hasKinks: false, kinkCoords: [] };
+  }
+
+  try {
+    const ring = points.map((p) => [p.lng, p.lat]);
+    ring.push([points[0].lng, points[0].lat]);
+    const poly = turfPolygon([ring]);
+    const result = kinks(poly);
+    const kinkCoords = result.features.map(
+      (feat) => [feat.geometry.coordinates[1], feat.geometry.coordinates[0]] as [number, number]
+    );
+    return {
+      hasKinks: kinkCoords.length > 0,
+      kinkCoords,
+    };
+  } catch {
+    return { hasKinks: false, kinkCoords: [] };
+  }
 }
 
 function createVertexIcon(index: number): L.DivIcon {
@@ -200,9 +231,13 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
     [points]
   );
   const areaHectares = areaSqMeters / 10_000;
+  const selfIntersection = React.useMemo(
+    () => detectPolygonSelfIntersections(points),
+    [points]
+  );
   const isAreaTooLarge =
     points.length >= 3 && areaSqMeters > MAX_RECOMMENDED_AREA_SQ_METERS;
-  const canSave = points.length >= 3;
+  const canSave = points.length >= 3 && !selfIntersection.hasKinks;
 
   const polygonPositions = React.useMemo<[number, number][]>(
     () => points.map((point) => [point.lat, point.lng]),
@@ -314,10 +349,10 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
                   <Polygon
                     positions={polygonPositions}
                     pathOptions={{
-                      color: "#FFFFFF",
+                      color: selfIntersection.hasKinks ? "#C42311" : "#FFFFFF",
                       weight: 2.5,
-                      fillColor: "#FFFFFF",
-                      fillOpacity: 0.14,
+                      fillColor: selfIntersection.hasKinks ? "#C42311" : "#FFFFFF",
+                      fillOpacity: selfIntersection.hasKinks ? 0.22 : 0.14,
                     }}
                   />
                 )}
@@ -459,8 +494,31 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
             )}
           </section>
 
+          {/* Alerta Condicional de Auto-Intersecção (@turf/kinks) */}
+          {selfIntersection.hasKinks && (
+            <Alert variant="warning" className="mt-5 border-[#C42311]/40 bg-[#C42311]/10">
+              <AlertTriangle
+                className="mt-0.5 h-5 w-5 shrink-0 text-[#C42311]"
+                aria-hidden="true"
+              />
+              <div>
+                <AlertTitle className="text-[15px] font-bold text-[#9B1C0E]">
+                  Linhas da área se cruzando
+                </AlertTitle>
+                <AlertDescription className="mt-1 text-[13px] leading-relaxed text-[#9B1C0E]">
+                  O contorno marcado possui {selfIntersection.kinkCoords.length}{" "}
+                  {selfIntersection.kinkCoords.length === 1
+                    ? "cruzamento de linha"
+                    : "cruzamentos de linhas"}
+                  . Remova e reposicione os pontos na ordem correta ao redor da
+                  área para poder salvar.
+                </AlertDescription>
+              </div>
+            </Alert>
+          )}
+
           {/* Alerta Condicional de Área Excedida */}
-          {isAreaTooLarge && (
+          {isAreaTooLarge && !selfIntersection.hasKinks && (
             <Alert variant="warning" className="mt-5">
               <AlertTriangle
                 className="mt-0.5 h-5 w-5 shrink-0 text-[#9A6B12]"
