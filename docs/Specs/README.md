@@ -48,6 +48,9 @@ Remove o terreno e limpa os registros dependentes associados (`metricas_historic
 
 ### Culturas (`/api/v1/culturas`)
 - `GET /api/v1/culturas/`: lista culturas com filtros opcionais (`is_seed`, `customizada`, `usuario_id`).
+- `GET /api/v1/culturas/aptidao-gaez`: consulta **diretamente** os COGs do **FAO GAEZ v5** (*Suitability and Attainable Yield* `RES05-SUX`/`YLX`, solo `HWSDV201`, `SQ-IDX`, `SQX.SQ0`, declividade `SLOPE-MED` e projeção `CMIP6 FP2140 SSP370`) para a coordenada/terreno e perfil de manejo (`LRLM`, `HRLM`, `LILM`, `HILM`).
+  - **Query Params:** `terreno_id` ou `lat` & `lng`; opcionais `agua`, `metodo_irrigacao`, `nivel_insumo` e `sincronizar_catalogo=true|false` (grava/atualiza culturas viáveis no catálogo `[M2]` preservando `is_seed=true`).
+  - **Respostas:** `200 OK` (`origem`, `data_quality`, `input_level`, `ssp_scenario`, `centroid`, `soil`, `culturas_avaliadas`, `culturas_sincronizadas`) ou `503 Service Unavailable` caso o GAEZ v5 não responda (`no_data`, sem fallback inventado).
 - `GET /api/v1/culturas/{cultura_id}`: obtém detalhes de uma cultura.
 - `POST /api/v1/culturas/` (`200 OK`): cadastra cultura customizada (`is_seed=false`, `customizada=true`), validando nome único e valores positivos (`consumo_agua_mm > 0`, `tempo_colheita_dias > 0`).
 - `PUT /api/v1/culturas/{cultura_id}` (`200 OK`): edita cultura customizada (retorna `403 Forbidden` para culturas `is_seed=true`).
@@ -67,7 +70,7 @@ Remove o terreno e limpa os registros dependentes associados (`metricas_historic
 ### `POST /api/v1/simular-rotacao`
 *(Também disponível em `POST /api/v1/simulacoes/` e `POST /api/v1/simulacoes/simular-rotacao`)*
 
-Recebe a requisição do frontend, aceita tanto `terreno_id` (busca no PostgreSQL) quanto `coordenadas_poligono`, `nome_propriedade` e `prioridades` enviados diretamente no JSON sem exigir cadastro prévio, e injeta as dependências `NasaDataProcessor` (`services/geospatial.py`), `CropSimulator` (`services/ml_models.py`) e `RotationExplainerAgent` (`services/llm_agent.py`), retornando as estratégias de rotação sugeridas e a explicação textual gerada pela IA.
+Recebe a requisição do frontend, aceita tanto `terreno_id` (busca no PostgreSQL) quanto `coordenadas_poligono`, `nome_propriedade` e `prioridades` enviados diretamente no JSON sem exigir cadastro prévio, e injeta `INASADataProvider` (`services/geospatial.py`), `GAEZDataProvider` (`services/gaez_service.py` — quando `GAEZ_ENABLED=true` ou `perfil_climatico="real"`), `CropSimulator` (`services/ml_models.py`) e `RotationExplainerAgent` (`services/llm_agent.py`), retornando as estratégias de rotação sugeridas (com `score_breakdown` e explicação por estratégia).
 
 **Request Body (com `terreno_id` cadastrado ou com coordenadas diretas no JSON):**
 ```json
@@ -82,6 +85,8 @@ Recebe a requisição do frontend, aceita tanto `terreno_id` (busca no PostgreSQ
   "cultura_id": null,
   "nome_cultura": "Feijão Carioca",
   "culturas_rotacao": ["Milho", "Crotalária"],
+  "historico_cultivos": ["Milho", "Milho"],
+  "perfil_climatico": "normal",
   "prioridades": {
     "water_conservation": true
   },
@@ -95,7 +100,7 @@ Recebe a requisição do frontend, aceita tanto `terreno_id` (busca no PostgreSQ
   }
 }
 ```
-> **Observação:** `terreno_id` é opcional se forem enviadas `coordenadas_poligono`/`prioridades` diretamente no payload (neste caso `terreno_id` retorna `null`). Caso `cultura_id` e `nome_cultura` sejam omitidos, o controlador seleciona automaticamente a estratégia de maior viabilidade retornada por `CropSimulator.simulate_rotation_strategies()`.
+> **Observação:** `terreno_id` é opcional se forem enviadas `coordenadas_poligono`/`prioridades` diretamente no payload (neste caso `terreno_id` retorna `null`). `perfil_climatico` aceita `normal`, `seca`, `chuva_extrema`, `onda_de_calor` ou `real`. Caso `cultura_id` e `nome_cultura` sejam omitidos, o controlador seleciona automaticamente a estratégia de maior viabilidade retornada por `CropSimulator.simulate_rotation_strategies()`.
 
 **Response (`200 OK`):**
 ```json
@@ -110,10 +115,17 @@ Recebe a requisição do frontend, aceita tanto `terreno_id` (busca no PostgreSQ
   "metricas_geoespaciais": {
     "origem": "nasa_geospatial_service",
     "total_vertices_poligono": 3,
+    "area_hectares": 12.4,
     "centroide": {"lat": -23.5515, "lng": -46.6333},
     "precipitacao_estimada_mm": 480.0,
     "temperatura_media_c": 26.0,
-    "umidade_solo_estimada": 0.42
+    "umidade_solo_estimada": 0.42,
+    "gaez": {
+      "origem": "fao_gaez_v5",
+      "data_quality": "gaez_v5_cog",
+      "input_level": "LRLM",
+      "soil": {"soil_group": "Ferralsols - FR (Latossolos)", "soil_quality_index": 0.55}
+    }
   },
   "beneficios_esperados": [
     "Adequação do ciclo de Feijão Carioca ao planejamento da propriedade",
@@ -125,9 +137,23 @@ Recebe a requisição do frontend, aceita tanto `terreno_id` (busca no PostgreSQ
   "explicacao_ia": "...",
   "explicacao_textual": "...",
   "rotacoes_sugeridas": [
-    {"strategy": "Milho -> Soja (Atual)", "viability": 0.70, "water_risk": "high"},
-    {"strategy": "Sorgo -> Feijão-caupi", "viability": 0.88, "water_risk": "low"},
-    {"strategy": "Milheto -> Amendoim", "viability": 0.82, "water_risk": "medium"}
+    {
+      "strategy": "Sorgo -> Feijão-caupi",
+      "viability": 0.88,
+      "water_risk": "low",
+      "score_breakdown": {
+        "water_fit": 1.0,
+        "heat_fit": 0.94,
+        "ml_model_score": 0.86,
+        "temporal_stability": 0.82,
+        "gaez_suitability": 0.92,
+        "attainable_yield_kg_ha": 1150.0,
+        "cmip6_suitability_delta": 0.03,
+        "soil_quality_index": 0.55,
+        "gaez_input_level": "LRLM"
+      },
+      "explicacao": "..."
+    }
   ],
   "plano_rotacao": [
     {
@@ -213,14 +239,15 @@ Remove uma atividade do calendário.
 
 ## [M5] Alertas Climáticos e Background Tasks (`backend/api/alertas.py`)
 
-### `POST /api/v1/alertas/monitorar` (`202 Accepted`)
-Além do agendador periódico iniciado automaticamente no `lifespan` do FastAPI (configurável via `ALERT_MONITOR_INTERVAL_HOURS`, padrão `6` horas), este endpoint permite disparar sob demanda em segundo plano (`FastAPI BackgroundTasks`) um ciclo da rotina `executar_ciclo_monitoramento_alertas()` (`backend/services/alert_tasks.py`), que consulta dados climáticos sintéticos (`services/mock_nasa_data.py`), executa `ClimateAnomalyDetector.detect_extremes()` e, caso anomalias sejam detectadas, persiste automaticamente um `AlertaClimatico` no banco e adapta o calendário `[M4]`.
+### `POST /api/v1/alertas/monitorar` / `POST /api/v1/alertas/monitorar-clima` (`202 Accepted`)
+Além do agendador periódico iniciado automaticamente no `lifespan` do FastAPI (configurável via `ALERT_MONITOR_INTERVAL_HOURS`, padrão `6` horas), estes endpoints permitem disparar sob demanda em segundo plano (`FastAPI BackgroundTasks`) um ciclo da rotina `executar_ciclo_monitoramento_alertas()` (`backend/services/alert_tasks.py`), que consulta dados climáticos (`services/mock_nasa_data.py`), executa `ClimateAnomalyDetector.detect_extremes()` e, caso anomalias sejam detectadas, persiste automaticamente um `AlertaClimatico` no banco (com `orientacao_pratica` via `explain_alert`) e adapta o calendário `[M4]`. Aceita opcionalmente `"perfil_climatico"` (`normal`, `seca`, `chuva_extrema`, `onda_de_calor`) para disparo imediato de cenários na demo.
 
 **Request Body:**
 ```json
 {
   "terreno_id": 1,
-  "intervalo_horas": 6
+  "intervalo_horas": 6,
+  "perfil_climatico": "chuva_extrema"
 }
 ```
 
@@ -228,9 +255,10 @@ Além do agendador periódico iniciado automaticamente no `lifespan` do FastAPI 
 ```json
 {
   "status": "accepted",
-  "mensagem": "Monitoramento climático em segundo plano agendado (janela configurada de 6h).",
+  "mensagem": "Monitoramento climático em segundo plano agendado (janela configurada de 6h, perfil 'chuva_extrema').",
   "intervalo_horas": 6,
-  "terreno_id": 1
+  "terreno_id": 1,
+  "perfil_climatico": "chuva_extrema"
 }
 ```
 
@@ -259,8 +287,11 @@ Recebe gatilhos explícitos de algoritmos de ML (ou dados NASA/manuais), aciona 
 Lista alertas climáticos ordenados por `data_evento` decrescente.  
 **Query Params opcionais:** `terreno_id`, `lido`, `severidade`, `tipo_evento`.
 
+### `GET /api/v1/alertas/resumo-nao-lidos` (`200 OK`)
+Retorna `total_nao_lidos` e agrupamento `por_terreno` (incluindo contagem de críticos não lidos e último evento) para o painel do produtor (`terreno_id` opcional).
+
 ### `GET /api/v1/alertas/{alerta_id}` (`200 OK`)
-Obtém os detalhes do alerta e o campo `resumo_adaptacao`.
+Obtém os detalhes do alerta, `orientacao_pratica` e o campo `resumo_adaptacao`.
 
 ### `PATCH /api/v1/alertas/{alerta_id}/ler` (`200 OK`)
 Marca o alerta como lido (`"lido": true`).

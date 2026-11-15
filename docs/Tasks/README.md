@@ -33,21 +33,36 @@
   - **C7 — Histórico no simulador e cronograma direto da estratégia** (`schemas/simulacao.py`, `api/simulacao.py`, `api/calendario.py`, `backend/tests/test_c7_c8.py`): `SimulacaoRequest` integra `historico_cultivos` e o calendário `[M4]` gera/atualiza cronograma direto pela estratégia escolhida.
   - **C8 — Explicações práticas nos alertas `[M5]` e resumo de não lidos** (`api/alertas.py`, `services/alert_tasks.py`, `schemas/alerta.py`, `backend/tests/test_c7_c8.py`): integração de `explain_alert` (A8) e resumo de alertas não lidos por terreno.
 
-### Pontos de atenção para a Rodada 3 (Demo e Integração Frontend)
+### Pontos de atenção para o fechamento da Rodada 3 (Frontend `F3` e Evolução)
 
-- `docker-compose.yml` e `.env.example` ainda não expõem `NASA_MOCK_PROFILE`, `backend/api/demo.py` ainda monta série demo própria em vez de aproveitar os perfis da `A9`, e `docs/index.md` ainda mantém o roadmap das Fases 1–3 como futuro → **B8**.
-- O `frontend/` (`React 19 + Vite + Tailwind v4`) já iniciou componentes e fluxo de onboarding (`MapTerrainPage.tsx`, `PlantationsPage.tsx`, `CropHistoryStep.tsx`, passo 2 de água), faltando conectar `/api/v1` e implementar as telas integradas de `[M3]`, `[M4]`, `[M5]` e `[M6]`.
+- Todo o backend (`A1–A14`, `B1–B8`, `C1–C9`) e os fluxos iniciais de frontend (`F1–F2`: roteamento, cliente HTTP, `PlantationsPage.tsx`, `MapTerrainPage.tsx`, `CropHistoryStep.tsx` e `WaterDistributionStep.tsx`) já estão implementados e testados (70 testes verdes em `backend/tests`).
+- **Pendência ativa principal (`F3`):** construir/conectar as telas finais no `frontend/src/pages/` para Simulação `[M3]` (incluindo `score_breakdown`, `attainable_yield_kg_ha`, solo HWSD e explicação IA), catálogo `[M2]` conectado a `GET /api/v1/culturas/aptidao-gaez`, Calendário `[M4]`, Alertas `[M5]` e Relatórios `[M6]`, seguidos do ensaio ponta a ponta da demo.
+
+## Arquitetura de Dados em 2 Camadas, Estado do ML e Sugestões de Evolução
+
+1. **Adaptação Brasil — Arquitetura em 2 Camadas (sem fallbacks inventados no GAEZ):**
+   - **Camada Estratégica (~10 km / 5 arc-min — `backend/services/gaez_service.py`):** FAO GAEZ v5 (*Suitability and Attainable Yield* `RES05-SUX`/`RES05-YLX` nos 4 regimes `LRLM`, `HRLM`, `LILM`, `HILM`) + **HWSD v2.01** + `SQ-IDX` / `SQX.SQ0` + `SLOPE-MED` + **CMIP6** (`FP2140` `SSP370`). Consulta direta via HTTP Range nos COGs públicos do GCS com cache por célula (`data/gaez_cache/`); se indisponível, retorna `data_quality="no_data"` (HTTP `503` em `/aptidao-gaez`) sem inventar fallback regional.
+   - **Camada Operacional (`backend/services/geospatial.py`):** NASA **SMAP** (`SPL3SMP_E`), **ECOSTRESS** (`ECO2LSTE`), **GPM/IMERG** (`GPM_3IMERGDF`), **MODIS NDVI** (`MOD13Q1`) via `earthaccess`/NetCDF local e API pública **NASA POWER** (`GWETTOP`, `TS`, `PRECTOTCORR`) com cache em disco e perfis simuláveis (`mock`) em desenvolvimento/demo.
+2. **O que foi vs. não foi implementado de Machine Learning e IA:**
+   - **Implementado:** `CropSimulator` (`RandomForestRegressor` de 9 features + features temporais da série + `gaez_suitability`, `attainable_yield_kg_ha`, `soil_quality_index`, `cmip6_suitability_delta` + ajuste por `historico_cultivos`), `ClimateAnomalyDetector` (limiares agronômicos + `IsolationForest` + z-score robusto MAD + métricas diagnósticas) e `RotationExplainerAgent` (Gemini `gemini-2.5-flash` / `FakeListLLM` com solo HWSD, `kg/ha` e `DISCLAIMER` obrigatório).
+   - **Ainda não implementado em ML/Dados (evoluções futuras):** retreino offline do `RandomForestRegressor` sobre bases históricas reais de produtividade brasileira (CONAB/IBGE/Embrapa) persistido em arquivo versionado; ingestão automática da base **ECOCROP** (para ir além das 13 culturas mapeadas e cobrir todas as 72+ culturas GAEZ); biblioteca **PyAEZ** para zoneamento local fino; processamento 10–30 m de **Copernicus Sentinel-2 / Landsat (HLS)** e **SRTM 30 m** no `[M1]`; ingestão direta de **ERA5**, **VIIRS** e **NASA FIRMS**.
+3. **Sugestões de Produto & UX (inspiradas no portal FAO GAEZ v5):**
+   - **Overlay WMS no Leaflet (`MapTerrainPage.tsx`):** exibir camadas visuais de aptidão/solo via GeoServer WMS público da FAO (`https://data.apps.fao.org/geoserver/wms`).
+   - **Split View (comparação lado a lado):** comparar histórico vs. CMIP6 futuro ou sequeiro (`LRLM`) vs. irrigado (`HILM`).
+   - **Feature Information pontual:** ao clicar no terreno, exibir `attainable_yield_kg_ha` (kg/ha), classe HWSD v2.01 e fator limitante dominante (`SQ-IDX`).
 
 ## Contratos (não quebrar sem avisar os outros)
 
 1. **`field_metrics`** (saída de `INASADataProvider.extract_field_metrics`):
-   `avg_soil_moisture_smap`, `avg_surface_temp_ecostress`, `avg_precipitation_gpm` (mm/dia), `is_bare_field_period`, `data_quality` (`clip` | `nearest_cell` | `no_data`), `time_series` (lista por dia com `data`, `soil_moisture`, `surface_temp_c`, `precipitation_mm`), `coordinates`.
-2. **`ClimateAnomalyDetector.detect_extremes(dict | list[dict])`** retorna
+   `avg_soil_moisture_smap`, `avg_surface_temp_ecostress`, `avg_precipitation_gpm` (mm/dia), `is_bare_field_period`, `data_quality` (`clip` | `nearest_cell` | `no_data`), `time_series` (lista por dia com `data`, `soil_moisture`, `surface_temp_c`, `precipitation_mm`), `coordinates`. Quando GAEZ ativo na simulação, `metricas_geoespaciais["gaez"]` traz a saída da camada estratégica.
+2. **`GAEZDataProvider.extract_gaez_metrics`** (e `GET /api/v1/culturas/aptidao-gaez`):
+   Retorna `{origem: "fao_gaez_v5", data_quality: "gaez_v5_cog" | "no_data", input_level, ssp_scenario, centroid, soil, crops}` (e no endpoint REST `culturas_avaliadas` / `culturas_sincronizadas`, ou HTTP `503` em `no_data`).
+3. **`ClimateAnomalyDetector.detect_extremes(dict | list[dict])`** retorna
    `{anomaly_detected: bool, tipo_evento: onda_de_calor|seca|chuva_intensa|nenhum, severidade, detalhes}`; `detalhes` inclui `metodo` (`limiar` | `isolation_forest`) e `indices_outliers`.
-3. **`CropSimulator.simulate_rotation_strategies`** retorna 3 itens (incluindo a prática atual, marcada com `(Atual)`) de
+4. **`CropSimulator.simulate_rotation_strategies`** retorna 3 itens (incluindo a prática atual, marcada com `(Atual)`) de
    `{strategy, viability (0–1), water_risk (low|medium|high), benefits, score_breakdown}`.
-4. **`SimulacaoResponse`** inclui `origem` e `fallback_usado`.
-5. **Aviso do LLM:** toda explicação termina com o disclaimer (garantido em `llm_agent.py`).
+5. **`SimulacaoResponse`** inclui `origem` e `fallback_usado`.
+6. **Aviso do LLM:** toda explicação termina com o disclaimer (garantido em `llm_agent.py`).
 
 ## Dev A — Dados, ML e IA
 
