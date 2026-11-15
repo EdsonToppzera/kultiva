@@ -1,18 +1,18 @@
-# Especificações Técnicas (Specs)
+# Technical Specifications (Specs)
 
-Prefixo base da API: `/api/v1`  
-Documentação interativa automática (Swagger UI): `GET /docs`
+API base prefix: `/api/v1`  
+Automatic interactive documentation (Swagger UI): `GET /docs`
 
 ---
 
-## [M1] Terrenos e Configuração Inicial (`backend/api/terreno.py`, `backend/main.py`)
+## [M1] Plots and Initial Setup (`backend/api/terreno.py`, `backend/main.py`)
 
-### Configuração de Startup e CORS
-- `CORSMiddleware` habilitado no FastAPI para origens locais do frontend (`http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:3000`, `http://localhost:8000`) e origens adicionais via `CORS_ALLOWED_ORIGINS`.
-- Seed automático de `Usuario` padrão (`seed_usuario_padrao` / `produtor@kultiva.agro`) e do catálogo base no startup (`lifespan`).
+### Startup and CORS Configuration
+- `CORSMiddleware` enabled in FastAPI for local frontend origins (`http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:3000`, `http://localhost:8000`) and additional origins via `CORS_ALLOWED_ORIGINS`.
+- Automatic seeding of the default `Usuario` (`seed_usuario_padrao` / `produtor@kultiva.agro`) and base catalog on startup (`lifespan`).
 
 ### `POST /api/v1/terrenos/`
-Cria um novo terreno com o polígono geográfico e prioridades do produtor. Quando `area_hectares` ou `localizacao_central` forem omitidos, são calculados automaticamente a partir de `coordenadas_poligono` via `calcular_geometria_terreno`.
+Creates a new plot with the geographic polygon and farmer priorities. When `area_hectares` or `localizacao_central` are omitted, they are automatically calculated from `coordenadas_poligono` via `calcular_geometria_terreno`.
 
 **Request Body:**
 ```json
@@ -31,51 +31,51 @@ Cria um novo terreno com o polígono geográfico e prioridades do produtor. Quan
 }
 ```
 
-**Response (`200 OK`):** Retorna os dados do terreno criado acrescidos de `"id"`, `"area_hectares"` e `"localizacao_central"`.
+**Response (`200 OK`):** Returns the created plot data including `"id"`, `"area_hectares"`, and `"localizacao_central"`.
 
-### `GET /api/v1/terrenos/` (`200 OK`) e `GET /api/v1/terrenos/{terreno_id}` (`200 OK`)
-Lista terrenos (com filtro opcional `usuario_id`) ou busca um terreno específico (`404` se inexistente).
+### `GET /api/v1/terrenos/` (`200 OK`) and `GET /api/v1/terrenos/{terreno_id}` (`200 OK`)
+Lists plots (with optional `usuario_id` filter) or fetches a specific plot (`404` if not found).
 
 ### `PUT /api/v1/terrenos/{terreno_id}` (`200 OK`)
-Atualiza parcialmente ou integralmente um terreno. Ao alterar `coordenadas_poligono`, recalcula automaticamente `area_hectares` e `localizacao_central` quando não enviados no payload.
+Partially or fully updates a plot. When `coordenadas_poligono` is changed, automatically recalculates `area_hectares` and `localizacao_central` if omitted from the payload.
 
 ### `DELETE /api/v1/terrenos/{terreno_id}` (`204 No Content`)
-Remove o terreno e limpa os registros dependentes associados (`metricas_historicas_terreno`, `alertas_climaticos`, `atividades_calendario` e rotações customizadas do terreno).
+Deletes the plot and cleans up associated dependent records (`metricas_historicas_terreno`, `alertas_climaticos`, `atividades_calendario`, and plot-specific custom rotations).
 
 ---
 
-## [M2] Catálogo de Culturas e Rotações (`backend/api/cultura.py`)
+## [M2] Crop and Rotation Catalog (`backend/api/cultura.py`)
 
-### Culturas (`/api/v1/culturas`)
-- `GET /api/v1/culturas/`: lista culturas com filtros opcionais (`is_seed`, `customizada`, `usuario_id`).
-- `GET /api/v1/culturas/aptidao-gaez`: consulta **diretamente** os COGs do **FAO GAEZ v5** (*Suitability and Attainable Yield* `RES05-SUX`/`YLX`, solo `HWSDV201`, `SQ-IDX`, `SQX.SQ0`, declividade `SLOPE-MED` e projeção `CMIP6 FP2140 SSP370`) para a coordenada/terreno e perfil de manejo (`LRLM`, `HRLM`, `LILM`, `HILM`).
-  - **Query Params:** `terreno_id` ou `lat` & `lng`; opcionais `agua`, `metodo_irrigacao`, `nivel_insumo` e `sincronizar_catalogo=true|false` (grava/atualiza culturas viáveis no catálogo `[M2]` preservando `is_seed=true`).
-  - **Respostas:** `200 OK` (`origem`, `data_quality`, `input_level`, `ssp_scenario`, `centroid`, `soil`, `culturas_avaliadas`, `culturas_sincronizadas`) ou `503 Service Unavailable` caso o GAEZ v5 não responda (`no_data`, sem fallback inventado).
-- `GET /api/v1/culturas/ecocrop`: consulta diretamente a base **FAO ECOCROP** (`EcoCrop_DB.csv` com cache local, sem fallback inventado) para retornar taxonomia (`scientific_name`, `family`, `family_canonical`) e zona de conforto (`tmin`/`tmax`, `topmin`/`topmax`, `rmin`/`rmax`, `gmin`/`gmax`).
-  - **Query Params:** `q`, `nome`, `scientific_name`, `crop_code`, `ecoport_code` ou `cultura_id`.
-  - **Respostas:** `200 OK`, `404 Not Found` (cultura não encontrada na base) ou `503 Service Unavailable` caso o CSV do ECOCROP esteja indisponível (`no_data`).
-- `GET /api/v1/culturas/{cultura_id}`: obtém detalhes de uma cultura.
-- `POST /api/v1/culturas/` (`200 OK`): cadastra cultura customizada (`is_seed=false`, `customizada=true`), validando nome único e valores positivos (`consumo_agua_mm > 0`, `tempo_colheita_dias > 0`).
-- `PUT /api/v1/culturas/{cultura_id}` (`200 OK`): edita cultura customizada (retorna `403 Forbidden` para culturas `is_seed=true`).
-- `DELETE /api/v1/culturas/{cultura_id}` (`204 No Content`): remove cultura customizada (retorna `403 Forbidden` para `is_seed=true`).
+### Crops (`/api/v1/culturas`)
+- `GET /api/v1/culturas/`: lists crops with optional filters (`is_seed`, `customizada`, `usuario_id`).
+- `GET /api/v1/culturas/aptidao-gaez`: **directly** queries **FAO GAEZ v5** COGs (*Suitability and Attainable Yield* `RES05-SUX`/`YLX`, `HWSDV201` soil, `SQ-IDX`, `SQX.SQ0`, `SLOPE-MED` slope, and `CMIP6 FP2140 SSP370` projection) for the coordinate/plot and management profile (`LRLM`, `HRLM`, `LILM`, `HILM`).
+  - **Query Params:** `terreno_id` or `lat` & `lng`; optional `agua`, `metodo_irrigacao`, `nivel_insumo`, and `sincronizar_catalogo=true|false` (saves/updates viable crops in the `[M2]` catalog while preserving `is_seed=true`).
+  - **Responses:** `200 OK` (`origem`, `data_quality`, `input_level`, `ssp_scenario`, `centroid`, `soil`, `culturas_avaliadas`, `culturas_sincronizadas`) or `503 Service Unavailable` if GAEZ v5 does not respond (`no_data`, no fabricated fallback).
+- `GET /api/v1/culturas/ecocrop`: directly queries the **FAO ECOCROP** database (`EcoCrop_DB.csv` with local cache, no fabricated fallback) to return taxonomy (`scientific_name`, `family`, `family_canonical`) and comfort zone (`tmin`/`tmax`, `topmin`/`topmax`, `rmin`/`rmax`, `gmin`/`gmax`).
+  - **Query Params:** `q`, `nome`, `scientific_name`, `crop_code`, `ecoport_code`, or `cultura_id`.
+  - **Responses:** `200 OK`, `404 Not Found` (crop not found in database), or `503 Service Unavailable` if the ECOCROP CSV is unavailable (`no_data`).
+- `GET /api/v1/culturas/{cultura_id}`: retrieves details of a crop.
+- `POST /api/v1/culturas/` (`200 OK`): creates a custom crop (`is_seed=false`, `customizada=true`), validating unique name and positive values (`consumo_agua_mm > 0`, `tempo_colheita_dias > 0`).
+- `PUT /api/v1/culturas/{cultura_id}` (`200 OK`): edits a custom crop (returns `403 Forbidden` for `is_seed=true` crops).
+- `DELETE /api/v1/culturas/{cultura_id}` (`204 No Content`): deletes a custom crop (returns `403 Forbidden` for `is_seed=true`).
 
-### Rotações do Produtor (`/api/v1/rotacoes`)
-- `GET /api/v1/rotacoes/`: lista rotações com filtros (`usuario_id`, `terreno_id`, `preferencial`, `is_seed`).
-- `GET /api/v1/rotacoes/{rotacao_id}`: obtém detalhes de uma rotação.
-- `POST /api/v1/rotacoes/` (`201 Created`): cadastra rotação preferencial (`culturas` com pelo menos 2 culturas). Rotações com `preferencial=true` entram automaticamente no ranking do simulador `[M3]`.
-- `PUT /api/v1/rotacoes/{rotacao_id}` (`200 OK`): atualiza rotação customizada (`403` se `is_seed=true`).
-- `DELETE /api/v1/rotacoes/{rotacao_id}` (`204 No Content`): remove rotação customizada (`403` se `is_seed=true`).
+### Farmer Rotations (`/api/v1/rotacoes`)
+- `GET /api/v1/rotacoes/`: lists rotations with filters (`usuario_id`, `terreno_id`, `preferencial`, `is_seed`).
+- `GET /api/v1/rotacoes/{rotacao_id}`: retrieves details of a rotation.
+- `POST /api/v1/rotacoes/` (`201 Created`): creates a preferred rotation (`culturas` with at least 2 crops). Rotations with `preferencial=true` are automatically included in the `[M3]` simulator ranking.
+- `PUT /api/v1/rotacoes/{rotacao_id}` (`200 OK`): updates a custom rotation (`403` if `is_seed=true`).
+- `DELETE /api/v1/rotacoes/{rotacao_id}` (`204 No Content`): deletes a custom rotation (`403` if `is_seed=true`).
 
 ---
 
-## [M3] Simulador de Culturas e Rotações (`backend/api/simulacao.py`)
+## [M3] Crop and Rotation Simulator (`backend/api/simulacao.py`)
 
 ### `POST /api/v1/simular-rotacao`
-*(Também disponível em `POST /api/v1/simulacoes/` e `POST /api/v1/simulacoes/simular-rotacao`)*
+*(Also available at `POST /api/v1/simulacoes/` and `POST /api/v1/simulacoes/simular-rotacao`)*
 
-Recebe a requisição do frontend, aceita tanto `terreno_id` (busca no PostgreSQL) quanto `coordenadas_poligono`, `nome_propriedade` e `prioridades` enviados diretamente no JSON sem exigir cadastro prévio, e injeta `INASADataProvider` (`services/geospatial.py`), `GAEZDataProvider` (`services/gaez_service.py` — quando `GAEZ_ENABLED=true` ou `perfil_climatico="real"`), `CropSimulator` (`services/ml_models.py`) e `RotationExplainerAgent` (`services/llm_agent.py`), retornando as estratégias de rotação sugeridas (com `score_breakdown` e explicação por estratégia).
+Receives the request from the frontend, accepts either `terreno_id` (loaded from PostgreSQL) or `coordenadas_poligono`, `nome_propriedade`, and `prioridades` sent directly in JSON without requiring prior registration, and injects `INASADataProvider` (`services/geospatial.py`), `GAEZDataProvider` (`services/gaez_service.py` — when `GAEZ_ENABLED=true` or `perfil_climatico="real"`), `CropSimulator` (`services/ml_models.py`), and `RotationExplainerAgent` (`services/llm_agent.py`), returning the suggested rotation strategies (with `score_breakdown` and per-strategy explanation).
 
-**Request Body (com `terreno_id` cadastrado ou com coordenadas diretas no JSON):**
+**Request Body (with registered `terreno_id` or direct coordinates in JSON):**
 ```json
 {
   "terreno_id": 1,
@@ -103,7 +103,7 @@ Recebe a requisição do frontend, aceita tanto `terreno_id` (busca no PostgreSQ
   }
 }
 ```
-> **Observação:** `terreno_id` é opcional se forem enviadas `coordenadas_poligono`/`prioridades` diretamente no payload (neste caso `terreno_id` retorna `null`). `perfil_climatico` aceita `normal`, `seca`, `chuva_extrema`, `onda_de_calor` ou `real`. Caso `cultura_id` e `nome_cultura` sejam omitidos, o controlador seleciona automaticamente a estratégia de maior viabilidade retornada por `CropSimulator.simulate_rotation_strategies()`.
+> **Note:** `terreno_id` is optional if `coordenadas_poligono`/`prioridades` are sent directly in the payload (in this case `terreno_id` returns `null`). `perfil_climatico` accepts `normal`, `seca`, `chuva_extrema`, `onda_de_calor`, or `real`. If `cultura_id` and `nome_cultura` are omitted, the controller automatically selects the highest-viability strategy returned by `CropSimulator.simulate_rotation_strategies()`.
 
 **Response (`200 OK`):**
 ```json
@@ -131,11 +131,11 @@ Recebe a requisição do frontend, aceita tanto `terreno_id` (busca no PostgreSQ
     }
   },
   "beneficios_esperados": [
-    "Adequação do ciclo de Feijão Carioca ao planejamento da propriedade",
-    "Aproveitamento dos dados ambientais para manejo preventivo de recursos"
+    "Alignment of Feijão Carioca's cycle with your plot planning",
+    "Use of environmental data for preventive resource management"
   ],
   "riscos_identificados": [
-    "Terreno com prioridade hídrica 'escassa' frente ao consumo estimado de 450 mm"
+    "Plot with limited water availability compared to estimated demand of 450 mm"
   ],
   "explicacao_ia": "...",
   "explicacao_textual": "...",
@@ -173,12 +173,12 @@ Recebe a requisição do frontend, aceita tanto `terreno_id` (busca no PostgreSQ
 
 ---
 
-## [M4] Calendário de Atividades do Cultivo (`backend/api/calendario.py`)
+## [M4] Crop Activity Calendar (`backend/api/calendario.py`)
 
-O módulo utiliza o modelo `Activity` (`atividades_calendario`), que pode ser vinculado a um `terreno_id`, a um `usuario_id` ou a ambos, mantendo `status` (`pendente` / `concluida`) sincronizado com `concluida` (`bool`).
+The module uses the `Activity` (`atividades_calendario`) model, which can be linked to a `terreno_id`, a `usuario_id`, or both, keeping `status` (`pendente` / `concluida`) synchronized with `concluida` (`bool`).
 
 ### `POST /api/v1/calendario/atividades` (`201 Created`)
-Cria uma atividade diária programada no calendário (requer `terreno_id` ou `usuario_id`).
+Creates a scheduled daily activity in the calendar (requires `terreno_id` or `usuario_id`).
 
 **Request Body:**
 ```json
@@ -186,20 +186,20 @@ Cria uma atividade diária programada no calendário (requer `terreno_id` ou `us
   "terreno_id": 1,
   "usuario_id": 1,
   "cultura_id": null,
-  "titulo": "Irrigação matinal dos canteiros",
-  "descricao": "Aplicar lâmina leve de água antes das 9h",
+  "titulo": "Morning bed irrigation",
+  "descricao": "Apply light water layer before 9 AM",
   "tipo_atividade": "irrigacao",
   "data_programada": "2026-11-20",
   "prioridade": "alta",
   "status": "pendente"
 }
 ```
-Tipos suportados: `plantio`, `irrigacao`, `adubacao`, `manejo`, `colheita`, `inspecao`.  
-Prioridades: `baixa`, `media`, `alta`, `critica`.  
-Status válidos: `pendente`, `concluida`.
+Supported types: `plantio`, `irrigacao`, `adubacao`, `manejo`, `colheita`, `inspecao`.  
+Priorities: `baixa`, `media`, `alta`, `critica`.  
+Valid statuses: `pendente`, `concluida`.
 
 ### `POST /api/v1/calendario/gerar-cronograma` (`201 Created`)
-Gera automaticamente o cronograma inicial de um ciclo (plantio, irrigação inicial, inspeção fitossanitária, adubação de cobertura e colheita).
+Automatically generates the initial schedule for a cycle (planting, initial irrigation, phytosanitary inspection, top-dressing fertilization, and harvest).
 
 **Request Body:**
 ```json
@@ -213,16 +213,16 @@ Gera automaticamente o cronograma inicial de um ciclo (plantio, irrigação inic
 ```
 
 ### `GET /api/v1/calendario/atividades` (`200 OK`)
-Lista atividades ordenadas por `data_programada` e `id`, com ênfase na consulta por período.  
-**Query Params opcionais:** `terreno_id`, `usuario_id`, `status` (`pendente` / `concluida`), `concluida`, `tipo_atividade`, `data_inicio`, `data_fim`.
+Lists activities ordered by `data_programada` and `id`, focusing on date-range queries.  
+**Optional Query Params:** `terreno_id`, `usuario_id`, `status` (`pendente` / `concluida`), `concluida`, `tipo_atividade`, `data_inicio`, `data_fim`.
 
 ### `GET /api/v1/calendario/atividades/{atividade_id}` (`200 OK`)
-Retorna os detalhes de uma atividade específica.
+Returns details for a specific activity.
 
 ### `PATCH /api/v1/calendario/atividades/{atividade_id}/status` (`200 OK`)
-*(Também disponível em `PATCH /api/v1/calendario/atividades/{atividade_id}/concluir`)*
+*(Also available at `PATCH /api/v1/calendario/atividades/{atividade_id}/concluir`)*
 
-Atualiza o status da atividade entre `pendente` e `concluida`, atualizando automaticamente `concluida` e `data_conclusao`.
+Updates the activity status between `pendente` and `concluida`, automatically updating `concluida` and `data_conclusao`.
 
 **Request Body:**
 ```json
@@ -230,20 +230,20 @@ Atualiza o status da atividade entre `pendente` e `concluida`, atualizando autom
   "status": "concluida"
 }
 ```
-*(Aceita alternativamente `{"concluida": true}` ou `{"concluida": false}`).*
+*(Alternatively accepts `{"concluida": true}` or `{"concluida": false}`).*
 
 ### `PUT /api/v1/calendario/atividades/{atividade_id}` (`200 OK`)
-Atualiza parcialmente ou integralmente uma atividade programada.
+Partially or fully updates a scheduled activity.
 
 ### `DELETE /api/v1/calendario/atividades/{atividade_id}` (`204 No Content`)
-Remove uma atividade do calendário.
+Removes an activity from the calendar.
 
 ---
 
-## [M5] Alertas Climáticos e Background Tasks (`backend/api/alertas.py`)
+## [M5] Climate Alerts and Background Tasks (`backend/api/alertas.py`)
 
 ### `POST /api/v1/alertas/monitorar` / `POST /api/v1/alertas/monitorar-clima` (`202 Accepted`)
-Além do agendador periódico iniciado automaticamente no `lifespan` do FastAPI (configurável via `ALERT_MONITOR_INTERVAL_HOURS`, padrão `6` horas), estes endpoints permitem disparar sob demanda em segundo plano (`FastAPI BackgroundTasks`) um ciclo da rotina `executar_ciclo_monitoramento_alertas()` (`backend/services/alert_tasks.py`), que consulta dados climáticos (`services/mock_nasa_data.py`), executa `ClimateAnomalyDetector.detect_extremes()` e, caso anomalias sejam detectadas, persiste automaticamente um `AlertaClimatico` no banco (com `orientacao_pratica` via `explain_alert`) e adapta o calendário `[M4]`. Aceita opcionalmente `"perfil_climatico"` (`normal`, `seca`, `chuva_extrema`, `onda_de_calor`) para disparo imediato de cenários na demo.
+In addition to the periodic scheduler started automatically in FastAPI's `lifespan` (configurable via `ALERT_MONITOR_INTERVAL_HOURS`, default `6` hours), these endpoints allow triggering an on-demand background cycle (`FastAPI BackgroundTasks`) of `executar_ciclo_monitoramento_alertas()` (`backend/services/alert_tasks.py`), which reads climate data (`services/mock_nasa_data.py`), runs `ClimateAnomalyDetector.detect_extremes()`, and, if anomalies are detected, automatically persists an `AlertaClimatico` in the database (with `orientacao_pratica` via `explain_alert`) and adapts the `[M4]` calendar. Optionally accepts `"perfil_climatico"` (`normal`, `seca`, `chuva_extrema`, `onda_de_calor`) for immediate demo scenario triggers.
 
 **Request Body:**
 ```json
@@ -258,7 +258,7 @@ Além do agendador periódico iniciado automaticamente no `lifespan` do FastAPI 
 ```json
 {
   "status": "accepted",
-  "mensagem": "Monitoramento climático em segundo plano agendado (janela configurada de 6h, perfil 'chuva_extrema').",
+  "mensagem": "Background climate monitoring scheduled (configured 6h window, profile 'chuva_extrema').",
   "intervalo_horas": 6,
   "terreno_id": 1,
   "perfil_climatico": "chuva_extrema"
@@ -266,7 +266,7 @@ Além do agendador periódico iniciado automaticamente no `lifespan` do FastAPI 
 ```
 
 ### `POST /api/v1/alertas/gatilho` (`202 Accepted`)
-Recebe gatilhos explícitos de algoritmos de ML (ou dados NASA/manuais), aciona opcionalmente `ClimateAnomalyDetector.detect_extremes()`, grava o alerta e agenda em segundo plano a função `processar_alerta_e_adaptar_calendario()` para adaptar as tarefas pendentes na janela `[data_evento, data_evento + 3 dias]`.
+Receives explicit triggers from ML algorithms (or NASA/manual data), optionally runs `ClimateAnomalyDetector.detect_extremes()`, records the alert, and schedules `processar_alerta_e_adaptar_calendario()` in the background to adapt pending tasks in the `[data_evento, data_evento + 3 days]` window.
 
 **Request Body:**
 ```json
@@ -275,8 +275,8 @@ Recebe gatilhos explícitos de algoritmos de ML (ou dados NASA/manuais), aciona 
   "tipo_evento": "chuva_intensa",
   "severidade": "alta",
   "data_evento": "2026-11-20",
-  "titulo": "Alerta de precipitação intensa",
-  "mensagem": "Previsão de chuva acima de 70 mm nas próximas 48 horas.",
+  "titulo": "Heavy rainfall alert",
+  "mensagem": "Forecast of rainfall above 70 mm over the next 48 hours.",
   "origem_gatilho": "ml_anomaly_detector",
   "serie_temporal_clima": [
     {"data": "2026-11-19", "precipitacao_mm": 12.0, "temp_max_c": 29.0},
@@ -287,45 +287,45 @@ Recebe gatilhos explícitos de algoritmos de ML (ou dados NASA/manuais), aciona 
 ```
 
 ### `GET /api/v1/alertas/` (`200 OK`)
-Lista alertas climáticos ordenados por `data_evento` decrescente.  
-**Query Params opcionais:** `terreno_id`, `lido`, `severidade`, `tipo_evento`.
+Lists climate alerts ordered by `data_evento` descending.  
+**Optional Query Params:** `terreno_id`, `lido`, `severidade`, `tipo_evento`.
 
 ### `GET /api/v1/alertas/resumo-nao-lidos` (`200 OK`)
-Retorna `total_nao_lidos` e agrupamento `por_terreno` (incluindo contagem de críticos não lidos e último evento) para o painel do produtor (`terreno_id` opcional).
+Returns `total_nao_lidos` and `por_terreno` grouping (including unread critical count and latest event) for the farmer dashboard (`terreno_id` optional).
 
 ### `GET /api/v1/alertas/{alerta_id}` (`200 OK`)
-Obtém os detalhes do alerta, `orientacao_pratica` e o campo `resumo_adaptacao`.
+Retrieves alert details, `orientacao_pratica`, and `resumo_adaptacao`.
 
 ### `PATCH /api/v1/alertas/{alerta_id}/ler` (`200 OK`)
-Marca o alerta como lido (`"lido": true`).
+Marks the alert as read (`"lido": true`).
 
 ---
 
-## [M6] Relatórios Periódicos e Histórico de Métricas (`backend/api/relatorios.py`)
+## [M6] Periodic Reports and Metrics History (`backend/api/relatorios.py`)
 
 ### `GET /api/v1/relatorios/terreno/{terreno_id}` (`200 OK`)
-*(Também acessível em `GET /api/v1/relatorios/?terreno_id=...`)*
+*(Also accessible at `GET /api/v1/relatorios/?terreno_id=...`)*
 
-Consolida o relatório periódico de adaptação para o terreno (`data_inicio` e `data_fim` opcionais, padrão últimos 30 dias):
-- Série histórica de umidade, temperatura, precipitação e indicador de solo exposto (`metricas_historicas_terreno`). Se não houver snapshots gravados no período, consulta `INASADataProvider.extract_field_metrics()` sob demanda e persiste a série.
-- Índices calculados de **vigor** (`indice`, `classificacao`, `tendencia`) e **vulnerabilidade** (`indice`, `nivel`, `fatores_risco`).
-- Contabilização de **adaptações** no calendário (`ajustada_por_alerta == true`) e alertas climáticos do período.
-- **Comparativo do período** (`comparativo_periodo`): variações entre a primeira e a última medição da série histórica (`umidade_inicial`/`umidade_final`, `variacao_umidade`, `variacao_umidade_percentual`, temperatura, precipitação e `tendencia_geral`).
-- **Resumo interpretativo da IA** (`resumo_ia` e `explicacao_ia`): síntese em linguagem simples gerada via `RotationExplainerAgent.explain_report()` (com fallback determinístico offline), sempre concluída com o aviso legal (`DISCLAIMER`).
+Consolidates the periodic adaptation report for the plot (optional `data_inicio` and `data_fim`, default last 30 days):
+- Historical series of soil moisture, temperature, precipitation, and bare-soil indicator (`metricas_historicas_terreno`). If no snapshots are stored in the period, queries `INASADataProvider.extract_field_metrics()` on demand and persists the series.
+- Computed **vigor** (`indice`, `classificacao`, `tendencia`) and **vulnerability** (`indice`, `nivel`, `fatores_risco`) indices.
+- Accounting of calendar **adaptations** (`ajustada_por_alerta == true`) and climate alerts for the period.
+- **Period comparison** (`comparativo_periodo`): changes between the first and last measurements in the historical series (`umidade_inicial`/`umidade_final`, `variacao_umidade`, `variacao_umidade_percentual`, temperature, precipitation, and `tendencia_geral`).
+- **AI Interpretive Summary** (`resumo_ia` and `explicacao_ia`): plain-language synthesis generated via `RotationExplainerAgent.explain_report()` (with offline deterministic fallback), always concluded with the legal disclaimer (`DISCLAIMER`).
 
 ### `GET /api/v1/relatorios/terreno/{terreno_id}/metricas` (`200 OK`)
-Lista os snapshots diários persistidos para o terreno com filtro opcional por `data_inicio` e `data_fim`.
+Lists persisted daily snapshots for the plot with optional `data_inicio` and `data_fim` filtering.
 
 ### `POST /api/v1/relatorios/terreno/{terreno_id}/metricas` (`201 Created`)
-Permite registrar manualmente uma medição climática ou acionar a sincronização via `INASADataProvider` quando o corpo JSON é omitido.
+Allows manually recording a climate measurement or triggering synchronization via `INASADataProvider` when the JSON body is omitted.
 
 ---
 
-## [Demo] Seed de Demonstração (`backend/api/demo.py`)
+## [Demo] Demo Seed (`backend/api/demo.py`)
 
 ### `POST /api/v1/demo/seed` (`200 OK`)
-*(Query param opcional: `reset=false|true`)*
+*(Optional query param: `reset=false|true`)*
 
-Popula o ambiente de demonstração completo em uma única chamada (usuário padrão, culturas/rotações seed e customizada, dois terrenos com perfis climáticos da A9 — `seca` e `chuva_extrema` — extraídos via `MockNASADataProvider`, métricas históricas alinhadas ao período recente, atividades no calendário com registros `ajustada_por_alerta=true` e alertas climáticos com explicação prática):
-- `reset=false` *(padrão)*: operação **idempotente** que cria apenas o que ainda não existir, preservando IDs e contagens entre chamadas consecutivas.
-- `reset=true`: remove e recria do zero os dados associados aos terrenos de demonstração.
+Populates the complete demonstration environment in a single call (default user, seed and custom crops/rotations, two plots with A9 climate profiles — `seca` and `chuva_extrema` — extracted via `MockNASADataProvider`, historical metrics aligned to the recent period, calendar activities with `ajustada_por_alerta=true` records, and climate alerts with practical guidance):
+- `reset=false` *(default)*: **idempotent** operation that creates only what does not yet exist, preserving IDs and counts across consecutive calls.
+- `reset=true`: deletes and recreates all data associated with the demo plots from scratch.

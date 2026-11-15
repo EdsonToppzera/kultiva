@@ -1,156 +1,156 @@
-# Kultiva — Documentação Técnica e Contexto do Projeto
+# Kultiva — Technical Documentation and Project Context
 
-**Kultiva** é um sistema de apoio à decisão para pequenos produtores rurais, desenvolvido para o NASA Space Apps Challenge. A plataforma une dados geoespaciais de satélite da NASA, modelos de Machine Learning e agentes de IA generativa (Google Gemini) para planejar rotações de culturas resilientes às mudanças climáticas.
+**Kultiva** is a decision-support system for smallholder farmers, developed for the NASA Space Apps Challenge. The platform combines NASA satellite geospatial data, Machine Learning models, and generative AI agents (Google Gemini) to plan climate-resilient crop rotations.
 
-O projeto visa democratizar o acesso à tecnologia avançada, traduzindo dados complexos em recomendações práticas, interativas e de fácil compreensão.
-
----
-
-## 🎯 Visão Geral e Público-Alvo
-
-O **Kultiva** é uma ferramenta de auxílio na tomada de decisões acerca da rotação de culturas. A interface permite simular rotações com base nas prioridades do agricultor, interligando essas informações aos dados da NASA e fornecendo sugestões de modificação, se necessário. Após definido o plantio, é emitido um calendário de todo o período de cultivo, com atividades diárias programadas para manter o bem-estar da plantação, que podem ser marcadas como "concluídas".
-
-Como as bases da NASA são atualizadas periodicamente, o projeto visa manter alertas constantes e modificação do calendário, se necessário, com base em mudanças climáticas capturadas por essas atualizações.
-
-*   **Público-alvo:** Pequenos agricultores comerciais ou agricultura familiar.
-*   **Perfil:** Indivíduos que tendem a não possuir muitas ferramentas tecnológicas ou alto conhecimento técnico para manter o monitoramento constante e a adaptação da plantação a adversidades. Por isso, a linguagem do sistema (IA) é sempre acessível e transparente.
+The project aims to democratize access to advanced technology by translating complex data into practical, interactive, and easy-to-understand recommendations.
 
 ---
 
-## 🧩 Módulos do Sistema
+## 🎯 Overview and Target Audience
 
-O sistema é dividido em 6 módulos principais, categorizados por prioridade de implementação:
+**Kultiva** is a decision-support tool for crop rotation planning. The interface allows farmers to simulate rotations based on their priorities, connecting that information to NASA data and providing adjustment suggestions whenever needed. Once planting is defined, a full-cycle crop calendar is generated with scheduled daily activities to keep the plantation healthy, which can be marked as "completed".
 
-| Módulo | Descrição | Prioridade | Regras de Negócio Específicas |
+Because NASA datasets are updated periodically, the project maintains continuous alerts and dynamically adjusts the calendar whenever needed based on climate changes captured by those updates.
+
+*   **Target audience:** Smallholder commercial farmers and family farms.
+*   **Profile:** Users who typically do not have access to advanced technological tools or deep technical expertise to maintain continuous monitoring and adapt crops to adverse conditions. For this reason, the system's (AI) language is always accessible and transparent.
+
+---
+
+## 🧩 System Modules
+
+The system is divided into 6 core modules, categorized by implementation priority:
+
+| Module | Description | Priority | Specific Business Rules |
 | :--- | :--- | :--- | :--- |
-| **[M1]** | Criação e cadastro geográfico do terreno | Obrigatório | Coleta o polígono/coordenadas da propriedade e as prioridades do agricultor (ex: economia de água). |
-| **[M2]** | Sugestões de culturas e rotações | Obrigatório | Deve permitir a inclusão de culturas/rotações da preferência do próprio produtor no catálogo. |
-| **[M3]** | Simulador de culturas e rotações | Obrigatório* | Compara e retorna **pelo menos 3 estratégias** de rotação, incluindo a prática atual do agricultor. |
-| **[M4]** | Calendário com atividades diárias | Opcional | Permite marcar tarefas como "concluídas". O calendário possui rotina **maleável** a eventos climáticos. |
-| **[M5]** | Alertas de mudanças climáticas | Opcional | Background tasks monitoram anomalias (ondas de calor, chuvas) para engatilhar adaptações no [M4]. |
-| **[M6]** | Relatórios periódicos de adaptação | Opcional | Monitoramento de longo prazo do vigor das culturas e vulnerabilidade do terreno. |
+| **[M1]** | Plot creation and geographic registration | Mandatory | Collects the property polygon/coordinates and farmer priorities (e.g., water conservation). |
+| **[M2]** | Crop and rotation suggestions | Mandatory | Must allow adding farmer-preferred crops/rotations to the catalog. |
+| **[M3]** | Crop and rotation simulator | Mandatory* | Compares and returns **at least 3 rotation strategies**, including the farmer's current practice. |
+| **[M4]** | Daily activity calendar | Optional | Allows marking tasks as "completed". The calendar has a **flexible** schedule that adapts to weather events. |
+| **[M5]** | Climate change alerts | Optional | Background tasks monitor anomalies (heatwaves, heavy rain) to trigger adaptations in `[M4]`. |
+| **[M6]** | Periodic adaptation reports | Optional | Long-term monitoring of crop vigor and plot vulnerability. |
 
 ---
 
-## 🧠 Arquitetura de Dados em 2 Camadas (Adaptação 100% Brasil), ML e IA
+## 🧠 Two-Layer Data Architecture (100% Brazil Adaptation), ML & AI
 
-O escopo original do desafio combinava observações da Terra da NASA com bases agrícolas locais dos EUA. Para adaptar o **Kultiva** integralmente à realidade rural brasileira, as bases restritas aos Estados Unidos foram substituídas por alternativas **globais** organizadas em **duas camadas complementares**, somadas a modelos de Machine Learning e IA Generativa:
+The original challenge scope combined NASA Earth observations with US-only agricultural databases. To adapt **Kultiva** fully to Brazilian rural conditions, US-restricted datasets were replaced by **global** alternatives organized into **two complementary layers**, paired with Machine Learning and Generative AI models:
 
-### 1. Mapeamento de Datasets Globais para o Brasil
+### 1. Mapping Global Datasets for Brazil
 
-| Módulo | Base EUA descartada | Substituição Global (Brasil) | Papel no Kultiva |
+| Module | Replaced US Dataset | Global Replacement (Brazil) | Role in Kultiva |
 | :--- | :--- | :--- | :--- |
-| **[M1]** Mapeamento de Terreno | NAIP | **Copernicus Sentinel-2 / Landsat (HLS)** *(planejado 10–30 m)* + **SRTM** *(planejado 30 m)* / **GAEZ `SLOPE-MED`** *(em produção 5 arc-min)* | Limites do talhão (`calcular_geometria_terreno`), declividade e risco de erosão. |
-| **[M2] / [M3]** Culturas & Rotações | SSURGO / WSS / CDL | **FAO GAEZ v5** (*Suitability and Attainable Yield* `RES05-SUX`/`YLX`, **HWSD v2.01**, `SQ-IDX`, `SQX.SQ0`) + **SMAP** (`SPL3SMP_E`) | Aptidão por manejo (`LRLM`, `HRLM`, `LILM`, `HILM`), produtividade atingível (`kg/ha`), limitações de solo e umidade superficial. |
-| **[M4] / [M5]** Clima, Calendário & Alertas | PRISM | **NASA POWER** + **GPM & IMERG** (`GPM_3IMERGDF`) + **AgERA5 / CMIP6** (`FP2140` `SSP370`) *(e ERA5 nativo planejado)* | Chuva diária, tendências hídricas, alertas extremos dinâmicos e resiliência climática 2021–2040. |
-| **[M6]** Relatórios & Monitoramento | OpenET | **ECOSTRESS** (`ECO2LSTE`) + **MODIS NDVI** (`MOD13Q1`) *(e VIIRS / NASA FIRMS planejados)* | Temperatura de superfície, estresse térmico, vigor vegetativo e histórico de vulnerabilidade. |
+| **[M1]** Plot Mapping | NAIP | **Copernicus Sentinel-2 / Landsat (HLS)** *(planned 10–30 m)* + **SRTM** *(planned 30 m)* / **GAEZ `SLOPE-MED`** *(in production 5 arc-min)* | Plot boundaries (`calcular_geometria_terreno`), slope, and erosion risk. |
+| **[M2] / [M3]** Crops & Rotations | SSURGO / WSS / CDL | **FAO GAEZ v5** (*Suitability and Attainable Yield* `RES05-SUX`/`YLX`, **HWSD v2.01**, `SQ-IDX`, `SQX.SQ0`) + **SMAP** (`SPL3SMP_E`) | Suitability by management (`LRLM`, `HRLM`, `LILM`, `HILM`), attainable yield (`kg/ha`), soil limitations, and surface moisture. |
+| **[M4] / [M5]** Climate, Calendar & Alerts | PRISM | **NASA POWER** + **GPM & IMERG** (`GPM_3IMERGDF`) + **AgERA5 / CMIP6** (`FP2140` `SSP370`) *(and native ERA5 planned)* | Daily rainfall, water trends, dynamic extreme alerts, and 2021–2040 climate resilience. |
+| **[M6]** Reports & Monitoring | OpenET | **ECOSTRESS** (`ECO2LSTE`) + **MODIS NDVI** (`MOD13Q1`) *(and VIIRS / NASA FIRMS planned)* | Surface temperature, heat stress, vegetative vigor, and vulnerability history. |
 
-### 2. Separação entre Camada Estratégica e Camada Operacional
+### 2. Separation Between Strategic Layer and Operational Layer
 
-- **Camada Estratégica — FAO GAEZ v5 (`backend/services/gaez_service.py`, resolução ~10 km / 5 arc-min):**
-  Responde *"quais culturas combinam com esta região, este solo (HWSD v2.01), o nível de água/insumo do produtor e o clima futuro?"*.
-  - `GAEZDataProvider` consulta **diretamente** via HTTP Range Requests os rasters Cloud-Optimized GeoTIFF (COG) oficiais no bucket público `storage.googleapis.com/fao-gismgr-gaez-v5-data/DATA/GAEZ-V5/` (sem login/chave de API), armazenando apenas respostas reais em cache de disco (`data/gaez_cache/`).
-  - **Sem fallbacks determinísticos inventados:** se a API/COG do GAEZ não responder, o provedor retorna explicitamente `data_quality="no_data"` (e `GET /api/v1/culturas/aptidao-gaez` retorna HTTP `503`).
-  - Seleciona automaticamente um dos 4 regimes de manejo conforme as prioridades do terreno: `LRLM` (sequeiro + baixo insumo), `HRLM` (sequeiro + alto insumo), `LILM` (irrigado + baixo insumo) ou `HILM` (irrigado + alto insumo).
-- **Camada Operacional — NASA (`backend/services/geospatial.py`):**
-  Responde *"o que está acontecendo no terreno agora, onde há estresse hídrico/térmico e quais alertas `[M5]` disparar no calendário `[M4]`?"*.
-  - Utiliza o padrão *Adapter/Interface* (`INASADataProvider` + fábrica `get_nasa_data_provider`).
-  - Em desenvolvimento offline/demo (`NASA_PROVIDER=mock`), `MockNASADataProvider` gera e recorta NetCDFs sintéticos (`.nc`) via `xarray`/`rioxarray`/`geopandas` com perfis selecionáveis (`normal`, `seca`, `chuva_extrema`, `onda_de_calor` via `NASA_MOCK_PROFILE` ou `perfil_climatico`).
-  - Em modo real (`NASA_PROVIDER=real` ou `perfil_climatico="real"`), `RealNASADataProvider` lê arquivos NetCDF/HDF locais em `data/real/`, consulta coleções NASA Earthdata (`SPL3SMP_E`, `ECO2LSTE`, `GPM_3IMERGDF`, `MOD13Q1` via `earthaccess` com `EARTHDATA_TOKEN`) e recorre à API pública **NASA POWER** (`GWETTOP`, `TS`, `PRECTOTCORR`, sem login, com cache em `data/nasa_power_cache/`).
+- **Strategic Layer — FAO GAEZ v5 (`backend/services/gaez_service.py`, ~10 km / 5 arc-min resolution):**
+  Answers *"which crops fit this region, this soil (HWSD v2.01), the farmer's water/input level, and future climate?"*.
+  - `GAEZDataProvider` **directly** queries official Cloud-Optimized GeoTIFF (COG) rasters via HTTP Range Requests in the public bucket `storage.googleapis.com/fao-gismgr-gaez-v5-data/DATA/GAEZ-V5/` (no login/API key required), caching only real responses on disk (`data/gaez_cache/`).
+  - **No fabricated deterministic fallbacks:** if the GAEZ API/COG does not respond, the provider explicitly returns `data_quality="no_data"` (and `GET /api/v1/culturas/aptidao-gaez` returns HTTP `503`).
+  - Automatically selects one of the 4 management regimes based on plot priorities: `LRLM` (rainfed + low input), `HRLM` (rainfed + high input), `LILM` (irrigated + low input), or `HILM` (irrigated + high input).
+- **Operational Layer — NASA (`backend/services/geospatial.py`):**
+  Answers *"what is happening on the plot right now, where is water/heat stress occurring, and which `[M5]` alerts should be triggered in the `[M4]` calendar?"*.
+  - Uses the *Adapter/Interface* pattern (`INASADataProvider` + factory `get_nasa_data_provider`).
+  - In offline/demo development (`NASA_PROVIDER=mock`), `MockNASADataProvider` generates and clips synthetic NetCDFs (`.nc`) via `xarray`/`rioxarray`/`geopandas` with selectable profiles (`normal`, `seca`, `chuva_extrema`, `onda_de_calor` via `NASA_MOCK_PROFILE` or `perfil_climatico`).
+  - In real mode (`NASA_PROVIDER=real` or `perfil_climatico="real"`), `RealNASADataProvider` reads local NetCDF/HDF files in `data/real/`, queries NASA Earthdata collections (`SPL3SMP_E`, `ECO2LSTE`, `GPM_3IMERGDF`, `MOD13Q1` via `earthaccess` with `EARTHDATA_TOKEN`), and falls back to the public **NASA POWER** API (`GWETTOP`, `TS`, `PRECTOTCORR`, no login required, cached in `data/nasa_power_cache/`).
 
-### 3. Machine Learning (`ml_models.py`) e IA Generativa (`llm_agent.py`)
+### 3. Machine Learning (`ml_models.py`) and Generative AI (`llm_agent.py`)
 
-- **CropSimulator (Implementado):**
-  - Combina heurística agronômica ponderada por prioridade hídrica, regressor `RandomForestRegressor` (9 features ambientais, da cultura e estabilidade temporal), features extraídas da série diária (`temporal_stability`, `moisture_trend` por regressão linear, `dry_spell_max`), bônus de cobertura sobre solo exposto (`is_bare_field_period`) e ajuste por `historico_cultivos`.
-  - Quando os dados do FAO GAEZ v5 estão presentes, gera candidatas reais de rotação a partir de *Suitability and Attainable Yield* (`RES05-SUX`/`RES05-YLX`), descarta pares estáticos sem respaldo do GAEZ (preservando a prática `(Atual)` e rotações preferenciais cadastradas) e calibra o score final com `gaez_suitability`, `attainable_yield_kg_ha`, `soil_quality_index` (`SQX.SQ0`) e `cmip6_suitability_delta`.
-- **ClimateAnomalyDetector (Implementado):**
-  - Duas camadas: limiares agronômicos absolutos (`HEAVY_RAIN_MM >= 60`, `HEAT_C >= 35`, `DROUGHT_MOISTURE <= 0.15`) + `IsolationForest(contamination=0.05)` validado por z-score robusto (MAD `>= 3.5`), expondo diagnósticos (`anomaly_score_min`, `moisture_trend_per_day`, `heat_stress_index`, `dry_days_count`).
-- **RotationExplainerAgent (Implementado):**
-  - Google Gemini (`gemini-2.5-flash`, configurável via `GEMINI_MODEL`, ou `FakeListLLM` offline quando `GOOGLE_API_KEY` não estiver definida) via `langchain-google-genai`, com **saída estruturada (`with_structured_output`)** e **cache LRU em memória** para economia de tokens, traduzindo `score_breakdown`, `kg/ha`, grupo de solo HWSD v2.01, fator limitante (`SQ-IDX`), declividade e alertas/relatórios.
-  - **Cruzamento determinístico pré-LLM (`synthesize_cross_insights`):** combina solo HWSD/`SQ-IDX`/declividade × chuva GPM, faixas térmicas/hídricas **ECOCROP** × ECOSTRESS, tendência **CMIP6**, desvios **Z-score** e risco fitossanitário **AGROFIT** antes de gerar explicações, fallback offline e `beneficios_esperados`/`riscos_identificados` da simulação.
-  - **Regra de Segurança Mandatória:** toda explicação garante a presença do aviso (`DISCLAIMER`) de que a ferramenta apoia a decisão, mas a palavra final é sempre do produtor.
-- **O que ainda NÃO foi implementado / Próximas evoluções planejadas (ML & Dados):**
-  - **ECOCROP (FAO) + AGROFIT (Embrapa/MAPA):** integrar `EcoCrop_DB` (`Scientific Name`, `Family`, `TMIN`/`TMAX`, `TOPMIN`/`TOPMAX`, `RMIN`/`RMAX`, `GMIN`/`GMAX`) cruzado pelo nome científico com a API **Agrofit** e com gatilhos climáticos da NASA (SMAP/ECOSTRESS/NASA POWER) para calcular risco fitossanitário — usando família botânica apenas como sinal informativo/penalização de quebra de ciclo no `CropSimulator`, **sem bloquear** culturas de agricultores de subsistência (`A15–A16`).
-  - **Z-score de anomalia climática histórica:** comparar a janela atual do polígono contra a média histórica do mesmo período via NASA POWER (`A17`).
-  - **Explicação estruturada com evidências numéricas + SRTM 30 m:** estruturar blocos explicativos com os números exatos dos satélites/solo/ECOCROP/Agrofit para exibição em cards no frontend e incorporar elevação/declividade **SRTM 30 m** e **Sentinel-2 / Landsat (HLS)** (`A18`).
-  - **Retreino supervisionado com safras reais brasileiras:** o `RandomForestRegressor` atual é treinado em memória sobre uma grade sintética de 400 cenários agronômicos e calibrado em runtime pelos rasters reais do GAEZ v5; falta pipeline offline com dados históricos reais de produtividade (IBGE PAM / CONAB / Embrapa) e artefato versionado.
-  - **PyAEZ, ERA5 nativo, VIIRS e NASA FIRMS:** biblioteca **PyAEZ** para cálculo local com microclima de estação e ingestão direta de focos de calor/reanálise.
+- **CropSimulator (Implemented):**
+  - Combines agronomic heuristics weighted by water priority, a `RandomForestRegressor` (9 environmental, crop, and temporal-stability features), features extracted from the daily series (`temporal_stability`, linear-regression `moisture_trend`, `dry_spell_max`), bare-soil cover bonus (`is_bare_field_period`), and `historico_cultivos` adjustment.
+  - When FAO GAEZ v5 data is present, it generates real rotation candidates from *Suitability and Attainable Yield* (`RES05-SUX`/`RES05-YLX`), discards static pairs without GAEZ backing (while preserving `(Atual)` current practice and registered preferred rotations), and calibrates the final score with `gaez_suitability`, `attainable_yield_kg_ha`, `soil_quality_index` (`SQX.SQ0`), and `cmip6_suitability_delta`.
+- **ClimateAnomalyDetector (Implemented):**
+  - Two layers: absolute agronomic thresholds (`HEAVY_RAIN_MM >= 60`, `HEAT_C >= 35`, `DROUGHT_MOISTURE <= 0.15`) + `IsolationForest(contamination=0.05)` validated by robust z-score (MAD `>= 3.5`), exposing diagnostics (`anomaly_score_min`, `moisture_trend_per_day`, `heat_stress_index`, `dry_days_count`).
+- **RotationExplainerAgent (Implemented):**
+  - Google Gemini (`gemini-2.5-flash`, configurable via `GEMINI_MODEL`, or offline `FakeListLLM` when `GOOGLE_API_KEY` is unset) via `langchain-google-genai`, with **structured output (`with_structured_output`)** and **in-memory LRU cache** to save tokens, translating `score_breakdown`, `kg/ha`, HWSD v2.01 soil group, limiting factor (`SQ-IDX`), slope, and alerts/reports.
+  - **Pre-LLM deterministic cross-check (`synthesize_cross_insights`):** combines HWSD/`SQ-IDX`/slope soil × GPM rainfall, **ECOCROP** thermal/water ranges × ECOSTRESS, **CMIP6** trend, **Z-score** deviations, and **AGROFIT** phytosanitary risk before generating explanations, offline fallbacks, and simulation `beneficios_esperados`/`riscos_identificados`.
+  - **Mandatory Safety Rule:** every explanation ensures the presence of the disclaimer (`DISCLAIMER`) stating that the tool supports decision-making, but the final word is always the farmer's.
+- **What is NOT yet implemented / Planned next steps (ML & Data):**
+  - **ECOCROP (FAO) + AGROFIT (Embrapa/MAPA):** integrate `EcoCrop_DB` (`Scientific Name`, `Family`, `TMIN`/`TMAX`, `TOPMIN`/`TOPMAX`, `RMIN`/`RMAX`, `GMIN`/`GMAX`) cross-referenced by scientific name with the **Agrofit** API and NASA climate triggers (SMAP/ECOSTRESS/NASA POWER) to compute phytosanitary risk — using botanical family solely as an informational signal / cycle-break penalty in `CropSimulator`, **without blocking** subsistence crops (`A15–A16`).
+  - **Historical climate anomaly Z-score:** compare the plot's current window against the historical average for the same period via NASA POWER (`A17`).
+  - **Structured explanation with numerical evidence + SRTM 30 m:** structure explanation blocks with exact satellite/soil/ECOCROP/Agrofit numbers for frontend cards and incorporate **SRTM 30 m** elevation/slope and **Sentinel-2 / Landsat (HLS)** (`A18`).
+  - **Supervised retraining on real Brazilian harvests:** the current `RandomForestRegressor` is trained in memory on a synthetic grid of 400 agronomic scenarios and calibrated at runtime by real GAEZ v5 rasters; an offline pipeline with real historical yield data (IBGE PAM / CONAB / Embrapa) and versioned model artifacts is still pending.
+  - **PyAEZ, native ERA5, VIIRS, and NASA FIRMS:** **PyAEZ** library for local calculation with station microclimate and direct ingestion of active fire hotspots/reanalysis.
 
 ---
 
-## 🛠️ Stack Tecnológica
+## 🛠️ Tech Stack
 
-O backend do sistema aplica o padrão MVC/Service-Layer e isola a lógica de IA/Dados (`backend/services/`) das rotas da API (`backend/api/`).
+The backend applies the MVC/Service-Layer pattern and isolates AI/Data logic (`backend/services/`) from API routes (`backend/api/`).
 
-- **Linguagem:** Python 3.12 (imagem base `python:3.11-slim` no `Dockerfile`)
+- **Language:** Python 3.12 (`python:3.11-slim` base image in `Dockerfile`)
 - **API & Web Framework:** FastAPI + Uvicorn + HTTPX
-- **Banco de Dados & ORM:** PostgreSQL 15 + SQLAlchemy (`psycopg2-binary`) + Alembic + Pydantic v2
-- **Dados Geoespaciais:** Xarray, NetCDF4, h5netcdf, Rasterio (COG/HTTP Range), Rioxarray, GeoPandas, Shapely, Pandas, `earthaccess`
-- **Machine Learning & IA:** Scikit-Learn (`RandomForestRegressor`, `IsolationForest`), LangChain (`langchain-google-genai`, `langchain-core`)
+- **Database & ORM:** PostgreSQL 15 + SQLAlchemy (`psycopg2-binary`) + Alembic + Pydantic v2
+- **Geospatial Data:** Xarray, NetCDF4, h5netcdf, Rasterio (COG/HTTP Range), Rioxarray, GeoPandas, Shapely, Pandas, `earthaccess`
+- **Machine Learning & AI:** Scikit-Learn (`RandomForestRegressor`, `IsolationForest`), LangChain (`langchain-google-genai`, `langchain-core`)
 - **Frontend:** React 19 + TypeScript + Vite + Tailwind CSS v4 + Leaflet (`frontend/`)
-- **Infraestrutura:** Docker e Docker Compose (`.env` gerenciado a partir de `.env.example`)
+- **Infrastructure:** Docker and Docker Compose (`.env` managed from `.env.example`)
 
 ---
 
-## 🚀 Como Rodar Localmente
+## 🚀 Running Locally
 
-Copie o arquivo `.env.example` para `.env` (ajuste `NASA_PROVIDER`, `NASA_MOCK_PROFILE`, `GAEZ_ENABLED`, `EARTHDATA_TOKEN` se usar Earthdata, `CORS_ALLOWED_ORIGINS` ou `GOOGLE_API_KEY`) e suba a API + PostgreSQL com Docker Compose:
+Copy `.env.example` to `.env` (adjust `NASA_PROVIDER`, `NASA_MOCK_PROFILE`, `GAEZ_ENABLED`, `EARTHDATA_TOKEN` if using Earthdata, `CORS_ALLOWED_ORIGINS`, or `GOOGLE_API_KEY`) and start the API + PostgreSQL with Docker Compose:
 
 ```bash
 cp .env.example .env
 docker-compose up --build
 ```
 
-Após iniciar os containers (e o frontend via `cd frontend && npm run dev`):
+After starting the containers (and the frontend via `cd frontend && npm run dev`):
 
 - **Frontend (Vite):** `http://localhost:5173`
 - **API Base:** `http://localhost:8000`
 - **Health Check:** `GET http://localhost:8000/health`
 - **Swagger UI (OpenAPI):** `http://localhost:8000/docs`
-- **Seed de Demonstração:** `POST http://localhost:8000/api/v1/demo/seed` (popula usuário padrão, terrenos com perfis `seca` e `chuva_extrema`, métricas históricas, atividades adaptadas e alertas).
-- **Aptidão FAO GAEZ v5:** `GET http://localhost:8000/api/v1/culturas/aptidao-gaez?lat=-15.78&lng=-47.92` (consulta direta aos COGs públicos da FAO sem necessidade de login).
+- **Demo Seed:** `POST http://localhost:8000/api/v1/demo/seed` (populates default user, plots with `seca` and `chuva_extrema` profiles, historical metrics, adapted activities, and alerts).
+- **FAO GAEZ v5 Suitability:** `GET http://localhost:8000/api/v1/culturas/aptidao-gaez?lat=-15.78&lng=-47.92` (direct query to FAO's public COGs without login).
 
 ---
 
-## 📂 Navegação Rápida
+## 📂 Quick Navigation
 
-- [Requisitos e Regras de Negócio](Requisitos/README.md) — Escopo funcional dos módulos `[M1]` a `[M6]`.
-- [Arquitetura do Sistema](Arquitetura/README.md) — Modelagem do banco de dados (DER), arquitetura de dados em 2 camadas e fluxos síncrono/assíncrono.
-- [Especificações Técnicas (Specs)](Specs/README.md) — Contratos REST, parâmetros de consulta e payloads JSON dos endpoints (incluindo GAEZ v5).
-- [Design e UI/UX](Design/README.md) — Diretrizes de interface Mobile-First, Offline-First (PWA) e sugestões de UX geoespacial (Split View, WMS, Feature Info).
-- [Tasks e Evolução do Projeto](Tasks/README.md) — Checklist das entregas (`A1–A14`, `B1–B8`, `C1–C9`, `F1–F3`), estado de ML/Dados e próximos passos.
+- [Requirements and Business Rules](Requisitos/README.md) — Functional scope of modules `[M1]` through `[M6]`.
+- [System Architecture](Arquitetura/README.md) — Database modeling (ERD), two-layer data architecture, and synchronous/asynchronous flows.
+- [Technical Specifications (Specs)](Specs/README.md) — REST contracts, query parameters, and JSON payloads for endpoints (including GAEZ v5).
+- [Design & UI/UX](Design/README.md) — Mobile-First, Offline-First (PWA) interface guidelines and geospatial UX suggestions (Split View, WMS, Feature Info).
+- [Tasks and Project Progress](Tasks/README.md) — Deliverable checklist (`A1–A14`, `B1–B8`, `C1–C9`, `F1–F3`), ML/Data status, and next steps.
 
 ---
 
-## ✅ Funcionalidades Entregues, O Que Falta Fazer e Sugestões
+## ✅ Delivered Features, Pending Work & Suggestions
 
-### Já implementado (Backend, Dados/ML/IA, Infraestrutura e Frontend Parcial)
-- **Camada Estratégica & Dados Reais (`[M1]` / `[M2]` / `[M3]`):** `GAEZDataProvider` consumindo COGs públicos do FAO GAEZ v5 (*Suitability and Attainable Yield* `RES05-SUX`/`YLX`, `HWSDV201`, `SQ-IDX`, `SQX.SQ0`, `SLOPE-MED`, CMIP6 `FP2140` `SSP370`) nos 4 regimes de manejo, com `GET /api/v1/culturas/aptidao-gaez` e sincronização opcional de culturas viáveis.
-- **Camada Operacional NASA (`[M1]` / `[M5]` / `[M6]`):** `MockNASADataProvider` (perfis `normal`, `seca`, `chuva_extrema`, `onda_de_calor`), `RealNASADataProvider` (`earthaccess` + arquivos `data/real/` + API pública **NASA POWER** com cache) e cálculo automático de área/centroide (`calcular_geometria_terreno`).
-- **ML & IA Explicável (`[M2]` / `[M3]` / `[M5]` / `[M6]`):** `CropSimulator` (`RandomForestRegressor` + features temporais + GAEZ suitability/yield + histórico de cultivos + `score_breakdown`), `ClimateAnomalyDetector` (`IsolationForest` + MAD + limiares) e `RotationExplainerAgent` (estratégias, alertas e relatórios sempre com `DISCLAIMER`).
-- **Backend Completo & Infra (`A1–A14`, `B1–B8`, `C1–C9`):** CRUD de terrenos, culturas/rotações (proteção `is_seed`), simulação, calendário maleável, alertas com monitor em background e perfil simulável sob demanda (`monitorar-clima`), relatórios com comparativo, PostgreSQL + Alembic, 70 testes automatizados (`pytest backend/tests`), CI e `POST /api/v1/demo/seed`.
-- **Frontend (`F1–F2` concluídos):** Vite + React Router (`App.tsx`), cliente HTTP (`services/api.ts`), `PlantationsPage.tsx`, `MapTerrainPage.tsx`, `CropHistoryStep.tsx` e `WaterDistributionStep.tsx` conectados ao backend.
+### Already Implemented (Backend, Data/ML/AI, Infrastructure, and Partial Frontend)
+- **Strategic Layer & Real Data (`[M1]` / `[M2]` / `[M3]`):** `GAEZDataProvider` consuming FAO GAEZ v5 public COGs (*Suitability and Attainable Yield* `RES05-SUX`/`YLX`, `HWSDV201`, `SQ-IDX`, `SQX.SQ0`, `SLOPE-MED`, CMIP6 `FP2140` `SSP370`) across all 4 management regimes, with `GET /api/v1/culturas/aptidao-gaez` and optional viable crop syncing.
+- **Operational NASA Layer (`[M1]` / `[M5]` / `[M6]`):** `MockNASADataProvider` (`normal`, `seca`, `chuva_extrema`, `onda_de_calor` profiles), `RealNASADataProvider` (`earthaccess` + `data/real/` files + cached public **NASA POWER** API), and automatic area/centroid calculation (`calcular_geometria_terreno`).
+- **Explainable ML & AI (`[M2]` / `[M3]` / `[M5]` / `[M6]`):** `CropSimulator` (`RandomForestRegressor` + temporal features + GAEZ suitability/yield + crop history + `score_breakdown`), `ClimateAnomalyDetector` (`IsolationForest` + MAD + thresholds), and `RotationExplainerAgent` (strategies, alerts, and reports always with `DISCLAIMER`).
+- **Full Backend & Infra (`A1–A14`, `B1–B8`, `C1–C9`):** Plot CRUD, crops/rotations (`is_seed` protection), simulation, flexible calendar, alerts with background monitor and on-demand simulatable profile (`monitorar-clima`), reports with period comparison, PostgreSQL + Alembic, 70 automated tests (`pytest backend/tests`), CI, and `POST /api/v1/demo/seed`.
+- **Frontend (`F1–F2` completed):** Vite + React Router (`App.tsx`), HTTP client (`services/api.ts`), `PlantationsPage.tsx`, `MapTerrainPage.tsx`, `CropHistoryStep.tsx`, and `WaterDistributionStep.tsx` connected to the backend.
 
-### O que ainda falta fazer (`A15–A18`, `F3` e Finalização)
-1. **Rodada 4 de Dados, ML e IA (`A15–A18`):**
-   - **`A15` (ECOCROP):** provedor direto da base **ECOCROP** extraindo `Scientific Name`, `Family`, `TMIN`/`TMAX`, `TOPMIN`/`TOPMAX`, `RMIN`/`RMAX` e `GMIN`/`GMAX`.
-   - **`A16` (AGROFIT × NASA):** provedor da API **Agrofit** (Embrapa AgroAPI) cruzado por `Scientific Name` com o ECOCROP e gatilhos climáticos NASA (umidade SMAP/POWER + temperatura ECOSTRESS/POWER) para risco fitossanitário no `CropSimulator` (penalização/aviso não-bloqueante para preservar culturas de subsistência).
-   - **`A17` (Z-score Climático):** cálculo de Z-score climático histórico via NASA POWER no `ClimateAnomalyDetector` para qualificar desvios da época atual.
-   - **`A18` (Explicação Estruturada + SRTM):** melhorar `RotationExplainerAgent` e o retorno da API para entregar blocos estruturados com os números reais (para cards no frontend) e integrar relevo **SRTM 30 m** / **HLS** quando aplicável.
-2. **Task `F3` no Frontend (`frontend/src/pages/`):**
-   - Tela completa de Simulação `[M3]` exibindo as 3 estratégias, blocos estruturados com os números importantes (`score_breakdown`, `gaez_suitability`, `attainable_yield_kg_ha`, solo HWSD v2.01, limites ECOCROP, risco fitossanitário Agrofit, Z-score e explicação IA com disclaimer).
-   - Consumo de `GET /api/v1/culturas/aptidao-gaez` no fluxo `[M2]` para sugerir culturas/sementes viáveis na região e permitir `sincronizar_catalogo`.
-   - Telas integradas de Calendário `[M4]`, Alertas Climáticos `[M5]` e Relatórios `[M6]`.
-   - *Decisões de escopo mantidas:* **não** aplicar bloqueio rígido por família botânica (para não restringir agricultura de subsistência), **não** usar presets regionais no mapa e **não** usar sliders de simulação *What-If*.
-3. **Ensaio Final da Demo & Deploy:**
-   - Validar o fluxo completo `[M1] -> [M2] -> [M3] -> [M4]/[M5] -> [M6]` no navegador usando `POST /api/v1/demo/seed`.
+### Remaining Work (`A15–A18`, `F3`, and Finalization)
+1. **Data, ML & AI Round 4 (`A15–A18`):**
+   - **`A15` (ECOCROP):** direct **ECOCROP** database provider extracting `Scientific Name`, `Family`, `TMIN`/`TMAX`, `TOPMIN`/`TOPMAX`, `RMIN`/`RMAX`, and `GMIN`/`GMAX`.
+   - **`A16` (AGROFIT × NASA):** **Agrofit** API (Embrapa AgroAPI) provider cross-referenced by `Scientific Name` with ECOCROP and NASA climate triggers (SMAP/POWER moisture + ECOSTRESS/POWER temperature) for phytosanitary risk in `CropSimulator` (non-blocking penalty/warning to preserve subsistence crops).
+   - **`A17` (Climate Z-score):** historical climate Z-score calculation via NASA POWER in `ClimateAnomalyDetector` to qualify current-season deviations.
+   - **`A18` (Structured Explanation + SRTM):** improve `RotationExplainerAgent` and API responses to deliver structured blocks with real numbers (for frontend cards) and integrate **SRTM 30 m** / **HLS** terrain data where applicable.
+2. **Frontend Task `F3` (`frontend/src/pages/`):**
+   - Complete Simulation `[M3]` screen displaying the 3 strategies, structured blocks with key numbers (`score_breakdown`, `gaez_suitability`, `attainable_yield_kg_ha`, HWSD v2.01 soil, ECOCROP ranges, Agrofit phytosanitary risk, Z-score, and AI explanation with disclaimer).
+   - Consumption of `GET /api/v1/culturas/aptidao-gaez` in the `[M2]` flow to suggest regionally viable crops/seeds and allow `sincronizar_catalogo`.
+   - Integrated Calendar `[M4]`, Climate Alerts `[M5]`, and Reports `[M6]` screens.
+   - *Retained scope decisions:* **do not** apply rigid blocking by botanical family (to avoid restricting subsistence farming), **do not** use regional presets on the map, and **do not** add *What-If* simulation sliders.
+3. **Final Demo Rehearsal & Deploy:**
+   - Validate the complete `[M1] -> [M2] -> [M3] -> [M4]/[M5] -> [M6]` flow in the browser using `POST /api/v1/demo/seed`.
 
-### Sugestões de Evolução (Produto, UX e Ciência de Dados)
-- **UX de Mapa inspirada no portal FAO GAEZ v5 (`MapTerrainPage.tsx`):**
-  - *Overlay WMS/WMTS:* plotar camadas de aptidão e solo diretamente no Leaflet via GeoServer oficial da FAO (`https://data.apps.fao.org/geoserver/wms`) sem baixar rasters completos no cliente.
-  - *Split View (comparação lado a lado):* slider comparando clima histórico vs. cenário futuro CMIP6 (`2021–2040` SSP370) ou manejo sequeiro (`LRLM`) vs. irrigado (`HILM`).
-  - *Feature Information pontual:* ao clicar no terreno no mapa, exibir card rápido com a produtividade atingível estimada (`kg/ha`), grupo de solo HWSD v2.01 e fator limitante dominante.
-- **Evolução de Dados & ML:**
-  - Expandir `GAEZ_SUITABILITY_CROPS` via ingestão do catálogo **ECOCROP** (72+ culturas) e avaliar **PyAEZ** para zoneamento local fino.
-  - Incorporar **Sentinel-2 / Landsat (HLS)** + **SRTM 30 m** no `[M1]` para diagnóstico intra-talhão (~10–30 m) complementar à escala regional (~10 km) do GAEZ v5, além de **NASA FIRMS** e **ERA5**.
-  - Treinar e versionar modelos supervisionados com dados reais de safra brasileira (CONAB/IBGE) e feedback real dos produtores no app.
+### Evolution Suggestions (Product, UX, and Data Science)
+- **Map UX inspired by the FAO GAEZ v5 portal (`MapTerrainPage.tsx`):**
+  - *WMS/WMTS Overlay:* render suitability and soil layers directly in Leaflet via FAO's official GeoServer (`https://data.apps.fao.org/geoserver/wms`) without downloading full rasters on the client.
+  - *Split View (side-by-side comparison):* slider comparing historical climate vs. CMIP6 future scenario (`2021–2040` SSP370) or rainfed (`LRLM`) vs. irrigated (`HILM`) management.
+  - *Point Feature Information:* on clicking a plot on the map, display a quick card with estimated attainable yield (`kg/ha`), HWSD v2.01 soil group, and dominant limiting factor.
+- **Data & ML Evolution:**
+  - Expand `GAEZ_SUITABILITY_CROPS` by ingesting the **ECOCROP** catalog (72+ crops) and evaluate **PyAEZ** for fine local zoning.
+  - Incorporate **Sentinel-2 / Landsat (HLS)** + **SRTM 30 m** into `[M1]` for intra-plot diagnostics (~10–30 m) complementing GAEZ v5's regional scale (~10 km), plus **NASA FIRMS** and **ERA5**.
+  - Train and version supervised models on real Brazilian harvest data (CONAB/IBGE) and real farmer feedback from the app.

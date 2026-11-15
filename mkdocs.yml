@@ -1,11 +1,11 @@
-site_name: Kultiva — Documentação Técnica
-site_description: Sistema de apoio à decisão para pequenos produtores rurais (NASA Space Apps Challenge)
+site_name: Kultiva — Technical Documentation
+site_description: Decision-support system for smallholder farmers (NASA Space Apps Challenge)
 repo_url: https://github.com/eduardoviana11/kultiva
 repo_name: eduardoviana11/kultiva
 
 theme:
   name: material
-  language: pt-BR
+  language: en
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -13,14 +13,14 @@ theme:
       accent: light green
       toggle:
         icon: material/brightness-7
-        name: Alternar para modo escuro
+        name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
       primary: green
       accent: light green
       toggle:
         icon: material/brightness-4
-        name: Alternar para modo claro
+        name: Switch to light mode
   features:
     - navigation.tabs
     - navigation.sections
@@ -52,9 +52,9 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
 
 nav:
-  - Início: index.md
-  - Requisitos: Requisitos/README.md
-  - Arquitetura: Arquitetura/README.md
-  - Especificações (API): Specs/README.md
+  - Home: index.md
+  - Requirements: Requisitos/README.md
+  - Architecture: Arquitetura/README.md
+  - Specifications (API): Specs/README.md
   - Design & UX: Design/README.md
   - Tasks: Tasks/README.md
