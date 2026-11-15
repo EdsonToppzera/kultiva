@@ -30,7 +30,7 @@ import type { WaterDistributionData } from "./features/onboarding/types/waterDis
 import type { RotationScenario } from "./features/simulation/types/recommendations.types";
 import { AreaCalendarPage } from "./pages/AreaCalendarPage";
 import { AreaDashboardPage } from "./pages/AreaDashboardPage";
-import { MapTerrainPage } from "./pages/MapTerrainPage";
+import { type MapCoordinate, MapTerrainPage } from "./pages/MapTerrainPage";
 import {
   PlantationsPage,
   type PlantationArea,
@@ -40,8 +40,11 @@ import {
   buildGerarCronogramaPayload,
 } from "./services/adapters";
 import {
+  type CoordenadaApi,
   type TerrenoResponse,
   DEFAULT_USUARIO_ID,
+  converterHistoricoParaLista,
+  criarTerreno,
   extrairMetodoIrrigacao,
   extrairPrioridadeDoTerreno,
   extrairTipoSolo,
@@ -67,11 +70,59 @@ type OnboardingStep =
   | "summary"
   | "recommendations";
 
+interface DraftTerrain {
+  nome_propriedade: string;
+  points: MapCoordinate[];
+  coordenadas_poligono: CoordenadaApi[];
+  area_hectares?: number;
+}
+
+function buildMergedPrioridades(
+  existingPrioridades: Record<string, unknown> | null | undefined,
+  cropHistory: CropHistoryData | null,
+  waterDistribution: WaterDistributionData | null,
+  soilType: SoilTypeData | null,
+  priority: PriorityData | null
+): Record<string, unknown> {
+  return {
+    ...(existingPrioridades ?? {}),
+    ...(cropHistory
+      ? {
+          historico_cultivos: converterHistoricoParaLista(cropHistory),
+          nao_lembra_historico: cropHistory.naoLembro,
+          cultivo_em_andamento: cropHistory.cultivoEmAndamento,
+          data_inicio_cultivo:
+            cropHistory.cultivoEmAndamento && cropHistory.dataInicioCultivo
+              ? cropHistory.dataInicioCultivo
+              : null,
+        }
+      : {}),
+    ...(waterDistribution
+      ? mapearPrioridadesIrrigacao(
+          waterDistribution.metodoIrrigacao.id,
+          cropHistory
+        )
+      : {}),
+    ...(soilType ? { tipo_solo: soilType.tipoSolo.id } : {}),
+    ...(priority
+      ? {
+          prioridade: priority.prioridade.id,
+          objetivo_principal: priority.prioridade.id,
+          cultura_desejada: priority.culturaDesejada?.officialName ?? null,
+          praga_alvo: priority.pragaAlvo?.officialName ?? null,
+        }
+      : {}),
+  };
+}
+
 export function App() {
   const { t } = useTranslation();
   const [step, setStep] = React.useState<OnboardingStep>("plantations");
   const [currentTerreno, setCurrentTerreno] =
     React.useState<TerrenoResponse | null>(null);
+  const [draftTerrain, setDraftTerrain] = React.useState<DraftTerrain | null>(
+    null
+  );
   const [selectedArea, setSelectedArea] =
     React.useState<PlantationArea | null>(null);
   const [cropHistory, setCropHistory] = React.useState<CropHistoryData | null>(
@@ -115,30 +166,21 @@ export function App() {
 
     const runSimulation = async () => {
       try {
-        const mergedPrioridades: Record<string, unknown> = {
-          ...(currentTerreno?.prioridades ?? {}),
-          ...(waterDistribution
-            ? mapearPrioridadesIrrigacao(
-                waterDistribution.metodoIrrigacao.id,
-                cropHistory
-              )
-            : {}),
-          ...(soilType ? { tipo_solo: soilType.tipoSolo.id } : {}),
-          ...(priority
-            ? {
-                prioridade: priority.prioridade.id,
-                objetivo_principal: priority.prioridade.id,
-                cultura_desejada:
-                  priority.culturaDesejada?.officialName ?? null,
-                praga_alvo: priority.pragaAlvo?.officialName ?? null,
-              }
-            : {}),
-        };
+        const mergedPrioridades = buildMergedPrioridades(
+          currentTerreno?.prioridades,
+          cropHistory,
+          waterDistribution,
+          soilType,
+          priority
+        );
 
         const response = await simularRotacao({
           terreno_id: currentTerreno?.id,
-          nome_propriedade: currentTerreno?.nome_propriedade,
-          coordenadas_poligono: currentTerreno?.coordenadas_poligono,
+          nome_propriedade:
+            currentTerreno?.nome_propriedade ?? draftTerrain?.nome_propriedade,
+          coordenadas_poligono:
+            currentTerreno?.coordenadas_poligono ??
+            draftTerrain?.coordenadas_poligono,
           nome_cultura:
             priority?.culturaDesejada?.officialName ??
             cropHistory?.ultimoCultivo?.officialName,
@@ -177,6 +219,7 @@ export function App() {
   }, [
     step,
     currentTerreno,
+    draftTerrain,
     cropHistory,
     waterDistribution,
     soilType,
@@ -185,32 +228,61 @@ export function App() {
 
   const handleSelectPlan = async (scenario: RotationScenario) => {
     setSelectedPlan(scenario);
-    const terrenoId = currentTerreno?.id ?? selectedArea?.terrenoId;
+    let resolvedTerreno = currentTerreno;
+    let terrenoId = resolvedTerreno?.id ?? selectedArea?.terrenoId;
 
-    if (terrenoId != null) {
-      setIsGeneratingSchedule(true);
-      try {
+    setIsGeneratingSchedule(true);
+    try {
+      if (terrenoId == null && draftTerrain != null) {
+        const mergedPrioridades = buildMergedPrioridades(
+          null,
+          cropHistory,
+          waterDistribution,
+          soilType,
+          priority
+        );
+        resolvedTerreno = await criarTerreno({
+          nome_propriedade: draftTerrain.nome_propriedade,
+          usuario_id: DEFAULT_USUARIO_ID,
+          coordenadas_poligono: draftTerrain.coordenadas_poligono,
+          area_hectares: draftTerrain.area_hectares,
+          prioridades: mergedPrioridades,
+        });
+        setCurrentTerreno(resolvedTerreno);
+        terrenoId = resolvedTerreno.id;
+      }
+
+      if (terrenoId != null) {
         await gerarCronogramaDeSimulacao(
           buildGerarCronogramaPayload(terrenoId, scenario, cropHistory)
         );
-      } catch {
-        // Mantém navegação mesmo offline
-      } finally {
-        setIsGeneratingSchedule(false);
       }
+    } catch {
+      // Mantém navegação mesmo offline
+    } finally {
+      setIsGeneratingSchedule(false);
     }
 
-    if (currentTerreno) {
+    if (resolvedTerreno) {
       setSelectedArea({
-        id: String(currentTerreno.id),
-        terrenoId: currentTerreno.id,
-        name: currentTerreno.nome_propriedade,
-        sizeLabel: formatarAreaHectares(currentTerreno.area_hectares),
-        areaHectares: currentTerreno.area_hectares ?? null,
-        coordenadasPoligono: currentTerreno.coordenadas_poligono,
-        prioridades: currentTerreno.prioridades ?? null,
+        id: String(resolvedTerreno.id),
+        terrenoId: resolvedTerreno.id,
+        name: resolvedTerreno.nome_propriedade,
+        sizeLabel: formatarAreaHectares(resolvedTerreno.area_hectares),
+        areaHectares: resolvedTerreno.area_hectares ?? null,
+        coordenadasPoligono: resolvedTerreno.coordenadas_poligono,
+        prioridades: resolvedTerreno.prioridades ?? null,
+      });
+    } else if (draftTerrain) {
+      setSelectedArea({
+        id: "draft",
+        name: draftTerrain.nome_propriedade,
+        sizeLabel: formatarAreaHectares(draftTerrain.area_hectares),
+        areaHectares: draftTerrain.area_hectares ?? null,
+        coordenadasPoligono: draftTerrain.coordenadas_poligono,
       });
     }
+    setDraftTerrain(null);
     setStep("area-dashboard");
   };
 
@@ -397,7 +469,9 @@ export function App() {
 
         <RecommendationsStep
           propertyLocation={
-            currentTerreno?.nome_propriedade ?? areaSummary.areaName
+            currentTerreno?.nome_propriedade ??
+            draftTerrain?.nome_propriedade ??
+            areaSummary.areaName
           }
           areaSummary={areaSummary}
           scenarios={activeScenarios}
@@ -473,6 +547,14 @@ export function App() {
       <PlantationsPage
         onCreateArea={() => {
           setCurrentTerreno(null);
+          setDraftTerrain(null);
+          setSelectedArea(null);
+          setCropHistory(null);
+          setWaterDistribution(null);
+          setSoilType(null);
+          setPriority(null);
+          setSelectedPlan(null);
+          setRemoteScenarios(null);
           setStep("map-terrain");
         }}
         onSelectArea={(area) => {
@@ -570,13 +652,20 @@ export function App() {
   if (step === "map-terrain") {
     return (
       <MapTerrainPage
-        onBack={() => setStep("plantations")}
-        onSaveArea={(_points, _areaHectares, createdTerreno) => {
-          setCurrentTerreno(createdTerreno ?? null);
-          setCropHistory(null);
-          setWaterDistribution(null);
-          setSoilType(null);
-          setPriority(null);
+        initialName={draftTerrain?.nome_propriedade ?? ""}
+        initialPoints={draftTerrain?.points ?? []}
+        onBack={() => {
+          setDraftTerrain(null);
+          setStep("plantations");
+        }}
+        onSaveArea={(points, areaHectares, nomePropriedade) => {
+          setCurrentTerreno(null);
+          setDraftTerrain({
+            nome_propriedade: nomePropriedade,
+            points,
+            coordenadas_poligono: points.map((p) => ({ lat: p.lat, lng: p.lng })),
+            area_hectares: areaHectares > 0 ? areaHectares : undefined,
+          });
           setSelectedPlan(null);
           setRemoteScenarios(null);
           setStep(1);
@@ -592,7 +681,7 @@ export function App() {
       terrenoId={currentTerreno?.id ?? null}
       existingPrioridades={currentTerreno?.prioridades ?? null}
       onTerrenoUpdated={(updated) => setCurrentTerreno(updated)}
-      onBack={() => setStep("plantations")}
+      onBack={() => setStep("map-terrain")}
       onContinue={(data) => {
         setCropHistory(data);
         setStep(2);

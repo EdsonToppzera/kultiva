@@ -25,12 +25,6 @@ import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import kinks from "@turf/kinks";
 import { polygon as turfPolygon } from "@turf/helpers";
-import {
-  ApiError,
-  DEFAULT_USUARIO_ID,
-  type TerrenoResponse,
-  criarTerreno,
-} from "../services/api";
 
 export interface MapCoordinate {
   id: string;
@@ -39,10 +33,12 @@ export interface MapCoordinate {
 }
 
 export interface MapTerrainPageProps {
+  initialName?: string;
+  initialPoints?: MapCoordinate[];
   onSaveArea?: (
     points: MapCoordinate[],
     areaHectares: number,
-    createdTerreno?: TerrenoResponse
+    nomePropriedade: string
   ) => void;
   onBack?: () => void;
 }
@@ -158,18 +154,27 @@ function MapController({
   return null;
 }
 
-export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
+export function MapTerrainPage({
+  initialName = "",
+  initialPoints = [],
+  onSaveArea,
+  onBack,
+}: MapTerrainPageProps) {
   const { t } = useTranslation();
   // Gestão clara do estado de coordenadas do polígono
-  const [nomePropriedade, setNomePropriedade] = React.useState("");
-  const [points, setPoints] = React.useState<MapCoordinate[]>([]);
+  const [nomePropriedade, setNomePropriedade] = React.useState(initialName);
+  const [points, setPoints] = React.useState<MapCoordinate[]>(initialPoints);
   const [mapCenter, setMapCenter] = React.useState<{
     lat: number;
     lng: number;
-  }>({
-    lat: DEFAULT_CENTER[0],
-    lng: DEFAULT_CENTER[1],
-  });
+  }>(() =>
+    initialPoints.length > 0
+      ? { lat: initialPoints[0].lat, lng: initialPoints[0].lng }
+      : {
+          lat: DEFAULT_CENTER[0],
+          lng: DEFAULT_CENTER[1],
+        }
+  );
   const [isMapExpanded, setIsMapExpanded] = React.useState(false);
   const [isLocating, setIsLocating] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -247,31 +252,17 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
     [points]
   );
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!canSave || isSaving) return;
     setSaveError(null);
     setIsSaving(true);
 
     const resolvedName = nomePropriedade.trim() || "Novo Terreno";
-    const coordenadasPoligono = points.map((p) => ({ lat: p.lat, lng: p.lng }));
     const areaPayload =
-      areaHectares > 0 ? Number(areaHectares.toFixed(4)) : undefined;
+      areaHectares > 0 ? Number(areaHectares.toFixed(4)) : 0;
 
     try {
-      const created = await criarTerreno({
-        nome_propriedade: resolvedName,
-        usuario_id: DEFAULT_USUARIO_ID,
-        coordenadas_poligono: coordenadasPoligono,
-        area_hectares: areaPayload,
-      });
-      onSaveArea?.(points, created.area_hectares ?? areaHectares, created);
-    } catch (error) {
-      if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
-        setSaveError(error.message);
-      } else {
-        // Fallback offline para manter o fluxo funcionando sem API ativa
-        onSaveArea?.(points, areaHectares, undefined);
-      }
+      onSaveArea?.(points, areaPayload, resolvedName);
     } finally {
       setIsSaving(false);
     }
