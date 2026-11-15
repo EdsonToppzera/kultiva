@@ -109,3 +109,50 @@ class AlertaClimatico(Base):
 
 
 Alert = AlertaClimatico
+
+
+class CulturaLimite(Base):
+    """Limites biológicos, térmicos, hídricos e de ciclo da base FAO EcoCrop."""
+
+    __tablename__ = "culturas_limites"
+
+    scientific_name = Column(String, primary_key=True, index=True)
+    ecoport_code = Column(String, nullable=True, index=True)
+    famname_raw = Column(String, nullable=True)
+    family = Column(String, nullable=True, index=True)
+    comname = Column(Text, nullable=True)
+    tmin = Column(Float, nullable=True)
+    tmax = Column(Float, nullable=True)
+    topmn = Column(Float, nullable=True)
+    topmx = Column(Float, nullable=True)
+    rmin = Column(Float, nullable=True)
+    rmax = Column(Float, nullable=True)
+    ropmn = Column(Float, nullable=True)
+    ropmx = Column(Float, nullable=True)
+    gmin = Column(Integer, nullable=True)
+    gmax = Column(Integer, nullable=True, index=True)
+    lispa = Column(String, nullable=True)
+    cat = Column(String, nullable=True, index=True)
+
+    sinonimos = relationship(
+        "CulturaSinonimo",
+        back_populates="cultura",
+        cascade="all, delete-orphan",
+    )
+
+
+class CulturaSinonimo(Base):
+    """Nomes populares (sinônimos regionais) vinculados a uma espécie do EcoCrop."""
+
+    __tablename__ = "culturas_sinonimos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    scientific_name = Column(
+        String,
+        ForeignKey("culturas_limites.scientific_name", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    synonym = Column(String, nullable=False, index=True)
+
+    cultura = relationship("CulturaLimite", back_populates="sinonimos")
