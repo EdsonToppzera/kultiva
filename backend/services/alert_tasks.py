@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 TIPOS_CHUVA = {"chuva_intensa", "tempestade", "heavy_rain"}
 TIPOS_CALOR_SECA = {"onda_de_calor", "seca", "heatwave", "drought"}
+TIPOS_PRAGA = {"praga", "manejo_fitossanitario", "ocorrencia_praga", "encontrei_praga"}
 
 _DISCLAIMER_ALERTA = (
     "Lembre-se: esta ferramenta serve para apoiar a decisão e identificar possibilidades, "
@@ -62,6 +63,12 @@ def gerar_orientacao_alerta(
         base = (
             "Há sinal de calor forte ou tempo seco. Priorize a irrigação nos horários mais frescos "
             "(início da manhã ou fim da tarde) e reforce a cobertura morta para segurar a umidade do solo."
+        )
+    elif ev in TIPOS_PRAGA:
+        base = (
+            "Ocorrência de praga registrada na área. Faça uma vistoria nas folhas novas e na base das plantas, "
+            "remova focos iniciais manualmente quando possível e priorize controle biológico ou manejo integrado "
+            "antes de aplicar defensivos."
         )
     else:
         base = (
@@ -304,6 +311,24 @@ def aplicar_regras_ajuste_pos_alerta(
             motivo_ajuste=(
                 f"Criada automaticamente por alerta de {alerta.tipo_evento} #{alerta.id}"
             ),
+        )
+        db.add(nova_atividade)
+        criadas += 1
+
+    elif evento in TIPOS_PRAGA:
+        nova_atividade = models.Activity(
+            terreno_id=alerta.terreno_id,
+            titulo="Inspeção fitossanitária e manejo de praga",
+            descricao=(
+                "Avaliar nível de infestação nas folhas e caules, isolar reboleiras e definir manejo integrado."
+            ),
+            tipo_atividade="inspecao",
+            data_programada=alerta.data_evento,
+            prioridade="alta",
+            status="pendente",
+            concluida=False,
+            ajustada_por_alerta=True,
+            motivo_ajuste=f"Criada automaticamente por relato de praga (alerta #{alerta.id})",
         )
         db.add(nova_atividade)
         criadas += 1

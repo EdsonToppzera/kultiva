@@ -679,7 +679,10 @@ def _processar_simulacao(
         if rotacoes_pref:
             prioridades_finais["rotacoes_preferenciais"] = rotacoes_pref
 
-    dados_solo = payload.dados_solo or {"prioridades_terreno": prioridades_finais}
+    dados_solo = {
+        "prioridades_terreno": prioridades_finais,
+        **(payload.dados_solo or {}),
+    }
 
     perfil_raw = (
         payload.perfil_climatico
@@ -726,6 +729,10 @@ def _processar_simulacao(
     )
     if gaez_metrics is not None:
         metricas_geoespaciais["gaez"] = gaez_metrics
+
+    tipo_solo = (payload.dados_solo or {}).get("tipo_solo") or prioridades_finais.get("tipo_solo")
+    if tipo_solo:
+        metricas_geoespaciais["tipo_solo"] = tipo_solo
 
     if terreno_id_resp is not None:
         persistir_metricas_terreno(

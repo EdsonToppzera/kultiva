@@ -163,6 +163,21 @@ def _parse_crop_history(
             return empty
         last_canon = _canonical_crop(last_name or "")
         prev_canon = _canonical_crop(prev_name or "")
+        cultivo_em_andamento = bool(
+            raw.get("cultivoEmAndamento", raw.get("cultivo_em_andamento"))
+            or (
+                isinstance(farmer_priorities, dict)
+                and farmer_priorities.get("cultivo_em_andamento")
+            )
+        )
+        data_inicio_cultivo = (
+            raw.get("dataInicioCultivo", raw.get("data_inicio_cultivo"))
+            or (
+                farmer_priorities.get("data_inicio_cultivo")
+                if isinstance(farmer_priorities, dict)
+                else None
+            )
+        )
         return {
             "has_history": True,
             "ultimo_cultivo": last_canon,
@@ -171,6 +186,10 @@ def _parse_crop_history(
                 last_canon and prev_canon and last_canon == prev_canon
             ),
             "crops": crops,
+            "cultivo_em_andamento": cultivo_em_andamento,
+            "data_inicio_cultivo": str(data_inicio_cultivo)
+            if data_inicio_cultivo
+            else None,
         }
 
     if isinstance(raw, (list, tuple)):
@@ -209,6 +228,55 @@ def _same_crop(crop_a: str, crop_b: str) -> bool:
         return True
     feijao_comum = {"feijao", "feijao-carioca"}
     return crop_a in feijao_comum and crop_b in feijao_comum
+
+
+_SOIL_TYPE_MOISTURE_DELTA: dict[str, float] = {
+    "areia": -0.05,
+    "cascalho": -0.06,
+    "terra_mista": 0.0,
+    "barro": 0.04,
+    "terra_preta": 0.06,
+}
+
+
+def _compute_onboarding_priority_adjustment(
+    strategy_name: str,
+    water_demand: float,
+    soil_benefit: float,
+    market: float,
+    farmer_priorities: dict[str, Any] | None,
+) -> float:
+    """Ajusta pontuação da estratégia conforme objetivo, cultura desejada e praga-alvo do onboarding."""
+    if not isinstance(farmer_priorities, dict):
+        return 0.0
+
+    prio = str(
+        farmer_priorities.get("prioridade")
+        or farmer_priorities.get("objetivo_principal")
+        or ""
+    ).strip().lower()
+    cultura_desejada = str(farmer_priorities.get("cultura_desejada") or "").strip().lower()
+    praga_alvo = str(farmer_priorities.get("praga_alvo") or "").strip().lower()
+    strat_lower = strategy_name.lower()
+
+    adj = 0.0
+    if prio == "recuperar_terra":
+        adj += 0.06 if soil_benefit >= 0.72 else -0.02
+    elif prio in {"retorno_rapido", "consumo_racao"}:
+        adj += 0.06 if market >= 0.72 else 0.0
+    elif prio == "gastar_minimo":
+        adj += 0.06 if water_demand <= 0.45 else (-0.03 if water_demand >= 0.65 else 0.0)
+    elif prio == "limpar_terra" or praga_alvo:
+        if any(
+            kw in strat_lower
+            for kw in ("crotal", "feij", "mucuna", "sorgo", "milheto", "guandu", "descanso")
+        ):
+            adj += 0.06
+    elif prio == "plantar_especifico" and cultura_desejada:
+        if cultura_desejada in strat_lower or _canonical_crop(cultura_desejada) in strat_lower:
+            adj += 0.08
+
+    return _clamp(adj, -0.08, 0.10)
 
 
 def _compute_history_adjustment(
@@ -767,6 +835,17 @@ class CropSimulator:
         is_bare_field = bool((field_metrics or {}).get("is_bare_field_period", False))
         water_priority = self._water_priority(farmer_priorities)
         priorities_dict = farmer_priorities or {}
+        soil_type_raw = str(
+            priorities_dict.get("tipo_solo")
+            or (field_metrics or {}).get("tipo_solo")
+            or ""
+        ).strip().lower()
+        if soil_type_raw in _SOIL_TYPE_MOISTURE_DELTA and not (field_metrics or {}).get("gaez"):
+            metrics["moisture"] = _clamp(
+                metrics["moisture"] + _SOIL_TYPE_MOISTURE_DELTA[soil_type_raw],
+                0.05,
+                0.50,
+            )
         parsed_history = _parse_crop_history(
             historico_cultivos=historico_cultivos,
             farmer_priorities=priorities_dict,
@@ -889,6 +968,13 @@ class CropSimulator:
         results: list[dict[str, Any]] = []
         for item in catalog_by_norm.values():
             history_adj = _compute_history_adjustment(item["strategy"], parsed_history)
+            prio_adj = _compute_onboarding_priority_adjustment(
+                item["strategy"],
+                item["water_demand"],
+                item["soil_benefit"],
+                item["market"],
+                priorities_dict,
+            )
             scored = self._score(
                 metrics,
                 item["water_demand"],
@@ -896,7 +982,7 @@ class CropSimulator:
                 item["soil_benefit"],
                 item["market"],
                 water_priority,
-                history_adjustment=history_adj,
+                history_adjustment=history_adj + prio_adj,
                 temporal_features=temporal_features,
                 is_bare_field=is_bare_field,
                 gaez_features=item.get("gaez_features"),
