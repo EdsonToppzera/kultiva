@@ -359,11 +359,6 @@ export function MapTerrainPage({
                 ))}
               </MapContainer>
 
-              {/* Canto superior esquerdo: Badge SATÉLITE */}
-              <div className="pointer-events-none absolute top-3 left-3 z-[1000] rounded-full bg-[#1F1C18]/75 px-3 py-1 text-[10px] font-bold tracking-[0.08em] text-white uppercase backdrop-blur-xs">
-                {t("map.satellite")}
-              </div>
-
               {/* Canto superior direito: Botão expandir/fullscreen */}
               <button
                 type="button"

@@ -25,7 +25,6 @@
   },
   "plantations": {
     "title": "Plantations",
-    "subtitle": "Your plots.",
     "refreshAria": "Refresh plot list",
     "demo": "Demo",
     "loadingDemo": "Loading...",
@@ -34,27 +33,26 @@
     "loadingAreas": "Loading registered plots...",
     "emptyTitle": "No plots registered",
     "emptySubtitle": "Create a new plot below or load demo plots to start your planning.",
-    "createNewArea": "Create New Plot",
+    "createNewArea": "Create new plot",
     "deleteAria": "Delete {{name}}",
-    "deleteTitle": "Delete Plot?",
+    "deleteTitle": "Delete plot?",
     "deleteDescription": "Are you sure? This action will erase all history and cannot be undone.",
     "deleting": "Deleting...",
-    "confirmDelete": "Yes, Delete",
+    "confirmDelete": "Yes, delete",
     "areaCount_one": "{{count}} plot",
     "areaCount_other": "{{count}} plots"
   },
   "map": {
-    "title": "Map Plot",
+    "title": "Map plots",
     "subtitle": "Add the points that form the boundary of your area.",
-    "propertyNameLabel": "Property / plot name",
+    "propertyNameLabel": "Property name",
     "propertyNamePlaceholder": "E.g.: Green Valley Farm - Plot 1",
-    "satellite": "SATELLITE",
     "expandMap": "Expand map",
     "minimizeMap": "Minimize map",
     "addPoint": "Add Point",
     "undoPoint": "Undo",
     "clearPoints": "Clear",
-    "saveArea": "Save Plot",
+    "saveArea": "Save plot",
     "savingArea": "Saving plot...",
     "pointsCount": "{{count}} points",
     "areaApprox": "Approx. area: {{ha}} ha",
@@ -64,7 +62,7 @@
     "moveMap": "Move map to position",
     "locatingGps": "Locating GPS...",
     "useGps": "Use my current location (GPS)",
-    "markPin": "Mark point at Pin",
+    "markPin": "Mark point at pin",
     "addedPoints": "Added points",
     "pointSingle": "point",
     "pointPlural": "points",
@@ -103,8 +101,8 @@
       "selectAtLeastOne": "Pick at least the last crop or check that you don't remember."
     },
     "water": {
-      "title": "How does water reach your field?",
-      "subtitle": "Choose the main way you currently water your crops.",
+      "title": "How does water reach your plantation?",
+      "subtitle": "Choose the main way you currently irrigate your plants.",
       "options": {
         "chuva": {
           "title": "Rainwater only",
@@ -135,8 +133,8 @@
     "soil": {
       "title": "What is the soil like in this area?",
       "subtitle": "Choose the type that looks most like the ground where you will plant.",
-      "helpTrigger": "Not sure? Do the hand test",
-      "drawerTitle": "How to identify soil type by hand",
+      "helpTrigger": "Not sure? Learn how to identify",
+      "drawerTitle": "Use the \"hand test\"",
       "drawerSubtitle": "Take a handful of moist soil, squeeze it in your palm, and see what happens.",
       "techNoteTitle": "Technical guidance",
       "techNoteBody": "Kultiva assists with day-to-day planning, but does not replace professional agronomic advice or laboratory analysis. For precise fertilization recommendations, consult an agricultural extension agent in your region.",
@@ -169,7 +167,7 @@
       }
     },
     "priorities": {
-      "title": "What matters most to you right now?",
+      "title": "What is your priority right now?",
       "subtitle": "Choose the main goal for this plot in this season.",
       "targetCropLabel": "WHICH CROP DO YOU WANT TO PLANT?",
       "targetCropSearch": "Search crop...",
@@ -209,7 +207,7 @@
     }
   },
   "simulation": {
-    "title": "Planting paths",
+    "title": "Crop suggestions",
     "subtitle": "Compare the recommended scenarios for your plot and pick the best one for this season.",
     "choosePlan": "Choose this plan",
     "choosingPlan": "Applying plan...",
@@ -306,15 +304,51 @@
     "stableWeatherDetails": "24°–30° · No major weather alerts",
     "normalFollowUp": "Regular follow-up for {{crop}}.",
     "noCriticalTasks": "No critical activities scheduled for this date.",
-    "weekdayInitials": ["S", "M", "T", "W", "T", "F", "S"],
-    "months": [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
+    "weekdayInitials": [
+      "S",
+      "M",
+      "T",
+      "W",
+      "T",
+      "F",
+      "S"
     ],
-    "shortMonths": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    "months": [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ],
+    "shortMonths": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ],
     "weekdaysUpper": [
-      "SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY",
-      "THURSDAY", "FRIDAY", "SATURDAY"
+      "SUNDAY",
+      "MONDAY",
+      "TUESDAY",
+      "WEDNESDAY",
+      "THURSDAY",
+      "FRIDAY",
+      "SATURDAY"
     ]
   }
 }

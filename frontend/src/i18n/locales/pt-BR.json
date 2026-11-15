@@ -25,7 +25,6 @@
   },
   "plantations": {
     "title": "Plantações",
-    "subtitle": "Seus terrenos.",
     "refreshAria": "Atualizar lista de terrenos",
     "demo": "Demo",
     "loadingDemo": "Carregando...",
@@ -34,27 +33,26 @@
     "loadingAreas": "Carregando terrenos cadastrados...",
     "emptyTitle": "Nenhuma área cadastrada",
     "emptySubtitle": "Crie uma nova área abaixo ou carregue áreas de demonstração para começar seu planejamento.",
-    "createNewArea": "Criar Nova Área",
+    "createNewArea": "Criar nova área",
     "deleteAria": "Excluir {{name}}",
-    "deleteTitle": "Excluir Área?",
+    "deleteTitle": "Excluir área?",
     "deleteDescription": "Tem certeza? Esta ação apagará todo o histórico e não pode ser desfeita.",
     "deleting": "Excluindo...",
-    "confirmDelete": "Sim, Excluir",
+    "confirmDelete": "Sim, excluir",
     "areaCount_one": "{{count}} área",
     "areaCount_other": "{{count}} áreas"
   },
   "map": {
-    "title": "Mapear Terreno",
+    "title": "Mapear terrenos",
     "subtitle": "Adicione os pontos que formam o contorno da sua área.",
-    "propertyNameLabel": "Nome da propriedade / talhão",
+    "propertyNameLabel": "Nome da propriedade",
     "propertyNamePlaceholder": "Ex: Sítio Boa Esperança - Talhão 1",
-    "satellite": "SATÉLITE",
     "expandMap": "Expandir mapa",
     "minimizeMap": "Minimizar mapa",
     "addPoint": "Adicionar Ponto",
     "undoPoint": "Desfazer",
     "clearPoints": "Limpar",
-    "saveArea": "Salvar Área",
+    "saveArea": "Salvar área",
     "savingArea": "Salvando área...",
     "pointsCount": "{{count}} pontos",
     "areaApprox": "Área aprox.: {{ha}} ha",
@@ -64,7 +62,7 @@
     "moveMap": "Mova o mapa para posicionar",
     "locatingGps": "Localizando GPS...",
     "useGps": "Usar minha localização atual (GPS)",
-    "markPin": "Marcar ponto no Alfinete",
+    "markPin": "Marcar ponto no alfinete",
     "addedPoints": "Pontos adicionados",
     "pointSingle": "ponto",
     "pointPlural": "pontos",
@@ -103,8 +101,8 @@
       "selectAtLeastOne": "Escolha pelo menos o último cultivo ou marque que não lembra."
     },
     "water": {
-      "title": "Como a água chega na sua roça?",
-      "subtitle": "Escolha a forma principal que você usa hoje para molhar as plantas.",
+      "title": "Como a água chega na sua plantação?",
+      "subtitle": "Escolha a forma principal que você usa hoje para irrigar as plantas.",
       "options": {
         "chuva": {
           "title": "Só água da chuva",
@@ -133,10 +131,10 @@
       }
     },
     "soil": {
-      "title": "Como é a terra dessa área?",
+      "title": "Como é o solo dessa área?",
       "subtitle": "Escolha o tipo que mais parece com o chão onde você vai plantar.",
-      "helpTrigger": "Não sabe? Faça o teste na mão",
-      "drawerTitle": "Como descobrir o tipo de terra na mão",
+      "helpTrigger": "Não sabe? Veja como identificar",
+      "drawerTitle": "Use o \"teste de mão\"",
       "drawerSubtitle": "Pegue um punhado de terra úmida, aperte na palma da mão e veja o que acontece.",
       "techNoteTitle": "Orientação técnica",
       "techNoteBody": "O Kultiva auxilia no dia a dia, mas não substitui assistência técnica profissional ou análise de laboratório. Para recomendações precisas de adubação, procure um Extensionista Rural (Emater, Senar ou Secretaria de Agricultura) na sua região.",
@@ -169,7 +167,7 @@
       }
     },
     "priorities": {
-      "title": "O que é mais importante para você agora?",
+      "title": "Qual a sua prioridade agora?",
       "subtitle": "Escolha o objetivo principal para esta área nesta safra.",
       "targetCropLabel": "QUAL CULTURA VOCÊ QUER PLANTAR?",
       "targetCropSearch": "Buscar cultivo...",
@@ -210,7 +208,7 @@
     }
   },
   "simulation": {
-    "title": "Caminhos de plantio",
+    "title": "Sugestões de cultivo",
     "subtitle": "Compare os cenários recomendados para a sua área e escolha o melhor para esta safra.",
     "choosePlan": "Escolher este plano",
     "choosingPlan": "Aplicando plano...",
@@ -307,15 +305,51 @@
     "stableWeatherDetails": "24°–30° · Sem alertas climáticos relevantes",
     "normalFollowUp": "Acompanhamento normal de {{crop}}.",
     "noCriticalTasks": "Sem atividades críticas previstas para esta data.",
-    "weekdayInitials": ["D", "S", "T", "Q", "Q", "S", "S"],
-    "months": [
-      "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    "weekdayInitials": [
+      "D",
+      "S",
+      "T",
+      "Q",
+      "Q",
+      "S",
+      "S"
     ],
-    "shortMonths": ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"],
+    "months": [
+      "Janeiro",
+      "Fevereiro",
+      "Março",
+      "Abril",
+      "Maio",
+      "Junho",
+      "Julho",
+      "Agosto",
+      "Setembro",
+      "Outubro",
+      "Novembro",
+      "Dezembro"
+    ],
+    "shortMonths": [
+      "jan",
+      "fev",
+      "mar",
+      "abr",
+      "mai",
+      "jun",
+      "jul",
+      "ago",
+      "set",
+      "out",
+      "nov",
+      "dez"
+    ],
     "weekdaysUpper": [
-      "DOMINGO", "SEGUNDA-FEIRA", "TERÇA-FEIRA", "QUARTA-FEIRA",
-      "QUINTA-FEIRA", "SEXTA-FEIRA", "SÁBADO"
+      "DOMINGO",
+      "SEGUNDA-FEIRA",
+      "TERÇA-FEIRA",
+      "QUARTA-FEIRA",
+      "QUINTA-FEIRA",
+      "SEXTA-FEIRA",
+      "SÁBADO"
     ]
   }
 }

@@ -211,9 +211,6 @@ export function PlantationsPage({
             <h1 className="text-[32px] font-bold tracking-tight text-[#511D4E] leading-tight">
               {t("plantations.title")}
             </h1>
-            <p className="mt-1.5 text-[15px] text-[#6D6960]">
-              {t("plantations.subtitle")}
-            </p>
           </section>
 
           {apiError && (
