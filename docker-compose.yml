@@ -1,14 +1,30 @@
-version: '3.8'
-
 services:
   web:
     build: .
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/kultiva_db
+      - PORT=8000
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db:5432/kultiva_db
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - ALERT_MONITOR_INTERVAL_HOURS=${ALERT_MONITOR_INTERVAL_HOURS:-6}
+      - ALERT_COOLDOWN_HOURS=${ALERT_COOLDOWN_HOURS:-24}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      - NASA_PROVIDER=${NASA_PROVIDER:-mock}
+      - NASA_MOCK_PROFILE=${NASA_MOCK_PROFILE:-normal}
+      - NASA_POWER_FALLBACK=${NASA_POWER_FALLBACK:-false}
+      - GAEZ_ENABLED=${GAEZ_ENABLED:-true}
+      - TERRAIN_HAZARDS_ENABLED=${TERRAIN_HAZARDS_ENABLED:-true}
+      - FIRMS_MAP_KEY=${FIRMS_MAP_KEY:-}
+      - FIRMS_SOURCE=${FIRMS_SOURCE:-VIIRS_SNPP_NRT}
+      - NASA_REAL_DAYS_BACK=${NASA_REAL_DAYS_BACK:-5}
+      - EARTHDATA_TOKEN=${EARTHDATA_TOKEN:-}
+      - EARTHDATA_USERNAME=${EARTHDATA_USERNAME:-}
+      - EARTHDATA_PASSWORD=${EARTHDATA_PASSWORD:-}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
       - .:/app
 
@@ -18,6 +34,11 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=kultiva_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d kultiva_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     ports:
       - "5432:5432"
     volumes:

@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+:root {
+  --kultiva-primary: #511d4e;
+  --kultiva-olive: #cad17a;
+  --kultiva-sun: #fcf59b;
+  --kultiva-leaf: #91c494;
+  --kultiva-alert: #c42311;
+  --kultiva-bg: #f7f6f0;
+  --kultiva-text: #1f1c18;
+}
+
+@layer base {
+  html,
+  body {
+    background-color: var(--kultiva-bg);
+    color: var(--kultiva-text);
+    font-family:
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

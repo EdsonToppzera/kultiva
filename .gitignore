@@ -1,0 +1,42 @@
+# Python / Backend
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Frontend / Node / Vite
+node_modules/
+dist/
+dist-ssr/
+.vite/
+
+# Variáveis de ambiente e credenciais sensíveis
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.netrc
+
+# Bancos locais, dados e artefatos geoespaciais
+postgres_data/
+*.db
+*.sqlite*
+site/
+data/
+*.nc
+
+# IDEs, logs e sistema operacional
+.vscode/
+.idea/
+*.log
+.DS_Store
+Thumbs.db
+

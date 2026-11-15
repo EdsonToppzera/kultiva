@@ -1,0 +1,407 @@
+{
+  "common": {
+    "appName": "Kultiva",
+    "back": "Voltar",
+    "next": "Avançar",
+    "continue": "Continuar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "save": "Salvar",
+    "saving": "Salvando...",
+    "change": "Alterar",
+    "restart": "Reiniciar",
+    "loading": "Carregando...",
+    "close": "Fechar",
+    "understood": "Entendi",
+    "selectLanguage": "Selecionar idioma",
+    "availableLanguages": "Idiomas disponíveis",
+    "stepOf": "Passo {{current}} de {{total}}"
+  },
+  "network": {
+    "saved": "Salvo",
+    "saving": "Salvando",
+    "offline": "Sem internet",
+    "offlineShort": "Offline"
+  },
+  "plantations": {
+    "title": "Plantações",
+    "refreshAria": "Atualizar lista de terrenos",
+    "demo": "Demo",
+    "loadingDemo": "Carregando...",
+    "offlineBanner": "API indisponível no momento. Exibindo áreas de exemplo locais.",
+    "registeredAreas": "ÁREAS CADASTRADAS",
+    "loadingAreas": "Carregando terrenos cadastrados...",
+    "emptyTitle": "Nenhuma área cadastrada",
+    "emptySubtitle": "Crie uma nova área abaixo ou carregue áreas de demonstração para começar seu planejamento.",
+    "createNewArea": "Criar nova área",
+    "deleteAria": "Excluir {{name}}",
+    "deleteTitle": "Excluir área?",
+    "deleteDescription": "Tem certeza? Esta ação apagará todo o histórico e não pode ser desfeita.",
+    "deleting": "Excluindo...",
+    "confirmDelete": "Sim, excluir",
+    "areaCount_one": "{{count}} área",
+    "areaCount_other": "{{count}} áreas"
+  },
+  "map": {
+    "title": "Mapear terrenos",
+    "subtitle": "Adicione os pontos que formam o contorno da sua área.",
+    "propertyNameLabel": "Nome da propriedade",
+    "propertyNamePlaceholder": "Ex: Sítio Boa Esperança - Talhão 1",
+    "expandMap": "Expandir mapa",
+    "minimizeMap": "Minimizar mapa",
+    "addPoint": "Adicionar Ponto",
+    "undoPoint": "Desfazer",
+    "clearPoints": "Limpar",
+    "saveArea": "Salvar área",
+    "savingArea": "Salvando área...",
+    "pointsCount": "{{count}} pontos",
+    "areaApprox": "Área aprox.: {{ha}} ha",
+    "minPointsHint": "Marque pelo menos 3 pontos no mapa para formar sua área.",
+    "largeAreaWarningTitle": "Área extensa selecionada",
+    "largeAreaWarningDesc": "A área marcada ultrapassa 10 hectares. Confirme se o contorno está correto.",
+    "moveMap": "Mova o mapa para posicionar",
+    "locatingGps": "Localizando GPS...",
+    "useGps": "Usar minha localização atual (GPS)",
+    "markPin": "Marcar ponto no alfinete",
+    "addedPoints": "Pontos adicionados",
+    "pointSingle": "ponto",
+    "pointPlural": "pontos",
+    "pointLabel": "Ponto {{index}}",
+    "removePoint": "Remover ponto {{index}}",
+    "emptyPoints": "Nenhum ponto marcado ainda. Adicione pelo menos 3 pontos para formar a área."
+  },
+  "review": {
+    "title": "Confirme sua área",
+    "subtitle": "Revise tudo o que você marcou antes de comparar os caminhos de plantio.",
+    "confirmAndCompare": "Confirmar e comparar",
+    "lastCrops": "Últimos cultivos",
+    "water": "Água",
+    "soil": "Solo",
+    "objective": "Objetivo",
+    "notInformed": "Não informado",
+    "dontRemember": "Não lembro",
+    "inProgress": "(em andamento)"
+  },
+  "onboarding": {
+    "yourArea": "SUA ÁREA",
+    "cropHistory": {
+      "title": "O que você plantou por último nesta área?",
+      "subtitle": "Se lembrar, pode escolher os dois últimos cultivos. Se não lembrar, tudo bem.",
+      "lastCropLabel": "ÚLTIMO CULTIVO (MAIS RECENTE)",
+      "previousCropLabel": "CULTIVO ANTERIOR (OPCIONAL)",
+      "searchPlaceholder": "Buscar cultivo...",
+      "searchInputPlaceholder": "Ex: Macaxeira, milho, feijão...",
+      "emptySearch": "Nenhum cultivo encontrado para \"{{query}}\". Escolha uma opção da lista ou tente outro nome regional.",
+      "inProgressLabel": "Esse último cultivo ainda está plantado na terra",
+      "inProgressHint": "Marque se você já plantou e ainda vai colher.",
+      "startDateLabel": "Quando você plantou? (opcional)",
+      "dontRemember": "Não lembro o que foi plantado antes",
+      "dontRememberStatus": "Sem problema — seguiremos sem histórico anterior. Toque em Continuar para avançar.",
+      "searchOptionAria": "Buscar opção para {{label}}",
+      "selectAtLeastOne": "Escolha pelo menos o último cultivo ou marque que não lembra."
+    },
+    "water": {
+      "title": "Como a água chega na sua plantação?",
+      "subtitle": "Escolha a forma principal que você usa hoje para irrigar as plantas.",
+      "options": {
+        "chuva": {
+          "title": "Só água da chuva",
+          "subtitle": "Depende totalmente do tempo."
+        },
+        "poco_caixa": {
+          "title": "Poço, cisterna ou caixa d'água",
+          "subtitle": "Tem água guardada para ajudar."
+        },
+        "caminhao_pipa": {
+          "title": "Caminhão-pipa ou água levada",
+          "subtitle": "Água trazida de fora, mais cara ou limitada."
+        },
+        "gotejamento": {
+          "title": "Gotejamento ou mangueira",
+          "subtitle": "Água vai direto no pé da planta."
+        },
+        "aspersao": {
+          "title": "Aspersão (chuveirinho / irrigador)",
+          "subtitle": "Molha a área por cima."
+        },
+        "sulco": {
+          "title": "Rego ou sulco",
+          "subtitle": "Água corre por valetas no chão."
+        }
+      }
+    },
+    "soil": {
+      "title": "Como é o solo dessa área?",
+      "subtitle": "Escolha o tipo que mais parece com o chão onde você vai plantar.",
+      "helpTrigger": "Não sabe? Veja como identificar",
+      "drawerTitle": "Use o \"teste de mão\"",
+      "drawerSubtitle": "Pegue um punhado de terra úmida, aperte na palma da mão e veja o que acontece.",
+      "techNoteTitle": "Orientação técnica",
+      "techNoteBody": "O Kultiva auxilia no dia a dia, mas não substitui assistência técnica profissional ou análise de laboratório. Para recomendações precisas de adubação, procure um Extensionista Rural (Emater, Senar ou Secretaria de Agricultura) na sua região.",
+      "options": {
+        "areia": {
+          "title": "Areia",
+          "subtitle": "Solta e seca rápido.",
+          "handDesc": "A terra esfarela toda. Não forma bolinha nem minhoca de jeito nenhum. A sensação é áspera, arranhando a mão."
+        },
+        "barro": {
+          "title": "Barro",
+          "subtitle": "Gruda e segura a água.",
+          "handDesc": "A terra vira uma \"massinha de modelar\". Gruda bastante na mão, suja os dedos e permite fazer uma minhoca fina e comprida que não quebra com facilidade."
+        },
+        "terra_preta": {
+          "title": "Terra preta",
+          "subtitle": "Escura, fofa e rica.",
+          "handDesc": "O destaque é a cor escura e o cheiro forte de terra (matéria orgânica). Lembra um pouco pó de café úmido. É muito fofa, forma um torrão na mão, mas se desmancha facilmente se apertar."
+        },
+        "cascalho": {
+          "title": "Cascalho",
+          "subtitle": "Cheia de pedras, a água escorre rápido.",
+          "handDesc": "Cheio de pedrinhas visíveis. Não dá liga nenhuma com a água, é solto, duro e raspa a mão."
+        },
+        "terra_mista": {
+          "title": "Terra mista",
+          "subtitle": "Mistura de areia e barro. Boa para plantar.",
+          "handDesc": "É o meio-termo. Forma uma bolinha firme ou uma minhoca mais grossa, mas se tentar afinar ou dobrar, ela quebra em pedaços. Tem a \"liga\" do barro, mas com um pouco da aspereza da areia."
+        }
+      }
+    },
+    "priorities": {
+      "title": "Qual a sua prioridade agora?",
+      "subtitle": "Escolha o objetivo principal para esta área nesta safra.",
+      "targetCropLabel": "QUAL CULTURA VOCÊ QUER PLANTAR?",
+      "targetCropSearch": "Buscar cultivo...",
+      "targetCropPlaceholder": "Ex: Macaxeira, milho, feijão...",
+      "targetCropEmpty": "Nenhum cultivo encontrado para \"{{query}}\". Escolha uma opção da lista ou tente outro nome regional.",
+      "targetPestLabel": "QUAL PRAGA OU DOENÇA QUER COMBATER?",
+      "targetPestSearch": "Buscar praga ou doença...",
+      "targetPestPlaceholder": "Ex: Lagarta, formiga, nematoide...",
+      "targetPestEmpty": "Nenhuma praga encontrada para \"{{query}}\". Tente outro nome popular ou científico.",
+      "targetPestEmpty": "Nenhuma praga encontrada para \"{{query}}\". Escolha uma opção da lista ou tente outro nome popular.",
+      "finish": "Ver caminhos de plantio",
+      "options": {
+        "recuperar_terra": {
+          "title": "Recuperar a força da terra",
+          "subtitle": "Deixar o solo mais fértil e protegido."
+        },
+        "retorno_rapido": {
+          "title": "Colher rápido e vender logo",
+          "subtitle": "Priorizar ciclos curtos e renda mais rápida."
+        },
+        "consumo_racao": {
+          "title": "Garantir comida e ração",
+          "subtitle": "Produzir para a família e os animais."
+        },
+        "plantar_especifico": {
+          "title": "Quero plantar uma cultura específica",
+          "subtitle": "Preparar a terra para o cultivo que você já escolheu."
+        },
+        "gastar_minimo": {
+          "title": "Gastar o mínimo possível",
+          "subtitle": "Cultivos rústicos que exigem poucos insumos."
+        },
+        "limpar_terra": {
+          "title": "Limpar a terra de praga ou doença",
+          "subtitle": "Quebrar o ciclo de pragas com rotação inteligente."
+        }
+      }
+    }
+  },
+  "simulation": {
+    "title": "Sugestões de cultivo",
+    "subtitle": "Compare os cenários recomendados para a sua área e escolha o melhor para esta safra.",
+    "choosePlan": "Escolher este plano",
+    "choosingPlan": "Aplicando plano...",
+    "chooseAndOpen": "Escolher e abrir área",
+    "seeDetails": "Ver detalhes",
+    "hideDetails": "Ocultar detalhes",
+    "cycle": "Ciclo",
+    "water": "Água",
+    "risk": "Risco",
+    "days": "{{count}} dias",
+    "recommended": "Recomendado",
+    "planAppliedTitle": "Plano selecionado!",
+    "planAppliedBack": "Ir para Plantações",
+    "selectedPlanToast": "Plano selecionado: {{badge}} ({{steps}})",
+    "calculating": "Calculando recomendações para a sua área...",
+    "drawerTitle": "Detalhes Técnicos da Rotação",
+    "drawerSubtitle": "Cruzamento de clima (NASA) e recomendações fitossanitárias (AGROFIT).",
+    "estimatedCycle": "Ciclo estimado",
+    "waterNeeded": "Água necessária",
+    "nasaAnalysis": "Análise Climática (NASA)",
+    "npkTitle": "Necessidades e Balanço de NPK",
+    "nutrient": "Nutriente",
+    "requirement": "Exigência",
+    "effect": "Efeito",
+    "pestAlerts": "Histórico e Alertas de Pragas (AGROFIT)",
+    "closeDetails": "Fechar detalhes",
+    "whyPlant": "Por que {{plant}}?",
+    "whyPlantTitle": "Por que escolhemos {{plant}}",
+    "whyPlantFallback": "{{plant}} atua como planta de preparo intermediário para proteger o solo, guardar umidade, reciclar nutrientes e quebrar o ciclo de pragas antes do próximo cultivo.",
+    "equivalencesTitle": "Por que as equivalências são válidas",
+    "equivalencesFallback": "Alternativas como {{alternatives}} cumprem a mesma função agronômica de cobertura, melhoria do solo e ciclagem de nutrientes, permitindo adaptar à disponibilidade de sementes na sua região.",
+    "swap": "Trocar",
+    "equivalentCrops": "Culturas equivalentes",
+    "trackAria": "Trilha de rotação de culturas",
+    "alternativesAria": "Alternativas equivalentes para {{plant}}",
+    "apiErrorFallback": "Não foi possível obter recomendações da API no momento.",
+    "retry": "Tentar novamente",
+    "chooseAnyway": "Escolher mesmo assim",
+    "optionBadge": "{{count}}ª Opção",
+    "optionBadges": {
+      "1": "1ª Opção",
+      "2": "2ª Opção",
+      "3": "3ª Opção"
+    },
+    "stepStatus": {
+      "plantedNow": "Plantado agora",
+      "alreadyHarvested": "Já colhido",
+      "next": "A seguir",
+      "after": "Depois"
+    },
+    "restStep": "Descanso",
+    "focusTags": {
+      "fastReturn": "RETORNO RÁPIDO",
+      "foodFeed": "ALIMENTO E RAÇÃO",
+      "lowestCost": "MENOR CUSTO",
+      "pestControl": "CONTROLE DE PRAGAS",
+      "targetCrop": "CULTURA DESEJADA",
+      "soilFocus": "FOCO NO SOLO",
+      "plotBalance": "EQUILÍBRIO DA ÁREA"
+    },
+    "coverAlternatives": {
+      "crotalaria": {
+        "name": "Crotalária",
+        "reason": "Fixa nitrogênio e ajuda a controlar nematoides."
+      },
+      "feijao-de-porco": {
+        "name": "Feijão-de-porco",
+        "reason": "Cobre rápido a terra e segura a umidade na seca."
+      },
+      "milheto": {
+        "name": "Milheto",
+        "reason": "Produz muita palhada e aguenta calor."
+      },
+      "guandu": {
+        "name": "Feijão-guandu",
+        "reason": "Raiz funda que ajuda a descompactar o solo."
+      }
+    }
+  },
+  "dashboard": {
+    "overviewTitle": "Panorama da área",
+    "backToPlantations": "Plantações",
+    "openCalendar": "Abrir calendário",
+    "createSimulation": "Criar simulação",
+    "cancelSimulation": "Cancelar simulação",
+    "alertsTitle": "Alertas recentes",
+    "noAlerts": "Nenhum alerta climático ou fitossanitário ativo.",
+    "nextActivities": "Próximas atividades",
+    "noActivities": "Nenhuma atividade programada.",
+    "reportTitle": "Registrar observação no campo",
+    "reportPlaceholder": "Conte o que você viu na roça (ex: folhas amareladas, chuva forte)...",
+    "reportSubmit": "Enviar relato",
+    "reportSuccess": "Relato salvo! Vamos considerar sua observação nas próximas recomendações.",
+    "viewFullCalendar": "Ver calendário completo",
+    "yourDayTitle": "Seu dia na área",
+    "loadingActivities": "Carregando atividades da área...",
+    "noActivitiesScheduled": "Nenhuma atividade programada para esta área ainda.",
+    "happenedDifferently": "Aconteceu diferente",
+    "yourExperienceCounts": "SUA EXPERIÊNCIA CONTA",
+    "happenedDifferentlyQuestion": "Aconteceu diferente?",
+    "tellWhatChanged": "Conte o que mudou na sua área.",
+    "saveReport": "Salvar relato",
+    "uncheckTask": "Desmarcar {{title}}",
+    "completeTask": "Concluir {{title}}",
+    "periods": {
+      "manha": "Manhã",
+      "meio-dia": "Meio-dia",
+      "tarde": "Tarde",
+      "noite": "Noite",
+      "qualquer-momento": "Qualquer momento"
+    },
+    "reportOptions": {
+      "choveu_nao_previsto": "Choveu e não estava previsto",
+      "nao_choveu_esperado": "Não choveu como o esperado",
+      "encontrei_praga": "Encontrei uma praga"
+    }
+  },
+  "calendar": {
+    "title": "Calendário agrícola",
+    "panorama": "PANORAMA DO CULTIVO",
+    "backToDashboard": "Voltar ao painel",
+    "pending": "Pendentes",
+    "completed": "Concluídas",
+    "markDone": "Concluir",
+    "noTasks": "Nenhuma atividade encontrada.",
+    "selectedDay": "DIA SELECIONADO",
+    "today": "Hoje",
+    "prevMonth": "Mês anterior",
+    "nextMonth": "Próximo mês",
+    "planting": "Plantio",
+    "management": "Manejo",
+    "harvest": "Colheita",
+    "selected": "Selecionado",
+    "dayNumber": "Dia {{day}}",
+    "approxDays": "~{{days}} dias",
+    "cyclePercent": "{{status}} · {{percent}}% do ciclo",
+    "cycleInitial": "Fase inicial",
+    "cycleNearHarvest": "Próximo da colheita",
+    "cycleInProgress": "Em desenvolvimento",
+    "noCropOnDateTitle": "Sem cultivo programado nesta data",
+    "noCropOnDateDesc": "Selecione um dia destacado no calendário para acompanhar o ciclo da cultura.",
+    "stableWeatherHeadline": "Tempo estável previsto",
+    "stableWeatherDetails": "24°–30° · Sem alertas climáticos relevantes",
+    "normalFollowUp": "Acompanhamento normal de {{crop}}.",
+    "noCriticalTasks": "Sem atividades críticas previstas para esta data.",
+    "rotationCalendarAria": "Calendário da rotação de culturas",
+    "activeCropProgressAria": "Progresso da cultura em vigor",
+    "cropProgressAria": "Progresso de {{crop}}",
+    "weekdayInitials": [
+      "D",
+      "S",
+      "T",
+      "Q",
+      "Q",
+      "S",
+      "S"
+    ],
+    "months": [
+      "Janeiro",
+      "Fevereiro",
+      "Março",
+      "Abril",
+      "Maio",
+      "Junho",
+      "Julho",
+      "Agosto",
+      "Setembro",
+      "Outubro",
+      "Novembro",
+      "Dezembro"
+    ],
+    "shortMonths": [
+      "jan",
+      "fev",
+      "mar",
+      "abr",
+      "mai",
+      "jun",
+      "jul",
+      "ago",
+      "set",
+      "out",
+      "nov",
+      "dez"
+    ],
+    "weekdaysUpper": [
+      "DOMINGO",
+      "SEGUNDA-FEIRA",
+      "TERÇA-FEIRA",
+      "QUARTA-FEIRA",
+      "QUINTA-FEIRA",
+      "SEXTA-FEIRA",
+      "SÁBADO"
+    ]
+  }
+}

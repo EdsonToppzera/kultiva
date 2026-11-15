@@ -1,0 +1,406 @@
+{
+  "common": {
+    "appName": "Kultiva",
+    "back": "Back",
+    "next": "Next",
+    "continue": "Continue",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "saving": "Saving...",
+    "change": "Change",
+    "restart": "Restart",
+    "loading": "Loading...",
+    "close": "Close",
+    "understood": "Got it",
+    "selectLanguage": "Select language",
+    "availableLanguages": "Available languages",
+    "stepOf": "Step {{current}} of {{total}}"
+  },
+  "network": {
+    "saved": "Saved",
+    "saving": "Saving",
+    "offline": "Offline",
+    "offlineShort": "Offline"
+  },
+  "plantations": {
+    "title": "Plantations",
+    "refreshAria": "Refresh plot list",
+    "demo": "Demo",
+    "loadingDemo": "Loading...",
+    "offlineBanner": "API is currently unavailable. Showing local sample plots.",
+    "registeredAreas": "REGISTERED PLOTS",
+    "loadingAreas": "Loading registered plots...",
+    "emptyTitle": "No plots registered",
+    "emptySubtitle": "Create a new plot below or load demo plots to start your planning.",
+    "createNewArea": "Create new plot",
+    "deleteAria": "Delete {{name}}",
+    "deleteTitle": "Delete plot?",
+    "deleteDescription": "Are you sure? This action will erase all history and cannot be undone.",
+    "deleting": "Deleting...",
+    "confirmDelete": "Yes, delete",
+    "areaCount_one": "{{count}} plot",
+    "areaCount_other": "{{count}} plots"
+  },
+  "map": {
+    "title": "Map plots",
+    "subtitle": "Add the points that form the boundary of your area.",
+    "propertyNameLabel": "Property name",
+    "propertyNamePlaceholder": "E.g.: Green Valley Farm - Plot 1",
+    "expandMap": "Expand map",
+    "minimizeMap": "Minimize map",
+    "addPoint": "Add Point",
+    "undoPoint": "Undo",
+    "clearPoints": "Clear",
+    "saveArea": "Save plot",
+    "savingArea": "Saving plot...",
+    "pointsCount": "{{count}} points",
+    "areaApprox": "Approx. area: {{ha}} ha",
+    "minPointsHint": "Mark at least 3 points on the map to form your plot.",
+    "largeAreaWarningTitle": "Large area selected",
+    "largeAreaWarningDesc": "The marked area exceeds 10 hectares. Please confirm the boundary is accurate.",
+    "moveMap": "Move map to position",
+    "locatingGps": "Locating GPS...",
+    "useGps": "Use my current location (GPS)",
+    "markPin": "Mark point at pin",
+    "addedPoints": "Added points",
+    "pointSingle": "point",
+    "pointPlural": "points",
+    "pointLabel": "Point {{index}}",
+    "removePoint": "Remove point {{index}}",
+    "emptyPoints": "No points marked yet. Add at least 3 points to form the area."
+  },
+  "review": {
+    "title": "Confirm your plot",
+    "subtitle": "Review everything you selected before comparing planting paths.",
+    "confirmAndCompare": "Confirm and compare",
+    "lastCrops": "Recent crops",
+    "water": "Water",
+    "soil": "Soil",
+    "objective": "Goal",
+    "notInformed": "Not informed",
+    "dontRemember": "Don't remember",
+    "inProgress": "(in progress)"
+  },
+  "onboarding": {
+    "yourArea": "YOUR PLOT",
+    "cropHistory": {
+      "title": "What did you plant last in this plot?",
+      "subtitle": "If you remember, you can pick the last two crops. If not, that's okay.",
+      "lastCropLabel": "LAST CROP (MOST RECENT)",
+      "previousCropLabel": "PREVIOUS CROP (OPTIONAL)",
+      "searchPlaceholder": "Search crop...",
+      "searchInputPlaceholder": "E.g.: Cassava, corn, bean...",
+      "emptySearch": "No crop found for \"{{query}}\". Choose an option from the list or try another common name.",
+      "inProgressLabel": "This last crop is still planted in the field",
+      "inProgressHint": "Check if you have already planted and will harvest later.",
+      "startDateLabel": "When did you plant it? (optional)",
+      "dontRemember": "I don't remember what was planted before",
+      "dontRememberStatus": "No problem — we will proceed without prior history. Tap Continue to move forward.",
+      "searchOptionAria": "Search option for {{label}}",
+      "selectAtLeastOne": "Pick at least the last crop or check that you don't remember."
+    },
+    "water": {
+      "title": "How does water reach your plantation?",
+      "subtitle": "Choose the main way you currently irrigate your plants.",
+      "options": {
+        "chuva": {
+          "title": "Rainwater only",
+          "subtitle": "Depends entirely on the weather."
+        },
+        "poco_caixa": {
+          "title": "Well, cistern, or water tank",
+          "subtitle": "Stored water available to help."
+        },
+        "caminhao_pipa": {
+          "title": "Water truck or hauled water",
+          "subtitle": "Water brought from outside, costlier or limited."
+        },
+        "gotejamento": {
+          "title": "Drip irrigation or hose",
+          "subtitle": "Water goes straight to the plant base."
+        },
+        "aspersao": {
+          "title": "Sprinkler irrigation",
+          "subtitle": "Waters the area from above."
+        },
+        "sulco": {
+          "title": "Furrow or trench irrigation",
+          "subtitle": "Water flows through channels in the ground."
+        }
+      }
+    },
+    "soil": {
+      "title": "What is the soil like in this area?",
+      "subtitle": "Choose the type that looks most like the ground where you will plant.",
+      "helpTrigger": "Not sure? Learn how to identify",
+      "drawerTitle": "Use the \"hand test\"",
+      "drawerSubtitle": "Take a handful of moist soil, squeeze it in your palm, and see what happens.",
+      "techNoteTitle": "Technical guidance",
+      "techNoteBody": "Kultiva assists with day-to-day planning, but does not replace professional agronomic advice or laboratory analysis. For precise fertilization recommendations, consult an agricultural extension agent in your region.",
+      "options": {
+        "areia": {
+          "title": "Sand",
+          "subtitle": "Loose and dries fast.",
+          "handDesc": "The soil crumbles completely. It won't form a ball or ribbon at all. Feels gritty and scratches your hand."
+        },
+        "barro": {
+          "title": "Clay",
+          "subtitle": "Sticky and holds water.",
+          "handDesc": "The soil turns into modeling clay. Sticks to your hand, stains fingers, and forms a thin, long ribbon without breaking easily."
+        },
+        "terra_preta": {
+          "title": "Dark loam",
+          "subtitle": "Dark, loose, and fertile.",
+          "handDesc": "Stands out for its dark color and rich earthy smell (organic matter). Resembles damp coffee grounds. Very loose, forms a clump that breaks easily when pressed."
+        },
+        "cascalho": {
+          "title": "Gravel",
+          "subtitle": "Full of stones, water drains fast.",
+          "handDesc": "Full of visible small stones. Does not bind with water at all, feels loose, hard, and rough on your hand."
+        },
+        "terra_mista": {
+          "title": "Loam (mixed soil)",
+          "subtitle": "Mix of sand and clay. Great for planting.",
+          "handDesc": "The middle ground. Forms a firm ball or thick ribbon, but breaks apart if thinned or bent. Has some clay stickiness with a bit of sand grittiness."
+        }
+      }
+    },
+    "priorities": {
+      "title": "What is your priority right now?",
+      "subtitle": "Choose the main goal for this plot in this season.",
+      "targetCropLabel": "WHICH CROP DO YOU WANT TO PLANT?",
+      "targetCropSearch": "Search crop...",
+      "targetCropPlaceholder": "E.g.: Cassava, corn, bean...",
+      "targetCropEmpty": "No crop found for \"{{query}}\". Choose an option from the list or try another common name.",
+      "targetPestLabel": "WHICH PEST OR DISEASE DO YOU WANT TO CONTROL?",
+      "targetPestSearch": "Search pest or disease...",
+      "targetPestPlaceholder": "E.g.: Armyworm, ant, nematode...",
+      "targetPestEmpty": "No pest found for \"{{query}}\". Choose an option from the list or try another common name.",
+      "finish": "See planting paths",
+      "options": {
+        "recuperar_terra": {
+          "title": "Restore soil strength",
+          "subtitle": "Make the soil more fertile and protected."
+        },
+        "retorno_rapido": {
+          "title": "Harvest fast and sell soon",
+          "subtitle": "Prioritize short cycles and quicker income."
+        },
+        "consumo_racao": {
+          "title": "Secure food and feed",
+          "subtitle": "Produce for family consumption and livestock."
+        },
+        "plantar_especifico": {
+          "title": "I want to plant a specific crop",
+          "subtitle": "Prepare the soil for the crop you already chose."
+        },
+        "gastar_minimo": {
+          "title": "Spend as little as possible",
+          "subtitle": "Hardy crops that require few inputs."
+        },
+        "limpar_terra": {
+          "title": "Clear pests or diseases from the land",
+          "subtitle": "Break pest cycles with smart crop rotation."
+        }
+      }
+    }
+  },
+  "simulation": {
+    "title": "Crop suggestions",
+    "subtitle": "Compare the recommended scenarios for your plot and pick the best one for this season.",
+    "choosePlan": "Choose this plan",
+    "choosingPlan": "Applying plan...",
+    "chooseAndOpen": "Choose and open plot",
+    "seeDetails": "See details",
+    "hideDetails": "Hide details",
+    "cycle": "Cycle",
+    "water": "Water",
+    "risk": "Risk",
+    "days": "{{count}} days",
+    "recommended": "Recommended",
+    "planAppliedTitle": "Plan selected!",
+    "planAppliedBack": "Go to Plantations",
+    "selectedPlanToast": "Selected plan: {{badge}} ({{steps}})",
+    "calculating": "Calculating recommendations for your plot...",
+    "drawerTitle": "Rotation Technical Details",
+    "drawerSubtitle": "Climate cross-check (NASA) and phytosanitary recommendations (AGROFIT).",
+    "estimatedCycle": "Estimated cycle",
+    "waterNeeded": "Water required",
+    "nasaAnalysis": "Climate Analysis (NASA)",
+    "npkTitle": "NPK Requirements & Balance",
+    "nutrient": "Nutrient",
+    "requirement": "Requirement",
+    "effect": "Effect",
+    "pestAlerts": "Pest History & Alerts (AGROFIT)",
+    "closeDetails": "Close details",
+    "whyPlant": "Why {{plant}}?",
+    "whyPlantTitle": "Why we chose {{plant}}",
+    "whyPlantFallback": "{{plant}} acts as an intermediate soil-preparation crop to protect the ground, retain moisture, recycle nutrients, and break pest cycles before the next planting.",
+    "equivalencesTitle": "Why the equivalent crops work",
+    "equivalencesFallback": "Alternatives such as {{alternatives}} fulfill the same agronomic role of ground cover, soil improvement, and nutrient cycling, allowing you to adapt based on local seed availability.",
+    "swap": "Swap",
+    "equivalentCrops": "Equivalent crops",
+    "trackAria": "Crop rotation track",
+    "alternativesAria": "Equivalent alternatives for {{plant}}",
+    "apiErrorFallback": "Could not load recommendations from the API right now.",
+    "retry": "Try again",
+    "chooseAnyway": "Choose anyway",
+    "optionBadge": "{{count}} Option",
+    "optionBadges": {
+      "1": "1st Option",
+      "2": "2nd Option",
+      "3": "3rd Option"
+    },
+    "stepStatus": {
+      "plantedNow": "Planted now",
+      "alreadyHarvested": "Harvested",
+      "next": "Next",
+      "after": "After"
+    },
+    "restStep": "Rest",
+    "focusTags": {
+      "fastReturn": "FAST RETURN",
+      "foodFeed": "FOOD & FEED",
+      "lowestCost": "LOWEST COST",
+      "pestControl": "PEST CONTROL",
+      "targetCrop": "TARGET CROP",
+      "soilFocus": "SOIL FOCUS",
+      "plotBalance": "PLOT BALANCE"
+    },
+    "coverAlternatives": {
+      "crotalaria": {
+        "name": "Sunn hemp",
+        "reason": "Fixes nitrogen and helps control nematodes."
+      },
+      "feijao-de-porco": {
+        "name": "Jack bean",
+        "reason": "Covers the soil quickly and holds moisture during dry spells."
+      },
+      "milheto": {
+        "name": "Pearl millet",
+        "reason": "Produces abundant mulch and tolerates heat."
+      },
+      "guandu": {
+        "name": "Pigeon pea",
+        "reason": "Deep roots break up compacted soil."
+      }
+    }
+  },
+  "dashboard": {
+    "overviewTitle": "Plot overview",
+    "backToPlantations": "Plantations",
+    "openCalendar": "Open calendar",
+    "createSimulation": "Create simulation",
+    "cancelSimulation": "Cancel simulation",
+    "alertsTitle": "Recent alerts",
+    "noAlerts": "No active climate or phytosanitary alerts.",
+    "nextActivities": "Upcoming activities",
+    "noActivities": "No scheduled activities.",
+    "reportTitle": "Log field observation",
+    "reportPlaceholder": "Describe what you saw in the field (e.g., yellowing leaves, heavy rain)...",
+    "reportSubmit": "Submit report",
+    "reportSuccess": "Report saved! We will factor your observation into upcoming recommendations.",
+    "viewFullCalendar": "View full calendar",
+    "yourDayTitle": "Your day in the field",
+    "loadingActivities": "Loading plot activities...",
+    "noActivitiesScheduled": "No activities scheduled for this plot yet.",
+    "happenedDifferently": "Something else happened",
+    "yourExperienceCounts": "YOUR EXPERIENCE MATTERS",
+    "happenedDifferentlyQuestion": "Something else happened?",
+    "tellWhatChanged": "Tell us what changed in your plot.",
+    "saveReport": "Save report",
+    "uncheckTask": "Uncheck {{title}}",
+    "completeTask": "Complete {{title}}",
+    "periods": {
+      "manha": "Morning",
+      "meio-dia": "Midday",
+      "tarde": "Afternoon",
+      "noite": "Evening",
+      "qualquer-momento": "Anytime"
+    },
+    "reportOptions": {
+      "choveu_nao_previsto": "It rained unexpectedly",
+      "nao_choveu_esperado": "It didn't rain as expected",
+      "encontrei_praga": "I found a pest"
+    }
+  },
+  "calendar": {
+    "title": "Crop calendar",
+    "panorama": "CROP OVERVIEW",
+    "backToDashboard": "Back to dashboard",
+    "pending": "Pending",
+    "completed": "Completed",
+    "markDone": "Complete",
+    "noTasks": "No activities found.",
+    "selectedDay": "SELECTED DAY",
+    "today": "Today",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "planting": "Planting",
+    "management": "Management",
+    "harvest": "Harvest",
+    "selected": "Selected",
+    "dayNumber": "Day {{day}}",
+    "approxDays": "~{{days}} days",
+    "cyclePercent": "{{status}} · {{percent}}% of cycle",
+    "cycleInitial": "Initial phase",
+    "cycleNearHarvest": "Near harvest",
+    "cycleInProgress": "In progress",
+    "noCropOnDateTitle": "No crop scheduled on this date",
+    "noCropOnDateDesc": "Select a highlighted day on the calendar to follow the crop cycle.",
+    "stableWeatherHeadline": "Stable weather expected",
+    "stableWeatherDetails": "24°–30° · No major weather alerts",
+    "normalFollowUp": "Regular follow-up for {{crop}}.",
+    "noCriticalTasks": "No critical activities scheduled for this date.",
+    "rotationCalendarAria": "Crop rotation calendar",
+    "activeCropProgressAria": "Active crop progress",
+    "cropProgressAria": "Progress of {{crop}}",
+    "weekdayInitials": [
+      "S",
+      "M",
+      "T",
+      "W",
+      "T",
+      "F",
+      "S"
+    ],
+    "months": [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ],
+    "shortMonths": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ],
+    "weekdaysUpper": [
+      "SUNDAY",
+      "MONDAY",
+      "TUESDAY",
+      "WEDNESDAY",
+      "THURSDAY",
+      "FRIDAY",
+      "SATURDAY"
+    ]
+  }
+}
