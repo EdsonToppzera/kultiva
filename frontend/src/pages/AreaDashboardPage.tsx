@@ -180,6 +180,7 @@ export function AreaDashboardPage({
   onBack,
 }: AreaDashboardPageProps) {
   const { t, i18n } = useTranslation();
+  const isEnglish = i18n.language.startsWith("en");
   const todayIso = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
   const resolvedDateLabel = React.useMemo(() => {
     if (dateLabel) return dateLabel;
@@ -246,13 +247,13 @@ export function AreaDashboardPage({
 
       if (relatorioData || alertasData.length > 0) {
         setLiveWeather(
-          adaptRelatorioAndAlertasToWeather(relatorioData, alertasData)
+          adaptRelatorioAndAlertasToWeather(relatorioData, alertasData, isEnglish)
         );
       }
     } finally {
       setIsLoadingDashboard(false);
     }
-  }, [terrenoId, isSimulationMode, todayIso, cropNameFallback]);
+  }, [terrenoId, isSimulationMode, todayIso, cropNameFallback, isEnglish]);
 
   React.useEffect(() => {
     void loadDashboardData();
@@ -333,7 +334,12 @@ export function AreaDashboardPage({
       setIsSubmittingReport(true);
       try {
         await dispararAlertaGatilho(
-          mapFieldReportToAlertaPayload(terrenoId, selectedReport, todayIso)
+          mapFieldReportToAlertaPayload(
+            terrenoId,
+            selectedReport,
+            todayIso,
+            isEnglish
+          )
         );
         await loadDashboardData();
       } catch {
@@ -425,8 +431,8 @@ export function AreaDashboardPage({
                   {effectiveWeather
                     ? effectiveWeather.headline
                     : isLoadingDashboard
-                      ? "Carregando previsão..."
-                      : "Dados climáticos indisponíveis"}
+                      ? t("dashboard.loadingWeather")
+                      : t("dashboard.weatherUnavailable")}
                 </h2>
                 {effectiveWeather && (
                   <p className="mt-0.5 text-xs text-white/80">

@@ -304,6 +304,8 @@
     "viewFullCalendar": "View full calendar",
     "yourDayTitle": "Your day in the field",
     "loadingActivities": "Loading plot activities...",
+    "loadingWeather": "Loading forecast...",
+    "weatherUnavailable": "Weather data unavailable",
     "noActivitiesScheduled": "No activities scheduled for this plot yet.",
     "happenedDifferently": "Something else happened",
     "yourExperienceCounts": "YOUR EXPERIENCE MATTERS",

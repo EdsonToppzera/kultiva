@@ -305,6 +305,8 @@
     "viewFullCalendar": "Ver calendário completo",
     "yourDayTitle": "Seu dia na área",
     "loadingActivities": "Carregando atividades da área...",
+    "loadingWeather": "Carregando previsão...",
+    "weatherUnavailable": "Dados climáticos indisponíveis",
     "noActivitiesScheduled": "Nenhuma atividade programada para esta área ainda.",
     "happenedDifferently": "Aconteceu diferente",
     "yourExperienceCounts": "SUA EXPERIÊNCIA CONTA",

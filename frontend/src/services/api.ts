@@ -161,6 +161,7 @@ export interface AlertaGatilhoRequest {
   origem_gatilho?: string;
   serie_temporal_clima?: Array<Record<string, unknown>>;
   dias_adiamento?: number;
+  idioma?: "pt" | "en";
 }
 
 export interface AlertaClimaticoResponse {
