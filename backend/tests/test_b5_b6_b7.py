@@ -324,7 +324,7 @@ def test_b7_demo_seed_idempotente_reset_e_integracao_relatorio(monkeypatch):
             assert len(body1["terrenos_ids"]) == 2
             assert body1["culturas_total"] >= 4
             assert body1["rotacoes_total"] >= 5
-            assert body1["metricas_total"] == 20
+            assert body1["metricas_total"] == 10
             assert body1["atividades_total"] == 6
             assert body1["alertas_total"] == 2
 
@@ -337,20 +337,35 @@ def test_b7_demo_seed_idempotente_reset_e_integracao_relatorio(monkeypatch):
             assert body2["atividades_total"] == body1["atividades_total"]
             assert body2["alertas_total"] == body1["alertas_total"]
 
-            # Terrenos de demo respondem imediatamente no relatório [M6] com adaptações e IA
-            resp_rel = client.get(
+            # Terreno 1 (perfil A9 'seca') e Terreno 2 (perfil A9 'chuva_extrema')
+            # respondem imediatamente no relatório [M6] com contrastes reais dos NetCDFs
+            resp_rel_seca = client.get(
                 f"/api/v1/relatorios/terreno/{body1['terrenos_ids'][0]}"
             )
-            assert resp_rel.status_code == 200
-            rel = resp_rel.json()
-            assert rel["origem_dados"] == "historico_persistido"
-            assert rel["adaptacoes"]["total_ajustadas_por_alerta"] >= 1
-            assert rel["comparativo_periodo"]["tendencia_geral"] in {
+            resp_rel_chuva = client.get(
+                f"/api/v1/relatorios/terreno/{body1['terrenos_ids'][1]}"
+            )
+            assert resp_rel_seca.status_code == 200
+            assert resp_rel_chuva.status_code == 200
+
+            rel_seca = resp_rel_seca.json()
+            rel_chuva = resp_rel_chuva.json()
+            assert rel_seca["origem_dados"] == "historico_persistido"
+            assert rel_seca["resumo_climatico"]["total_medicoes"] == 5
+            assert rel_seca["resumo_climatico"]["umidade_media_solo"] < 0.12
+            assert rel_seca["resumo_climatico"]["temperatura_media_c"] >= 33.0
+            assert rel_seca["resumo_climatico"]["dias_solo_exposto"] >= 1
+            assert rel_seca["adaptacoes"]["total_ajustadas_por_alerta"] >= 1
+            assert rel_seca["comparativo_periodo"]["tendencia_geral"] in {
                 "melhora",
                 "queda",
                 "estavel",
             }
-            assert "decisão final" in rel["resumo_ia"].lower()
+            assert "decisão final" in rel_seca["resumo_ia"].lower()
+
+            assert rel_chuva["resumo_climatico"]["total_medicoes"] == 5
+            assert rel_chuva["resumo_climatico"]["umidade_media_solo"] > 0.30
+            assert rel_chuva["resumo_climatico"]["precipitacao_total_mm"] > 250.0
 
             # Reset recria dados limpos mantendo consistência de quantidades
             resp_reset = client.post("/api/v1/demo/seed", params={"reset": "true"})
@@ -359,7 +374,7 @@ def test_b7_demo_seed_idempotente_reset_e_integracao_relatorio(monkeypatch):
             assert body_reset["reset_executado"] is True
             assert body_reset["idempotente"] is False
             assert body_reset["terrenos_ids"] == body1["terrenos_ids"]
-            assert body_reset["metricas_total"] == 20
+            assert body_reset["metricas_total"] == 10
             assert body_reset["atividades_total"] == 6
             assert body_reset["alertas_total"] == 2
     finally:

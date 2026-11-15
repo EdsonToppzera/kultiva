@@ -292,6 +292,6 @@ Permite registrar manualmente uma medição climática ou acionar a sincronizaç
 ### `POST /api/v1/demo/seed` (`200 OK`)
 *(Query param opcional: `reset=false|true`)*
 
-Popula o ambiente de demonstração completo em uma única chamada (usuário padrão, culturas/rotações seed e customizada, dois terrenos com perfis climáticos distintos, 10 dias de métricas históricas por terreno, atividades no calendário com registros `ajustada_por_alerta=true` e alertas climáticos com explicação prática):
+Popula o ambiente de demonstração completo em uma única chamada (usuário padrão, culturas/rotações seed e customizada, dois terrenos com perfis climáticos da A9 — `seca` e `chuva_extrema` — extraídos via `MockNASADataProvider`, métricas históricas alinhadas ao período recente, atividades no calendário com registros `ajustada_por_alerta=true` e alertas climáticos com explicação prática):
 - `reset=false` *(padrão)*: operação **idempotente** que cria apenas o que ainda não existir, preservando IDs e contagens entre chamadas consecutivas.
 - `reset=true`: remove e recria do zero os dados associados aos terrenos de demonstração.
