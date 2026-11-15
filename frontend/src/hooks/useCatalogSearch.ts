@@ -1,16 +1,23 @@
 import * as React from "react";
+import { type AppLanguage, useLanguage } from "../contexts/LanguageContext";
 
 /**
  * Busca itens de catálogo no backend com debounce quando o combobox está aberto,
- * mantendo os itens iniciais como fallback imediato.
+ * reagindo à troca de idioma (PT-BR / EN) e mantendo os itens iniciais como fallback.
  */
 export function useCatalogSearch<T>(
   open: boolean,
   query: string,
   initialItems: T[],
-  fetcher: (query: string, limit?: number, signal?: AbortSignal) => Promise<T[]>,
+  fetcher: (
+    query: string,
+    limit?: number,
+    signal?: AbortSignal,
+    lang?: AppLanguage
+  ) => Promise<T[]>,
   limit = 30
 ): T[] {
+  const { language } = useLanguage();
   const [items, setItems] = React.useState<T[]>(initialItems);
 
   React.useEffect(() => {
@@ -23,7 +30,7 @@ export function useCatalogSearch<T>(
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       try {
-        const result = await fetcher(query, limit, controller.signal);
+        const result = await fetcher(query, limit, controller.signal, language);
         if (!controller.signal.aborted) {
           setItems(result);
         }
@@ -38,7 +45,7 @@ export function useCatalogSearch<T>(
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [open, query, fetcher, limit]);
+  }, [open, query, fetcher, limit, language]);
 
   return items;
 }

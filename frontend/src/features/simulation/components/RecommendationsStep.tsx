@@ -15,6 +15,7 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
+import { LanguageSelector } from "../../../components/LanguageSelector";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import {
@@ -746,6 +747,7 @@ export function RecommendationsStep({
                 />
                 <span>{badgeInfo.label}</span>
               </Badge>
+              <LanguageSelector />
             </div>
           </header>
 

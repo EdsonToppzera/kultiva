@@ -16,6 +16,7 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
+import { LanguageSelector } from "../../../components/LanguageSelector";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import {
@@ -654,16 +655,19 @@ export function PrioritiesStep({
               Kultiva
             </span>
 
-            <Badge variant={badgeInfo.variant} aria-live="polite">
-              <NetworkIcon
-                className={cn(
-                  "h-3.5 w-3.5",
-                  resolvedNetworkStatus === "sincronizando" && "animate-spin"
-                )}
-                aria-hidden="true"
-              />
-              <span>{badgeInfo.label}</span>
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant={badgeInfo.variant} aria-live="polite">
+                <NetworkIcon
+                  className={cn(
+                    "h-3.5 w-3.5",
+                    resolvedNetworkStatus === "sincronizando" && "animate-spin"
+                  )}
+                  aria-hidden="true"
+                />
+                <span>{badgeInfo.label}</span>
+              </Badge>
+              <LanguageSelector />
+            </div>
           </header>
 
           {/* Indicador de Progresso */}

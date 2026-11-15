@@ -10,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
+import { LanguageSelector } from "../components/LanguageSelector";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import {
@@ -194,6 +195,8 @@ export function PlantationsPage({
                   Modo Simulação
                 </Badge>
               )}
+
+              <LanguageSelector />
 
               <button
                 type="button"
