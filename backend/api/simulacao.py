@@ -243,6 +243,15 @@ def get_agrofit_provider() -> Optional[Any]:
     )
 
 
+def get_terrain_hazards_provider() -> Optional[Any]:
+    """Provedor de dependência para TerrainHazardsProvider (SRTM leve + NASA FIRMS)."""
+    return _get_cached_service(
+        "terrain_hazards",
+        "backend.services.terrain_hazards",
+        lambda mod: mod.TerrainHazardsProvider(data_path="data"),
+    )
+
+
 def _deve_consultar_gaez(
     gaez_provider: Optional[Any],
     perfil_climatico: Optional[str],
@@ -282,6 +291,45 @@ def _extrair_metricas_gaez(
     except Exception:
         logger.exception("Falha ao consultar FAO GAEZ v5 na simulação; seguindo sem GAEZ.")
     return None
+
+
+def _deve_consultar_terrain_hazards(
+    terrain_provider: Optional[Any],
+    perfil_climatico: Optional[str],
+    geo_input: Any,
+) -> bool:
+    if terrain_provider is None or not geo_input:
+        return False
+    env_raw = os.getenv("TERRAIN_HAZARDS_ENABLED", "").strip().lower()
+    if env_raw in {"0", "false", "no", "nao", "não", "off"}:
+        return False
+    if env_raw in {"1", "true", "yes", "sim", "on"}:
+        return True
+    try:
+        mod = importlib.import_module("backend.services.terrain_hazards")
+        real_cls = getattr(mod, "TerrainHazardsProvider", None)
+        is_custom_cls = real_cls is not None and not isinstance(terrain_provider, real_cls)
+        if is_custom_cls or str(getattr(terrain_provider, "data_path", "data")) != "data":
+            return True
+    except Exception:
+        pass
+    nasa_real = os.getenv("NASA_PROVIDER", "").strip().lower() == "real"
+    return bool(nasa_real or perfil_climatico == "real")
+
+
+def _extrair_metricas_terrain_hazards(
+    geo_input: Any,
+    terrain_provider: Optional[Any],
+    perfil_climatico: Optional[str] = None,
+) -> Dict[str, Any]:
+    if not _deve_consultar_terrain_hazards(terrain_provider, perfil_climatico, geo_input):
+        return {}
+    try:
+        res = terrain_provider.extract_terrain_and_hazards(geo_input)
+        return res if isinstance(res, dict) else {}
+    except Exception:
+        logger.exception("Falha ao consultar SRTM/FIRMS na simulação; seguindo sem eles.")
+        return {}
 
 
 def _coletar_culturas_simulacao(
@@ -826,6 +874,7 @@ def _processar_simulacao(
     gaez_provider: Optional[Any] = None,
     ecocrop_provider: Optional[Any] = None,
     agrofit_provider: Optional[Any] = None,
+    terrain_hazards_provider: Optional[Any] = None,
 ) -> SimulacaoResponse:
     terreno_id_resp: Optional[int] = None
     usuario_id_terreno: Optional[int] = None
@@ -934,6 +983,26 @@ def _processar_simulacao(
     if agrofit_metrics is not None:
         metricas_geoespaciais["agrofit"] = agrofit_metrics
 
+    terrain_hazards = _extrair_metricas_terrain_hazards(
+        geo_input_gaez,
+        terrain_provider=terrain_hazards_provider,
+        perfil_climatico=perfil_climatico,
+    )
+    srtm_data = terrain_hazards.get("srtm")
+    if isinstance(srtm_data, dict) and srtm_data.get("data_quality") == "srtm_api":
+        existing_srtm = metricas_geoespaciais.get("srtm")
+        if isinstance(existing_srtm, dict):
+            metricas_geoespaciais["srtm"] = {**srtm_data, **existing_srtm}
+        else:
+            metricas_geoespaciais["srtm"] = srtm_data
+
+    firms_data = terrain_hazards.get("firms")
+    if isinstance(firms_data, dict) and firms_data.get("data_quality") in {
+        "nasa_firms_api",
+        "missing_map_key",
+    }:
+        metricas_geoespaciais["firms"] = firms_data
+
     tipo_solo = (payload.dados_solo or {}).get("tipo_solo") or prioridades_finais.get("tipo_solo")
     if tipo_solo:
         metricas_geoespaciais["tipo_solo"] = tipo_solo
@@ -1000,6 +1069,16 @@ def _processar_simulacao(
                     riscos.append(item_alerta)
         except Exception:
             pass
+    firms_info = metricas_geoespaciais.get("firms")
+    if (
+        isinstance(firms_info, dict)
+        and firms_info.get("data_quality") == "nasa_firms_api"
+        and int(firms_info.get("hotspots_count") or 0) > 0
+    ):
+        riscos.append(
+            f"NASA FIRMS detectou {int(firms_info['hotspots_count'])} foco(s) de calor "
+            f"no entorno do terreno (risco {firms_info.get('fire_risk', 'moderado')})."
+        )
     explicacao, ia_fallback = _gerar_explicacao_ia(
         nome_cultura=nome_cultura,
         beneficios=beneficios,
@@ -1114,6 +1193,7 @@ def executar_simulacao(
     gaez_provider: Optional[Any] = Depends(get_gaez_provider),
     ecocrop_provider: Optional[Any] = Depends(get_ecocrop_provider),
     agrofit_provider: Optional[Any] = Depends(get_agrofit_provider),
+    terrain_hazards_provider: Optional[Any] = Depends(get_terrain_hazards_provider),
 ) -> SimulacaoResponse:
     """Recebe parâmetros do frontend, integra serviços geoespaciais/ML/LLM e retorna a simulação."""
     return _processar_simulacao(
@@ -1125,6 +1205,7 @@ def executar_simulacao(
         gaez_provider=gaez_provider,
         ecocrop_provider=ecocrop_provider,
         agrofit_provider=agrofit_provider,
+        terrain_hazards_provider=terrain_hazards_provider,
     )
 
 
@@ -1138,6 +1219,7 @@ def simular_rotacao(
     gaez_provider: Optional[Any] = Depends(get_gaez_provider),
     ecocrop_provider: Optional[Any] = Depends(get_ecocrop_provider),
     agrofit_provider: Optional[Any] = Depends(get_agrofit_provider),
+    terrain_hazards_provider: Optional[Any] = Depends(get_terrain_hazards_provider),
 ) -> SimulacaoResponse:
     """Endpoint direto /api/v1/simular-rotacao para orquestração de simulação e explicação IA."""
     return _processar_simulacao(
@@ -1149,4 +1231,5 @@ def simular_rotacao(
         gaez_provider=gaez_provider,
         ecocrop_provider=ecocrop_provider,
         agrofit_provider=agrofit_provider,
+        terrain_hazards_provider=terrain_hazards_provider,
     )
