@@ -2,22 +2,24 @@
 
 **Responsáveis:** **Dev A** = dados, ML e IA · **Dev B** = catálogo, relatórios, terrenos e infra/demo · **Dev C** = simulação, alertas e calendário.
 
-**Legenda:** ✅ feito (mergeado na `dev` / `A10` pronta para PR) · 🔄 em andamento · ⬜ pendente
+**Legenda:** ✅ feito (mergeado na `dev` / pronto para PR) · 🔄 em andamento · ⬜ pendente
 
-## Estado atual (Rodadas 1 e 2 concluídas · Rodada 3 em andamento)
+## Estado atual (Rodadas 1 e 2 concluídas · Rodada 3/Dados Reais em andamento)
 
-- Suíte `backend/tests`: **verde** (cobrindo Rodadas 1 e 2 e evolução da Rodada 3: `A1–A10`, `B1–B7`, `C1–C9`).
+- Suíte `backend/tests`: **verde** (cobrindo Rodadas 1, 2, 3 e extensão de Dados Reais/ML: `A1–A12`, `B1–B8`, `C1–C9`).
 - **Feito (Rodada 1):** `A1–A6` (Dev A) · `B1–B4` (Dev B) · `C1–C5` (Dev C) · base de infra (`.env.example`, deps, healthcheck do Postgres, Alembic inicial, monitor de alertas ligado ao lifespan, disclaimer garantido no LLM, CI no GitHub Actions).
 - **Feito (Rodada 2):** `A7–A9` (Dev A) · `B5–B7` (Dev B) · `C6–C8` (Dev C).
-- **Rodada 3 (Fechamento da Demo e Integração Frontend):** `A10` ✅ (nesta branch) · `C9` ✅ (mergeado na `dev`) · pendentes: `B8` (Dev B) + integração completa com `frontend/` (`F1–F3`).
+- **Rodada 3 & Dados Reais (Fechamento da Demo e Integração Frontend):** `A10–A12` ✅ · `B8` ✅ · `C9` ✅ · `F1–F2` ✅ · pendente: `F3` (telas finais no `frontend/`).
 
 ### Resumo do que foi entregue
 
-- **Dev A (`A1–A9`)**
+- **Dev A (`A1–A12`)**
   - **A1–A6 (Rodada 1):** NetCDFs sintéticos determinísticos (`mock_nasa_data.py`), `MockNASADataProvider` + `RealNASADataProvider` (`geospatial.py`, `NASA_PROVIDER=mock|real`), `CropSimulator` dinâmico e `ClimateAnomalyDetector` (`ml_models.py`), `RotationExplainerAgent.explain_strategies` com `DISCLAIMER` (`llm_agent.py`) e suíte unitária (`backend/tests/test_data_ml.py`).
   - **A7 — Geometria, histórico de cultivos e fallback dinâmico** (`geospatial.py`, `ml_models.py`): `calcular_geometria_terreno` (área em hectares e centroide do polígono); `CropSimulator` considerando `historico_cultivos` (penaliza monocultura e bonifica quebra de ciclo com leguminosas) e método `fallback_strategies`.
   - **A8 — Explicações de alertas `[M5]` e relatórios `[M6]`** (`llm_agent.py`): `explain_alert` com orientações práticas de manejo e `explain_report` em linguagem simples, mantendo `DISCLAIMER` e fallback determinístico offline.
   - **A9 — Perfis climáticos simuláveis** (`mock_nasa_data.py`, `geospatial.py`, `backend/tests/test_data_ml.py`): perfis `normal`, `seca`, `chuva_extrema` e `onda_de_calor` (via parâmetro `profile` ou `NASA_MOCK_PROFILE`) gerando cenários distintos que acionam `ClimateAnomalyDetector` e alteram o ranking do `CropSimulator`.
+  - **A10 — Perfil climático em runtime e área na simulação** (`geospatial.py`, `api/simulacao.py`): aceita `perfil_climatico` sob demanda e calcula `area_hectares` em `metricas_geoespaciais`.
+  - **A11–A12 — Datasets reais multi-fonte + NASA POWER + ML avançado (`RandomForestRegressor` + features temporais)** (`geospatial.py`, `ml_models.py`, `mock_nasa_data.py`, `api/simulacao.py`, `docker-compose.yml`, `.env.example`, `backend/requirements.txt`): descoberta local em `data/real/`, harmonização de grades transpostas e `_FillValue`, integração/cache da API pública NASA POWER sem login, regressor `RandomForestRegressor` + estabilidade temporal no `CropSimulator`, métricas diagnósticas no `ClimateAnomalyDetector` e suporte a `perfil_climatico="real"`.
 - **Dev B (`B1–B7`)**
   - **B1–B4 (Rodada 1):** CRUD completo do catálogo `[M2]` (`api/cultura.py`), proteção de registros seed, serviço/endpoints de relatório `[M6]` (`services/relatorio_service.py`, `api/relatorios.py`), persistência histórica em Postgres/Alembic (`services/metrics_service.py`) e testes/CI (`backend/tests/test_b1_b2_b3.py`, `.github/workflows/ci.yml`).
   - **B5 — CORS, seed inicial e CRUD completo de terrenos `[M1]`** (`main.py`, `api/terreno.py`, `schemas/terreno.py`): `CORSMiddleware` habilitado para `localhost:5173`, seed automático de `Usuario` padrão e `PUT`/`DELETE /api/v1/terrenos/{terreno_id}` com cálculo automático de área/centroide (A7).
@@ -59,6 +61,8 @@
 | A8 | ✅ | Expandir `RotationExplainerAgent` com `explain_alert` (orientações práticas de manejo para `[M5]`) e `explain_report` (resumo em linguagem simples para `[M6]`), mantendo `DISCLAIMER` e mock offline | `llm_agent.py` | Alertas e relatórios geram explicação acessível sempre com disclaimer |
 | A9 | ✅ | Perfis climáticos simuláveis (`normal`, `seca`, `chuva_extrema`, `onda_de_calor`) em `mock_nasa_data.py` para testes de estresse/demo + testes unitários de `A7–A9` | `mock_nasa_data.py`, `backend/tests/test_data_ml.py` | Perfis geram cenários distintos e `pytest` verde |
 | A10 | ✅ | Expor `perfil_climatico` em runtime na extração/simulação (`get_nasa_processor` / `extract_field_metrics`) e usar `calcular_geometria_terreno` dentro de `_calcular_metricas_fallback` para incluir `area_hectares` em `metricas_geoespaciais` | `geospatial.py`, `api/simulacao.py`, `schemas/simulacao.py`, `backend/tests/test_data_ml.py` | Simulação aceita perfil climático sob demanda e sempre retorna `area_hectares` calculada do polígono |
+| A11 | ✅ | Ingestão real multi-fonte no `RealNASADataProvider` (`data/real/`, harmonização/transposição GPM, filtro `_FillValue`, tolerância parcial e API NASA POWER com cache) + `RandomForestRegressor` e features temporais no `CropSimulator` / diagnósticos no `ClimateAnomalyDetector` | `geospatial.py`, `ml_models.py` | Dados reais/POWER e séries temporais alimentam o ML com `ml_model_score` e `temporal_stability` |
+| A12 | ✅ | Infraestrutura Earthdata (`earthaccess`, `h5netcdf`, `EARTHDATA_TOKEN`, `NASA_POWER_FALLBACK`, `NASA_REAL_DAYS_BACK`), suporte a `perfil_climatico="real"` na simulação e testes de `A11–A12` | `requirements.txt`, `docker-compose.yml`, `.env.example`, `mock_nasa_data.py`, `api/simulacao.py`, `backend/tests/test_data_ml.py` | `POST /api/v1/simular-rotacao` suporta dados reais e suíte `pytest` verde |
 
 ## Dev B — Catálogo, relatórios, terrenos e infra/demo
 
@@ -99,7 +103,7 @@
 
 1. ✅ **Rodada 1 concluída:** `A1–A6` · `B1–B4` · `C1–C5`.
 2. ✅ **Rodada 2 concluída:** `A7–A9` · `B5–B7` · `C6–C8`.
-3. **Rodada 3 — Em andamento:** `A10` ✅ · `B8` ✅ · `C9` ✅ · `F1` ✅ · `F2` ✅ · pendente: `F3` (telas completas de Simulação/Calendário/Alertas/Relatório + ensaio final da demo).
+3. **Rodada 3 — Em andamento:** `A10–A12` ✅ · `B8` ✅ · `C9` ✅ · `F1` ✅ · `F2` ✅ · pendente: `F3` (telas completas de Simulação/Calendário/Alertas/Relatório + ensaio final da demo).
 
 ## Regras de trabalho
 

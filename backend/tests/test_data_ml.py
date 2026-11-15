@@ -985,3 +985,274 @@ def test_a10_simulacao_endpoint_com_perfil_climatico_e_area_hectares(
         simulacao._SERVICE_CACHE.clear()
         app.dependency_overrides.clear()
         Base.metadata.drop_all(bind=engine)
+
+
+# ---- A11 / A12: Ingestão Real Multi-Fonte, NASA POWER e ML Avançado -------
+
+
+def test_a11_real_nasa_provider_descobre_local_transpoe_e_limpa_fillvalues(
+    monkeypatch, tmp_path, geospatial_mod
+):
+    monkeypatch.setitem(sys.modules, "earthaccess", None)
+    real_dir = tmp_path / "real"
+    real_dir.mkdir(parents=True, exist_ok=True)
+
+    times = pd.date_range("2026-11-10", periods=3)
+    lats_desc = np.array([-15.0, -15.5, -16.0])  # ordem decrescente
+    lons_360 = np.array([312.0, 312.5, 313.0])  # equivalente a -48.0..-47.0
+    lons_180 = np.array([-48.0, -47.5, -47.0])
+
+    # GPM IMERG real: dimensão transposta (time, lon, lat) + sentinela -9999.0
+    precip_data = np.full((3, 3, 3), 8.0, dtype=float)
+    precip_data[0, 0, 0] = -9999.0
+    xr.Dataset(
+        {"precipitationCal": (["time", "lon", "lat"], precip_data)},
+        coords={"time": times, "lon": lons_180, "lat": lats_desc},
+    ).to_netcdf(real_dir / "gpm_imerg_2026.nc")
+
+    # SMAP real com longitudes 0..360
+    xr.Dataset(
+        {
+            "Soil_Moisture_Retrieval_Data_AM_soil_moisture": (
+                ["time", "lat", "lon"],
+                np.full((3, 3, 3), 0.28),
+            )
+        },
+        coords={"time": times, "lat": np.array([-16.0, -15.5, -15.0]), "lon": lons_360},
+    ).to_netcdf(real_dir / "spl3smp_smap.nc")
+
+    # ECOSTRESS real com variável SDS_LST em Kelvin
+    xr.Dataset(
+        {"SDS_LST": (["time", "lat", "lon"], np.full((3, 3, 3), 305.15))},
+        coords={
+            "time": times,
+            "lat": np.array([-16.0, -15.5, -15.0]),
+            "lon": lons_180,
+        },
+    ).to_netcdf(real_dir / "eco2lste_temp.nc")
+
+    poligono_amplo = [
+        {"lat": -16.0, "lng": -48.0},
+        {"lat": -16.0, "lng": -47.0},
+        {"lat": -15.0, "lng": -47.0},
+        {"lat": -15.0, "lng": -48.0},
+    ]
+
+    prov = geospatial_mod.RealNASADataProvider(data_path=str(tmp_path))
+    metricas = prov.extract_field_metrics(poligono_amplo)
+
+    assert metricas["data_quality"] == "clip"
+    assert metricas["avg_precipitation_gpm"] == pytest.approx(8.0, abs=1e-4)
+    assert metricas["avg_soil_moisture_smap"] == pytest.approx(0.28, abs=1e-4)
+    assert metricas["avg_surface_temp_ecostress"] == pytest.approx(32.0, abs=1e-2)
+    assert len(metricas["time_series"]) == 3
+
+
+def test_a11_real_nasa_provider_nasa_power_fallback_e_cache(
+    monkeypatch, tmp_path, geospatial_mod
+):
+    monkeypatch.setitem(sys.modules, "earthaccess", None)
+
+    power_payload = {
+        "properties": {
+            "parameter": {
+                "GWETTOP": {
+                    "20261108": 0.56,
+                    "20261109": 0.60,
+                    "20261110": 0.64,
+                    "20261111": -999.0,  # dia ainda em latência na NASA
+                },
+                "TS": {
+                    "20261108": 28.5,
+                    "20261109": 29.0,
+                    "20261110": 27.5,
+                    "20261111": -999.0,
+                },
+                "PRECTOTCORR": {
+                    "20261108": 2.4,
+                    "20261109": 5.1,
+                    "20261110": 3.0,
+                    "20261111": -999.0,
+                },
+            }
+        }
+    }
+    fake_resp = MagicMock()
+    fake_resp.json.return_value = power_payload
+    fake_resp.raise_for_status = MagicMock()
+
+    with patch.object(geospatial_mod.httpx, "get", return_value=fake_resp) as spy_get:
+        prov = geospatial_mod.RealNASADataProvider(
+            data_path=str(tmp_path),
+            days_back=2,
+            enable_nasa_power=True,
+        )
+        m1 = prov.extract_field_metrics(POLIGONO_SP)
+        m2 = prov.extract_field_metrics(POLIGONO_SP)
+
+    assert spy_get.call_count == 1  # segunda chamada reutiliza cache em disco
+    _, call_kwargs = spy_get.call_args
+    assert call_kwargs["params"]["community"] == "AG"
+    assert call_kwargs["params"]["parameters"] == "GWETTOP,TS,PRECTOTCORR"
+
+    assert m1["data_quality"] == "nearest_cell"
+    assert len(m1["time_series"]) == 2
+    assert m1["time_series"][0]["data"] == "2026-11-09"
+    assert m1["time_series"][1]["data"] == "2026-11-10"
+    assert m1["avg_soil_moisture_smap"] == pytest.approx((0.30 + 0.32) / 2, abs=1e-4)
+    assert m1["avg_surface_temp_ecostress"] == pytest.approx(28.25, abs=1e-2)
+    assert m1["avg_precipitation_gpm"] == pytest.approx(4.05, abs=1e-2)
+    assert m2["time_series"] == m1["time_series"]
+
+
+def test_a11_ml_features_temporais_random_forest_e_diagnostico_anomalias():
+    sim = CropSimulator()
+    serie_estavel = {
+        "avg_soil_moisture_smap": 0.28,
+        "avg_surface_temp_ecostress": 28.0,
+        "avg_precipitation_gpm": 4.0,
+        "data_quality": "clip",
+        "is_bare_field_period": False,
+        "time_series": [
+            {"data": f"2026-11-0{i+1}", "soil_moisture": 0.27 + 0.005 * i, "surface_temp_c": 28.0, "precipitation_mm": 4.0}
+            for i in range(5)
+        ],
+    }
+    serie_instavel_secando = {
+        "avg_soil_moisture_smap": 0.28,
+        "avg_surface_temp_ecostress": 28.0,
+        "avg_precipitation_gpm": 4.0,
+        "data_quality": "clip",
+        "is_bare_field_period": True,
+        "time_series": [
+            {"data": "2026-11-01", "soil_moisture": 0.38, "surface_temp_c": 24.0, "precipitation_mm": 20.0},
+            {"data": "2026-11-02", "soil_moisture": 0.33, "surface_temp_c": 26.0, "precipitation_mm": 0.0},
+            {"data": "2026-11-03", "soil_moisture": 0.28, "surface_temp_c": 28.0, "precipitation_mm": 0.0},
+            {"data": "2026-11-04", "soil_moisture": 0.23, "surface_temp_c": 34.0, "precipitation_mm": 0.0},
+            {"data": "2026-11-05", "soil_moisture": 0.18, "surface_temp_c": 35.0, "precipitation_mm": 0.0},
+        ],
+    }
+
+    res_estavel = sim.simulate_rotation_strategies(serie_estavel, {})
+    res_instavel = sim.simulate_rotation_strategies(serie_instavel_secando, {})
+
+    bd_est = res_estavel[0]["score_breakdown"]
+    bd_inst = res_instavel[0]["score_breakdown"]
+    for key in (
+        "ml_model_score",
+        "temporal_stability",
+        "moisture_trend",
+        "dry_spell_max",
+        "bare_soil_bonus",
+    ):
+        assert key in bd_est
+        assert key in bd_inst
+
+    assert 0.0 <= bd_est["ml_model_score"] <= 1.0
+    assert bd_inst["temporal_stability"] < bd_est["temporal_stability"]
+    assert bd_inst["moisture_trend"] < 0
+    assert bd_inst["dry_spell_max"] == 4
+    # Solo exposto premia estratégias com cobertura/solo (soil_benefit >= 0.75)
+    assert any(e["score_breakdown"]["bare_soil_bonus"] > 0 for e in res_instavel)
+
+    # ClimateAnomalyDetector expõe métricas diagnósticas extras em `detalhes`
+    serie_normal = _serie_normal(n=15)
+    det_normal = ClimateAnomalyDetector().detect_extremes(serie_normal)
+    assert det_normal["detalhes"]["anomaly_score_min"] is not None
+    assert det_normal["detalhes"]["moisture_trend_per_day"] is not None
+    assert 0.0 <= det_normal["detalhes"]["heat_stress_index"] <= 1.0
+
+
+def test_a12_simulacao_endpoint_com_perfil_real_e_nasa_power(
+    monkeypatch, tmp_path, geospatial_mod
+):
+    from fastapi.testclient import TestClient
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    from backend.api import simulacao
+    from backend.db import models
+    from backend.db.database import Base, get_db
+    from backend.main import app
+
+    assert normalize_climate_profile("real", allow_real=True) == "real"
+    with pytest.raises(ValueError):
+        normalize_climate_profile("real", allow_real=False)
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    def override_get_db():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    with TestingSessionLocal() as db:
+        db.add(models.Usuario(nome="Produtor A12", email="a12@kultiva.local"))
+        db.add(models.Cultura(nome="Milho", consumo_agua_mm=500.0, tempo_colheita_dias=90))
+        db.commit()
+
+    monkeypatch.setitem(sys.modules, "earthaccess", None)
+    power_payload = {
+        "properties": {
+            "parameter": {
+                "GWETTOP": {"20261109": 0.44, "20261110": 0.48},
+                "TS": {"20261109": 30.0, "20261110": 31.0},
+                "PRECTOTCORR": {"20261109": 1.5, "20261110": 2.0},
+            }
+        }
+    }
+    fake_resp = MagicMock()
+    fake_resp.json.return_value = power_payload
+    fake_resp.raise_for_status = MagicMock()
+
+    simulacao._SERVICE_CACHE.clear()
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[simulacao.get_crop_simulator] = lambda: CropSimulator()
+    app.dependency_overrides[simulacao.get_rotation_explainer] = (
+        lambda: RotationExplainerAgent()
+    )
+
+    real_prov = geospatial_mod.get_nasa_data_provider(
+        data_path=str(tmp_path), profile="real"
+    )
+    assert isinstance(real_prov, geospatial_mod.RealNASADataProvider)
+    assert real_prov.enable_nasa_power is True
+
+    try:
+        with patch.object(geospatial_mod.httpx, "get", return_value=fake_resp):
+            app.dependency_overrides[simulacao.get_nasa_processor] = lambda: real_prov
+            with TestClient(app) as client:
+                resp = client.post(
+                    "/api/v1/simular-rotacao",
+                    json={
+                        "nome_propriedade": "Sítio Real A12",
+                        "coordenadas_poligono": [
+                            {"lat": -7.230, "lng": -35.880},
+                            {"lat": -7.236, "lng": -35.880},
+                            {"lat": -7.236, "lng": -35.874},
+                            {"lat": -7.230, "lng": -35.874},
+                        ],
+                        "nome_cultura": "Milho",
+                        "perfil_climatico": "real",
+                    },
+                )
+                assert resp.status_code == 200
+                body = resp.json()
+                assert body["fallback_usado"] is False
+                assert body["metricas_geoespaciais"]["perfil_climatico"] == "real"
+                assert body["metricas_geoespaciais"]["avg_precipitation_gpm"] == pytest.approx(1.75)
+                assert body["metricas_geoespaciais"]["area_hectares"] > 0
+                assert "ml_model_score" in body["rotacoes_sugeridas"][0]["score_breakdown"]
+    finally:
+        simulacao._SERVICE_CACHE.clear()
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(bind=engine)
