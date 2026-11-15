@@ -1,345 +1,349 @@
 import * as React from "react";
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
-import { Sparkles, X } from "lucide-react";
-import { Badge } from "./components/ui/badge";
-import { CropHistoryStep } from "./features/onboarding/components/CropHistoryStep";
-import { WaterDistributionStep } from "./features/onboarding/components/WaterDistributionStep";
-import type { CropHistoryData } from "./features/onboarding/types/cropHistory.types";
-import type {
-  WaterDistributionData,
-  WaterDistributionId,
-} from "./features/onboarding/types/waterDistribution.types";
-import { type MapCoordinate, MapTerrainPage } from "./pages/MapTerrainPage";
-import { type PlantationArea, PlantationsPage } from "./pages/PlantationsPage";
 import {
-  type CoordenadaApi,
-  type SimulacaoResponse,
-  type TerrenoResponse,
-  converterHistoricoParaLista,
-  extrairMetodoIrrigacao,
-  formatarAreaHectares,
-  mapearPrioridadesIrrigacao,
-  restaurarHistoricoDoTerreno,
-  simularRotacao,
-} from "./services/api";
+  ArrowRight,
+  ChevronLeft,
+  Pencil,
+  RotateCcw,
+  Wifi,
+  WifiOff,
+} from "lucide-react";
+import { Badge } from "./components/ui/badge";
+import { Button } from "./components/ui/button";
+import { CropHistoryStep } from "./features/onboarding/components/CropHistoryStep";
+import { PrioritiesStep } from "./features/onboarding/components/PrioritiesStep";
+import { SoilTypeStep } from "./features/onboarding/components/SoilTypeStep";
+import { WaterDistributionStep } from "./features/onboarding/components/WaterDistributionStep";
+import {
+  RecommendationsStep,
+  buildRecommendationsFromOnboarding,
+} from "./features/simulation/components/RecommendationsStep";
+import type {
+  CropHistoryData,
+  NetworkSyncStatus,
+} from "./features/onboarding/types/cropHistory.types";
+import type { PriorityData } from "./features/onboarding/types/priority.types";
+import type { SoilTypeData } from "./features/onboarding/types/soilType.types";
+import type { WaterDistributionData } from "./features/onboarding/types/waterDistribution.types";
+import type { RotationScenario } from "./features/simulation/types/recommendations.types";
+import { AreaDashboardPage } from "./pages/AreaDashboardPage";
+import { MapTerrainPage } from "./pages/MapTerrainPage";
+import {
+  PlantationsPage,
+  type PlantationArea,
+} from "./pages/PlantationsPage";
 
-interface OnboardingFlowState {
-  selectedArea: PlantationArea | null;
-  terrenoId: number | null;
-  nomePropriedade: string;
-  coordenadasPoligono: CoordenadaApi[];
-  prioridades: Record<string, unknown> | null;
-  cropHistory: CropHistoryData | null;
-  waterMethod: WaterDistributionId | null;
-}
-
-const INITIAL_FLOW_STATE: OnboardingFlowState = {
-  selectedArea: null,
-  terrenoId: null,
-  nomePropriedade: "",
-  coordenadasPoligono: [],
-  prioridades: null,
-  cropHistory: null,
-  waterMethod: null,
-};
-
-const WATER_RISK_LABELS: Record<string, string> = {
-  low: "Risco hídrico baixo",
-  medium: "Risco hídrico moderado",
-  high: "Risco hídrico alto",
-};
+type OnboardingStep =
+  | "plantations"
+  | "area-dashboard"
+  | "map-terrain"
+  | 1
+  | 2
+  | 3
+  | 4
+  | "summary"
+  | "recommendations";
 
 export function App() {
-  const navigate = useNavigate();
-  const [flowState, setFlowState] =
-    React.useState<OnboardingFlowState>(INITIAL_FLOW_STATE);
-  const [lastSimulation, setLastSimulation] =
-    React.useState<SimulacaoResponse | null>(null);
-  const [simulationError, setSimulationError] = React.useState<string | null>(
+  const [step, setStep] = React.useState<OnboardingStep>("plantations");
+  const [selectedArea, setSelectedArea] =
+    React.useState<PlantationArea | null>(null);
+  const [cropHistory, setCropHistory] = React.useState<CropHistoryData | null>(
     null
   );
-  const [isSimulating, setIsSimulating] = React.useState(false);
+  const [waterDistribution, setWaterDistribution] =
+    React.useState<WaterDistributionData | null>(null);
+  const [soilType, setSoilType] = React.useState<SoilTypeData | null>(null);
+  const [priority, setPriority] = React.useState<PriorityData | null>(null);
+  const [selectedPlan, setSelectedPlan] =
+    React.useState<RotationScenario | null>(null);
+  const [isOnline, setIsOnline] = React.useState<boolean>(() =>
+    typeof navigator !== "undefined" ? navigator.onLine : true
+  );
 
-  const handleStartCreateArea = () => {
-    setFlowState(INITIAL_FLOW_STATE);
-    setSimulationError(null);
-    navigate("/mapear-terreno");
-  };
+  React.useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
 
-  const handleSelectExistingArea = (area: PlantationArea) => {
-    setSimulationError(null);
-    setFlowState({
-      selectedArea: area,
-      terrenoId: area.terrenoId ?? null,
-      nomePropriedade: area.name,
-      coordenadasPoligono: area.coordenadasPoligono ?? [],
-      prioridades: area.prioridades ?? null,
-      cropHistory: null,
-      waterMethod: extrairMetodoIrrigacao(area.prioridades),
-    });
-    navigate("/onboarding/historico");
-  };
-
-  const handleAreaSaved = (
-    points: MapCoordinate[],
-    _areaHectares: number,
-    createdTerreno?: TerrenoResponse
-  ) => {
-    const coords =
-      createdTerreno?.coordenadas_poligono ??
-      points.map((point) => ({ lat: point.lat, lng: point.lng }));
-
-    setFlowState({
-      selectedArea: null,
-      terrenoId: createdTerreno?.id ?? null,
-      nomePropriedade: createdTerreno?.nome_propriedade ?? "Novo Terreno",
-      coordenadasPoligono: coords,
-      prioridades: createdTerreno?.prioridades ?? null,
-      cropHistory: null,
-      waterMethod: null,
-    });
-    navigate("/onboarding/historico");
-  };
-
-  const handleTerrenoUpdated = (updated: TerrenoResponse) => {
-    setFlowState((prev) => ({
-      ...prev,
-      terrenoId: updated.id,
-      nomePropriedade: updated.nome_propriedade,
-      coordenadasPoligono: updated.coordenadas_poligono,
-      prioridades: updated.prioridades ?? prev.prioridades,
-    }));
-  };
-
-  const handleCropHistoryContinue = (data: CropHistoryData) => {
-    const historicoLista = converterHistoricoParaLista(data);
-    setFlowState((prev) => ({
-      ...prev,
-      cropHistory: data,
-      prioridades: {
-        ...(prev.prioridades ?? {}),
-        historico_cultivos: historicoLista,
-        nao_lembra_historico: data.naoLembro,
-      },
-    }));
-    navigate("/onboarding/agua");
-  };
-
-  const handleWaterDistributionContinue = async (
-    data: WaterDistributionData
-  ) => {
-    const metodoId = data.metodoIrrigacao.id;
-    const prioridadesAtualizadas = {
-      ...(flowState.prioridades ?? {}),
-      ...mapearPrioridadesIrrigacao(metodoId, flowState.cropHistory),
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
-    const historicoLista = converterHistoricoParaLista(flowState.cropHistory);
+  }, []);
 
-    setFlowState((prev) => ({
-      ...prev,
-      waterMethod: metodoId,
-      prioridades: prioridadesAtualizadas,
-    }));
+  const networkStatus: NetworkSyncStatus = isOnline ? "salvo" : "offline";
 
-    setIsSimulating(true);
-    setSimulationError(null);
-    try {
-      const resultado = await simularRotacao({
-        terreno_id: flowState.terrenoId ?? undefined,
-        nome_propriedade: flowState.nomePropriedade || undefined,
-        coordenadas_poligono:
-          flowState.terrenoId === null &&
-          flowState.coordenadasPoligono.length >= 3
-            ? flowState.coordenadasPoligono
-            : undefined,
-        historico_cultivos: historicoLista,
-        prioridades: prioridadesAtualizadas,
-      });
-      setLastSimulation(resultado);
-    } catch (error) {
-      setSimulationError(
-        error instanceof Error
-          ? error.message
-          : "Dados salvos localmente, mas não foi possível executar a simulação na API."
-      );
-    } finally {
-      setIsSimulating(false);
-      navigate("/");
-    }
-  };
+  if (step === "summary") {
+    const cropHistoryLabel = cropHistory?.naoLembro
+      ? "Não lembrado"
+      : [
+          cropHistory?.ultimoCultivo?.officialName,
+          cropHistory?.cultivoAnterior?.officialName,
+        ]
+          .filter(Boolean)
+          .join(" → ") || "Não informado";
 
-  const handleAreaDeleted = (area: PlantationArea) => {
-    if (
-      lastSimulation &&
-      area.terrenoId !== undefined &&
-      lastSimulation.terreno_id === area.terrenoId
-    ) {
-      setLastSimulation(null);
-    }
-  };
-
-  const simulationBanner = React.useMemo(() => {
-    if (simulationError) {
-      return (
-        <div
-          role="alert"
-          className="rounded-2xl border border-[#C42311]/30 bg-[#C42311]/10 px-4 py-3 text-xs text-[#C42311]"
-        >
-          <div className="flex items-start justify-between gap-2">
-            <p className="font-medium">{simulationError}</p>
-            <button
-              type="button"
-              onClick={() => setSimulationError(null)}
-              aria-label="Fechar aviso da simulação"
-              className="shrink-0 rounded-lg p-1 hover:bg-[#C42311]/10"
-            >
-              <X className="h-3.5 w-3.5" aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    if (!lastSimulation) {
-      return null;
-    }
-
-    const areaHaRaw = lastSimulation.metricas_geoespaciais?.area_hectares;
-    const areaHa = typeof areaHaRaw === "number" ? areaHaRaw : null;
+    const reviewItems: Array<{
+      label: string;
+      value: string;
+      targetStep: 1 | 2 | 3 | 4;
+    }> = [
+      {
+        label: "Histórico de Cultivos",
+        value: cropHistoryLabel,
+        targetStep: 1,
+      },
+      {
+        label: "Distribuição Hídrica",
+        value:
+          waterDistribution?.metodoIrrigacao.title ?? "Não informado",
+        targetStep: 2,
+      },
+      {
+        label: "Tipo de Solo",
+        value: soilType?.tipoSolo.title ?? "Não informado",
+        targetStep: 3,
+      },
+      {
+        label: "Prioridade",
+        value: priority?.culturaDesejada
+          ? `${priority.prioridade.title} (${priority.culturaDesejada.officialName})`
+          : (priority?.prioridade.title ?? "Não informado"),
+        targetStep: 4,
+      },
+    ];
 
     return (
-      <section
-        aria-label="Resultado da última simulação"
-        className="rounded-2xl border border-[#CAD17A] bg-white p-4 shadow-sm"
-      >
-        <div className="flex items-start justify-between gap-2">
+      <div className="min-h-dvh w-full bg-[#F7F6F0] text-[#1F1C18] md:flex md:items-center md:justify-center md:bg-[#EFECE3] md:p-6">
+        <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between bg-[#F7F6F0] px-5 pb-8 pt-6 md:min-h-[680px] md:rounded-3xl md:border md:border-[#E6E4DA] md:px-7 md:py-8 md:shadow-sm">
           <div>
-            <Badge variant="saved">
-              <Sparkles className="h-3 w-3" aria-hidden="true" />
-              <span>Simulação concluída</span>
-            </Badge>
-            <h2 className="mt-2 text-[16px] font-bold text-[#511D4E]">
-              {lastSimulation.nome_propriedade}
-            </h2>
-            {areaHa !== null && (
-              <p className="text-xs text-[#6D6960]">
-                Área analisada: {formatarAreaHectares(areaHa)}
+            <header className="flex items-center justify-between gap-4">
+              <span className="text-2xl font-extrabold tracking-tight text-[#511D4E]">
+                Kultiva
+              </span>
+
+              <Badge
+                variant={isOnline ? "saved" : "offline"}
+                aria-live="polite"
+              >
+                {isOnline ? (
+                  <Wifi className="h-3.5 w-3.5" aria-hidden="true" />
+                ) : (
+                  <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
+                )}
+                <span>{isOnline ? "Salvo" : "Sem internet"}</span>
+              </Badge>
+            </header>
+
+            <main className="mt-8">
+              <h1 className="text-[26px] font-bold leading-tight tracking-tight text-[#511D4E] sm:text-[28px]">
+                Confirme sua área
+              </h1>
+              <p className="mt-1.5 text-sm text-[#6D6960] sm:text-base">
+                Revise tudo o que você marcou antes de comparar os caminhos de
+                plantio.
               </p>
-            )}
+
+              <ul className="mt-6 flex flex-col gap-3">
+                {reviewItems.map((item) => (
+                  <li
+                    key={item.label}
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-[#E6E4DA] bg-white px-4 py-3.5"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6D6960]">
+                        {item.label}
+                      </p>
+                      <p className="mt-0.5 text-base font-bold text-[#1F1C18]">
+                        {item.value}
+                      </p>
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setStep(item.targetStep)}
+                      className="shrink-0 px-2.5 text-xs font-semibold text-[#511D4E]"
+                    >
+                      <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span>Alterar</span>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </main>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setLastSimulation(null)}
-            aria-label="Fechar resumo da simulação"
-            className="flex h-8 w-8 items-center justify-center rounded-xl text-[#6D6960] hover:bg-[#EFECE3]"
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </button>
-        </div>
+          <footer className="mt-8 flex flex-col items-center gap-3 pt-4">
+            <Button
+              type="button"
+              variant="primary"
+              size="lg"
+              onClick={() => {
+                setSelectedPlan(null);
+                setStep("recommendations");
+              }}
+              className="w-full"
+            >
+              <span>Confirmar e comparar</span>
+              <ArrowRight className="h-5 w-5" aria-hidden="true" />
+            </Button>
 
-        <div className="mt-3 space-y-2">
-          {lastSimulation.rotacoes_sugeridas.slice(0, 3).map((item) => {
-            const pct = Math.round(item.viability * 100);
-            const riskLabel =
-              WATER_RISK_LABELS[item.water_risk.toLowerCase()] ??
-              `Risco: ${item.water_risk}`;
-
-            return (
-              <div
-                key={item.strategy}
-                className="rounded-xl border border-[#E6E4DA] bg-[#F7F6F0] px-3 py-2.5"
+            <div className="flex w-full items-center justify-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setStep(4)}
+                className="text-sm font-semibold text-[#511D4E]"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[13px] font-bold text-[#1F1C18]">
-                    {item.strategy}
-                  </span>
-                  <span className="shrink-0 text-[12px] font-bold text-[#511D4E]">
-                    {pct}% viável
-                  </span>
-                </div>
-                <p className="mt-0.5 text-[11px] font-medium text-[#6D6960]">
-                  {riskLabel}
-                  {item.benefits ? ` • ${item.benefits}` : ""}
-                </p>
-              </div>
-            );
-          })}
-        </div>
+                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                <span>Voltar</span>
+              </Button>
 
-        <p className="mt-3 text-[12px] leading-relaxed text-[#6D6960]">
-          {lastSimulation.explicacao_ia}
-        </p>
-      </section>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setCropHistory(null);
+                  setWaterDistribution(null);
+                  setSoilType(null);
+                  setPriority(null);
+                  setStep(1);
+                }}
+                className="text-sm font-semibold text-[#6D6960]"
+              >
+                <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                <span>Reiniciar</span>
+              </Button>
+            </div>
+          </footer>
+        </div>
+      </div>
     );
-  }, [lastSimulation, simulationError]);
+  }
+
+  if (step === "recommendations") {
+    const { areaSummary, scenarios } = buildRecommendationsFromOnboarding({
+      cropHistory,
+      waterDistribution,
+      soilType,
+      priority,
+    });
+
+    return (
+      <>
+        {selectedPlan && (
+          <div
+            role="status"
+            className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border border-[#91C494] bg-[#1E3B21] px-4 py-2.5 text-xs font-semibold text-white shadow-lg"
+          >
+            <span>
+              Plano selecionado: {selectedPlan.optionBadge} (
+              {selectedPlan.steps.map((s) => s.name).join(" → ")})
+            </span>
+          </div>
+        )}
+
+        <RecommendationsStep
+          areaSummary={areaSummary}
+          scenarios={scenarios}
+          networkStatus={networkStatus}
+          onSelectPlan={(scenario) => setSelectedPlan(scenario)}
+          onBack={() => {
+            setSelectedPlan(null);
+            setStep("summary");
+          }}
+        />
+      </>
+    );
+  }
+
+  if (step === 4) {
+    return (
+      <PrioritiesStep
+        initialValue={priority?.prioridade.id ?? null}
+        initialTargetCrop={priority?.culturaDesejada ?? null}
+        networkStatus={networkStatus}
+        onBack={() => setStep(3)}
+        onContinue={(data) => {
+          setPriority(data);
+          setStep("summary");
+        }}
+      />
+    );
+  }
+
+  if (step === 3) {
+    return (
+      <SoilTypeStep
+        initialValue={soilType?.tipoSolo.id ?? null}
+        networkStatus={networkStatus}
+        onBack={() => setStep(2)}
+        onContinue={(data) => {
+          setSoilType(data);
+          setStep(4);
+        }}
+      />
+    );
+  }
+
+  if (step === 2) {
+    return (
+      <WaterDistributionStep
+        initialValue={waterDistribution?.metodoIrrigacao.id ?? null}
+        networkStatus={networkStatus}
+        onBack={() => setStep(1)}
+        onContinue={(data) => {
+          setWaterDistribution(data);
+          setStep(3);
+        }}
+      />
+    );
+  }
+
+  if (step === "plantations") {
+    return (
+      <PlantationsPage
+        onCreateArea={() => setStep("map-terrain")}
+        onSelectArea={(area) => {
+          setSelectedArea(area);
+          setStep("area-dashboard");
+        }}
+      />
+    );
+  }
+
+  if (step === "area-dashboard") {
+    return (
+      <AreaDashboardPage
+        areaLocation={selectedArea?.name}
+        networkStatus={networkStatus}
+        onBack={() => setStep("plantations")}
+      />
+    );
+  }
+
+  if (step === "map-terrain") {
+    return (
+      <MapTerrainPage
+        onBack={() => setStep("plantations")}
+        onSaveArea={() => setStep(1)}
+      />
+    );
+  }
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          <PlantationsPage
-            onCreateArea={handleStartCreateArea}
-            onSelectArea={handleSelectExistingArea}
-            onAreaDeleted={handleAreaDeleted}
-            simulationBanner={simulationBanner}
-          />
-        }
-      />
-
-      <Route
-        path="/mapear-terreno"
-        element={
-          <MapTerrainPage
-            onBack={() => navigate("/")}
-            onSaveArea={handleAreaSaved}
-          />
-        }
-      />
-
-      <Route
-        path="/onboarding/historico"
-        element={
-          <CropHistoryStep
-            key={`history-${flowState.terrenoId ?? "draft"}`}
-            terrenoId={flowState.terrenoId}
-            existingPrioridades={flowState.prioridades}
-            initialData={
-              flowState.cropHistory ??
-              restaurarHistoricoDoTerreno(flowState.prioridades)
-            }
-            onTerrenoUpdated={handleTerrenoUpdated}
-            onBack={() =>
-              navigate(flowState.selectedArea ? "/" : "/mapear-terreno")
-            }
-            onContinue={handleCropHistoryContinue}
-          />
-        }
-      />
-
-      <Route
-        path="/onboarding/agua"
-        element={
-          <WaterDistributionStep
-            key={`water-${flowState.terrenoId ?? "draft"}`}
-            terrenoId={flowState.terrenoId}
-            existingPrioridades={flowState.prioridades}
-            cropHistory={flowState.cropHistory}
-            initialValue={
-              flowState.waterMethod ??
-              extrairMetodoIrrigacao(flowState.prioridades)
-            }
-            isSubmitting={isSimulating}
-            onTerrenoUpdated={handleTerrenoUpdated}
-            onBack={() => navigate("/onboarding/historico")}
-            onContinue={handleWaterDistributionContinue}
-          />
-        }
-      />
-
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <CropHistoryStep
+      initialData={cropHistory ?? undefined}
+      networkStatus={networkStatus}
+      onBack={() => setStep("plantations")}
+      onContinue={(data) => {
+        setCropHistory(data);
+        setStep(2);
+      }}
+    />
   );
 }
 
