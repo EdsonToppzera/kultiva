@@ -68,10 +68,12 @@ O escopo original do desafio combinava observações da Terra da NASA com bases 
 - **RotationExplainerAgent (Implementado):**
   - Google Gemini (`gemini-2.5-flash`, configurável via `GEMINI_MODEL`, ou `FakeListLLM` offline quando `GOOGLE_API_KEY` não estiver definida) via `langchain-google-genai`, traduzindo `score_breakdown`, `kg/ha`, grupo de solo HWSD v2.01, fator limitante (`SQ-IDX`), declividade e alertas/relatórios.
   - **Regra de Segurança Mandatória:** toda explicação garante a presença do aviso (`DISCLAIMER`) de que a ferramenta apoia a decisão, mas a palavra final é sempre do produtor.
-- **O que ainda NÃO foi implementado em ML / Dados (Backlog Técnico):**
+- **O que ainda NÃO foi implementado / Próximas evoluções planejadas (ML & Dados):**
+  - **ECOCROP (FAO) + AGROFIT (Embrapa/MAPA):** integrar `EcoCrop_DB` (`Scientific Name`, `Family`, `TMIN`/`TMAX`, `TOPMIN`/`TOPMAX`, `RMIN`/`RMAX`, `GMIN`/`GMAX`) cruzado pelo nome científico com a API **Agrofit** e com gatilhos climáticos da NASA (SMAP/ECOSTRESS/NASA POWER) para calcular risco fitossanitário — usando família botânica apenas como sinal informativo/penalização de quebra de ciclo no `CropSimulator`, **sem bloquear** culturas de agricultores de subsistência (`A15–A16`).
+  - **Z-score de anomalia climática histórica:** comparar a janela atual do polígono contra a média histórica do mesmo período via NASA POWER (`A17`).
+  - **Explicação estruturada com evidências numéricas + SRTM 30 m:** estruturar blocos explicativos com os números exatos dos satélites/solo/ECOCROP/Agrofit para exibição em cards no frontend e incorporar elevação/declividade **SRTM 30 m** e **Sentinel-2 / Landsat (HLS)** (`A18`).
   - **Retreino supervisionado com safras reais brasileiras:** o `RandomForestRegressor` atual é treinado em memória sobre uma grade sintética de 400 cenários agronômicos e calibrado em runtime pelos rasters reais do GAEZ v5; falta pipeline offline com dados históricos reais de produtividade (IBGE PAM / CONAB / Embrapa) e artefato versionado.
-  - **Expansão ECOCROP & PyAEZ:** atualmente há 13 culturas brasileiras mapeadas em `GAEZ_SUITABILITY_CROPS`; ainda não foram integradas a ingestão automática do catálogo completo **ECOCROP** (72+ culturas GAEZ) nem a biblioteca **PyAEZ** para cálculo local com microclima de estação.
-  - **Alta resolução espacial (10–30 m) e novos sensores:** falta processar rasters **Sentinel-2 / Landsat (HLS)** e **SRTM 30 m** no módulo `[M1]`, bem como ingestão direta de **ERA5**, **VIIRS** e focos de calor **NASA FIRMS**.
+  - **PyAEZ, ERA5 nativo, VIIRS e NASA FIRMS:** biblioteca **PyAEZ** para cálculo local com microclima de estação e ingestão direta de focos de calor/reanálise.
 
 ---
 
@@ -128,12 +130,18 @@ Após iniciar os containers (e o frontend via `cd frontend && npm run dev`):
 - **Backend Completo & Infra (`A1–A14`, `B1–B8`, `C1–C9`):** CRUD de terrenos, culturas/rotações (proteção `is_seed`), simulação, calendário maleável, alertas com monitor em background e perfil simulável sob demanda (`monitorar-clima`), relatórios com comparativo, PostgreSQL + Alembic, 70 testes automatizados (`pytest backend/tests`), CI e `POST /api/v1/demo/seed`.
 - **Frontend (`F1–F2` concluídos):** Vite + React Router (`App.tsx`), cliente HTTP (`services/api.ts`), `PlantationsPage.tsx`, `MapTerrainPage.tsx`, `CropHistoryStep.tsx` e `WaterDistributionStep.tsx` conectados ao backend.
 
-### O que ainda falta fazer (`F3` e Finalização)
-1. **Task `F3` no Frontend (`frontend/src/pages/`):**
-   - Tela completa de Simulação `[M3]` exibindo as 3 estratégias, `score_breakdown` (incluindo `gaez_suitability`, `attainable_yield_kg_ha`, `soil_quality_index`, `cmip6_suitability_delta`), dados de solo HWSD v2.01 e explicação IA com disclaimer.
+### O que ainda falta fazer (`A15–A18`, `F3` e Finalização)
+1. **Rodada 4 de Dados, ML e IA (`A15–A18`):**
+   - **`A15` (ECOCROP):** provedor direto da base **ECOCROP** extraindo `Scientific Name`, `Family`, `TMIN`/`TMAX`, `TOPMIN`/`TOPMAX`, `RMIN`/`RMAX` e `GMIN`/`GMAX`.
+   - **`A16` (AGROFIT × NASA):** provedor da API **Agrofit** (Embrapa AgroAPI) cruzado por `Scientific Name` com o ECOCROP e gatilhos climáticos NASA (umidade SMAP/POWER + temperatura ECOSTRESS/POWER) para risco fitossanitário no `CropSimulator` (penalização/aviso não-bloqueante para preservar culturas de subsistência).
+   - **`A17` (Z-score Climático):** cálculo de Z-score climático histórico via NASA POWER no `ClimateAnomalyDetector` para qualificar desvios da época atual.
+   - **`A18` (Explicação Estruturada + SRTM):** melhorar `RotationExplainerAgent` e o retorno da API para entregar blocos estruturados com os números reais (para cards no frontend) e integrar relevo **SRTM 30 m** / **HLS** quando aplicável.
+2. **Task `F3` no Frontend (`frontend/src/pages/`):**
+   - Tela completa de Simulação `[M3]` exibindo as 3 estratégias, blocos estruturados com os números importantes (`score_breakdown`, `gaez_suitability`, `attainable_yield_kg_ha`, solo HWSD v2.01, limites ECOCROP, risco fitossanitário Agrofit, Z-score e explicação IA com disclaimer).
    - Consumo de `GET /api/v1/culturas/aptidao-gaez` no fluxo `[M2]` para sugerir culturas/sementes viáveis na região e permitir `sincronizar_catalogo`.
-   - Telas integradas de Calendário `[M4]` (marcação de conclusão e geração via estratégia), Alertas Climáticos `[M5]` (painel de não lidos e disparo demo em 1 clique via `/alertas/monitorar-clima`) e Relatórios `[M6]`.
-2. **Ensaio Final da Demo & Deploy:**
+   - Telas integradas de Calendário `[M4]`, Alertas Climáticos `[M5]` e Relatórios `[M6]`.
+   - *Decisões de escopo mantidas:* **não** aplicar bloqueio rígido por família botânica (para não restringir agricultura de subsistência), **não** usar presets regionais no mapa e **não** usar sliders de simulação *What-If*.
+3. **Ensaio Final da Demo & Deploy:**
    - Validar o fluxo completo `[M1] -> [M2] -> [M3] -> [M4]/[M5] -> [M6]` no navegador usando `POST /api/v1/demo/seed`.
 
 ### Sugestões de Evolução (Produto, UX e Ciência de Dados)
