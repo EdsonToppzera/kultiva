@@ -13,6 +13,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { KultivaLogo } from "../../../components/KultivaLogo";
+import { KultivaLoader } from "../../../components/KultivaLoader";
 import { LanguageSelector } from "../../../components/LanguageSelector";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
@@ -590,9 +591,11 @@ export function RecommendationsStep({
           {/* Grid Responsivo de Cartões */}
           <main className="mt-6">
             {isLoading ? (
-              <div className="flex items-center justify-center gap-3 rounded-3xl border border-[#E6E4DA] bg-white px-6 py-12 text-sm font-semibold text-[#511D4E]">
-                <RefreshCw className="h-5 w-5 animate-spin" aria-hidden="true" />
-                <span>{t("simulation.calculating")}</span>
+              <div className="flex items-center justify-center rounded-3xl border border-[#E6E4DA] bg-white px-6 py-12">
+                <KultivaLoader
+                  fullscreen={false}
+                  label={t("simulation.calculating")}
+                />
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:items-start">

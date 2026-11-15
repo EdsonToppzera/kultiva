@@ -8,6 +8,7 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
+import { KultivaLoader } from "./components/KultivaLoader";
 import { KultivaLogo } from "./components/KultivaLogo";
 import { LanguageSelector } from "./components/LanguageSelector";
 import { Badge } from "./components/ui/badge";
@@ -139,6 +140,11 @@ export function App() {
   >(null);
   const [isSimulating, setIsSimulating] = React.useState(false);
   const [isGeneratingSchedule, setIsGeneratingSchedule] = React.useState(false);
+  const [showLoaderPreview, setShowLoaderPreview] = React.useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    const params = new URLSearchParams(window.location.search);
+    return params.get("loading") === "1" || params.get("loader") === "1";
+  });
   const [isOnline, setIsOnline] = React.useState<boolean>(() =>
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
@@ -286,7 +292,8 @@ export function App() {
     setStep("area-dashboard");
   };
 
-  if (step === "summary") {
+  const renderStep = () => {
+    if (step === "summary") {
     const cropHistoryLabel = cropHistory?.naoLembro
       ? t("review.dontRemember")
       : [
@@ -687,6 +694,30 @@ export function App() {
         setStep(2);
       }}
     />
+  );
+  };
+
+  const isGlobalLoading = isSimulating || isGeneratingSchedule || showLoaderPreview;
+
+  return (
+    <>
+      {renderStep()}
+      {isGlobalLoading && (
+        <KultivaLoader
+          fullscreen
+          label={
+            isGeneratingSchedule
+              ? "Gerando cronograma..."
+              : "Carregando..."
+          }
+          onClosePreview={
+            showLoaderPreview && !isSimulating && !isGeneratingSchedule
+              ? () => setShowLoaderPreview(false)
+              : undefined
+          }
+        />
+      )}
+    </>
   );
 }
 
