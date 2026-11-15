@@ -59,15 +59,25 @@ export function RecommendationCard({
   );
 
   const prepPanelId = `prep-info-${scenario.id}`;
+  const getAltName = (alt: RotationAlternativeCrop) =>
+    t(`simulation.coverAlternatives.${alt.id}.name`, { defaultValue: alt.name });
+  const getAltReason = (alt: RotationAlternativeCrop) =>
+    t(`simulation.coverAlternatives.${alt.id}.reason`, {
+      defaultValue: alt.reason,
+    });
   const selectedAlternative = prepStep?.alternatives?.find(
-    (alt) => alt.name.toLowerCase() === prepStep.name.toLowerCase()
+    (alt) =>
+      getAltName(alt).toLowerCase() === prepStep.name.toLowerCase() ||
+      alt.name.toLowerCase() === prepStep.name.toLowerCase()
   );
   const otherAlternatives =
     prepStep?.alternatives?.filter(
-      (alt) => alt.name.toLowerCase() !== prepStep.name.toLowerCase()
+      (alt) =>
+        getAltName(alt).toLowerCase() !== prepStep.name.toLowerCase() &&
+        alt.name.toLowerCase() !== prepStep.name.toLowerCase()
     ) ?? [];
   const alternativesSummary = otherAlternatives
-    .map((alt) => alt.name)
+    .map((alt) => getAltName(alt))
     .join(", ");
 
   return (
@@ -161,7 +171,9 @@ export function RecommendationCard({
                 </p>
                 <p className="mt-1">
                   {prepStep.prepReason ??
-                    selectedAlternative?.reason ??
+                    (selectedAlternative
+                      ? getAltReason(selectedAlternative)
+                      : null) ??
                     t("simulation.whyPlantFallback", { plant: prepStep.name })}
                 </p>
               </div>
@@ -184,7 +196,7 @@ export function RecommendationCard({
                           key={alt.id}
                           className="inline-flex items-center rounded-full border border-[#E6E4DA] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#511D4E]"
                         >
-                          {alt.name}
+                          {getAltName(alt)}
                         </span>
                       ))}
                     </div>

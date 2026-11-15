@@ -1,4 +1,5 @@
 import { CROPS_DICTIONARY } from "../data/cropsDictionary";
+import i18n from "../i18n";
 import type {
   AreaCalendarData,
   CalendarDayHighlight,
@@ -79,13 +80,101 @@ function parseStrategySteps(strategy: string): string[] {
     .filter(Boolean);
 }
 
+const EN_CROP_NAMES_BY_KEY: Record<string, string> = {
+  milho: "Corn",
+  mandioca: "Cassava",
+  "feijao-carioca": "Pinto bean",
+  "feijao-caupi": "Cowpea",
+  "feijao-de-corda": "Cowpea",
+  "feijao-de-porco": "Jack bean",
+  soja: "Soybean",
+  sorgo: "Sorghum",
+  milheto: "Pearl millet",
+  crotalaria: "Sunn hemp",
+  crotalária: "Sunn hemp",
+  amendoim: "Peanut",
+  guandu: "Pigeon pea",
+  "feijao-guandu": "Pigeon pea",
+  girassol: "Sunflower",
+  algodao: "Cotton",
+  algodão: "Cotton",
+  arroz: "Rice",
+  cafe: "Coffee",
+  café: "Coffee",
+  tomate: "Tomato",
+  abobora: "Pumpkin",
+  abóbora: "Pumpkin",
+  "batata-doce": "Sweet potato",
+  mucuna: "Velvet bean",
+  braquiaria: "Brachiaria",
+  braquiária: "Brachiaria",
+};
+
+function translateCropStepName(name: string, isEnglish: boolean): string {
+  if (isRestStepName(name)) {
+    return i18n.t("simulation.restStep");
+  }
+  if (!isEnglish) return name;
+  const normalized = name.trim().toLowerCase();
+  if (EN_CROP_NAMES_BY_KEY[normalized]) {
+    return EN_CROP_NAMES_BY_KEY[normalized];
+  }
+  const match = CROPS_DICTIONARY.find(
+    (crop) =>
+      crop.officialName.toLowerCase() === normalized ||
+      crop.popularNames.some((alias) => alias.toLowerCase() === normalized)
+  );
+  if (match && EN_CROP_NAMES_BY_KEY[match.id]) {
+    return EN_CROP_NAMES_BY_KEY[match.id];
+  }
+  return name;
+}
+
+function translateWaterRisk(risk: string, isEnglish: boolean): string {
+  const lower = (risk || "").trim().toLowerCase();
+  if (lower === "low" || lower === "baixo" || lower === "baixa") {
+    return isEnglish ? "low" : "baixo";
+  }
+  if (
+    lower === "medium" ||
+    lower === "moderate" ||
+    lower === "medio" ||
+    lower === "médio" ||
+    lower === "moderado"
+  ) {
+    return isEnglish ? "medium" : "médio";
+  }
+  if (
+    lower === "high" ||
+    lower === "alto" ||
+    lower === "alta" ||
+    lower === "critico" ||
+    lower === "crítico"
+  ) {
+    return isEnglish ? "high" : "alto";
+  }
+  return risk;
+}
+
 function mapFocusTag(priority?: PriorityData | null, index = 0): string {
-  if (priority?.prioridade.id === "retorno_rapido") return "RETORNO RÁPIDO";
-  if (priority?.prioridade.id === "consumo_racao") return "ALIMENTO E RAÇÃO";
-  if (priority?.prioridade.id === "gastar_minimo") return "MENOR CUSTO";
-  if (priority?.prioridade.id === "limpar_terra") return "CONTROLE DE PRAGAS";
-  if (priority?.prioridade.id === "plantar_especifico") return "CULTURA DESEJADA";
-  return index === 0 ? "FOCO NO SOLO" : "EQUILÍBRIO DA ÁREA";
+  if (priority?.prioridade.id === "retorno_rapido") {
+    return i18n.t("simulation.focusTags.fastReturn");
+  }
+  if (priority?.prioridade.id === "consumo_racao") {
+    return i18n.t("simulation.focusTags.foodFeed");
+  }
+  if (priority?.prioridade.id === "gastar_minimo") {
+    return i18n.t("simulation.focusTags.lowestCost");
+  }
+  if (priority?.prioridade.id === "limpar_terra") {
+    return i18n.t("simulation.focusTags.pestControl");
+  }
+  if (priority?.prioridade.id === "plantar_especifico") {
+    return i18n.t("simulation.focusTags.targetCrop");
+  }
+  return index === 0
+    ? i18n.t("simulation.focusTags.soilFocus")
+    : i18n.t("simulation.focusTags.plotBalance");
 }
 
 function resolveVariant(
@@ -105,16 +194,56 @@ function resolveVariant(
   return "standard";
 }
 
+const EN_BENEFIT_PHRASES: Array<[string, string]> = [
+  [
+    "Mercado estabelecido e cadeia de comercialização consolidada",
+    "Established market and consolidated supply chain",
+  ],
+  [
+    "Alta tolerância à seca, fixa nitrogênio",
+    "High drought tolerance, fixes nitrogen",
+  ],
+  ["Melhora a estrutura do solo", "Improves soil structure"],
+  [
+    "Rústica, cobre o solo e controla nematoides",
+    "Hardy crop, covers the soil and helps control nematodes",
+  ],
+  [
+    "Feijão fixa nitrogênio para o milho seguinte",
+    "Beans fix nitrogen for the following corn crop",
+  ],
+  ["Prática atual do produtor", "Current farm practice"],
+  [
+    "Rotação preferencial cadastrada pelo produtor",
+    "Preferred rotation registered by the farmer",
+  ],
+];
+
+function translateKnownBenefit(benefit: string, isEnglish: boolean): string {
+  if (!isEnglish) return benefit;
+  let translated = benefit;
+  for (const [pt, en] of EN_BENEFIT_PHRASES) {
+    if (translated.includes(pt)) {
+      translated = translated.replace(pt, en);
+    }
+  }
+  return translated
+    .replace(/Aptidão FAO GAEZ v5/g, "FAO GAEZ v5 suitability")
+    .replace(/produtividade atingível média/g, "avg attainable yield")
+    .replace(/GAEZ v5: aptidão/g, "GAEZ v5: suitability");
+}
+
 function buildProsAndCons(
   item: EstrategiaRotacaoSugerida,
   response: SimulacaoResponse,
-  variant: RecommendationCardVariant
+  variant: RecommendationCardVariant,
+  isEnglish: boolean
 ): { pros: string[]; cons: string[] } {
   const pros: string[] = [];
   const cons: string[] = [];
 
   if (item.benefits) {
-    pros.push(item.benefits);
+    pros.push(translateKnownBenefit(item.benefits, isEnglish));
   }
   for (const beneficio of response.beneficios_esperados.slice(0, 2)) {
     if (!pros.includes(beneficio)) {
@@ -122,12 +251,18 @@ function buildProsAndCons(
     }
   }
   if (pros.length === 0) {
-    pros.push("Ajuda a equilibrar o solo e reduzir perdas na lavoura.");
+    pros.push(
+      isEnglish
+        ? "Helps balance the soil and reduce crop losses."
+        : "Ajuda a equilibrar o solo e reduzir perdas na lavoura."
+    );
   }
 
   if (variant === "risk") {
     cons.push(
-      `Risco hídrico ${item.water_risk.toLowerCase()} para o período previsto.`
+      isEnglish
+        ? `Water risk (${translateWaterRisk(item.water_risk, true)}) for the forecasted period.`
+        : `Risco hídrico ${translateWaterRisk(item.water_risk, false)} para o período previsto.`
     );
   }
   for (const risco of response.riscos_identificados.slice(0, 2)) {
@@ -136,7 +271,11 @@ function buildProsAndCons(
     }
   }
   if (cons.length === 0) {
-    cons.push("Requer acompanhamento periódico de umidade e pragas.");
+    cons.push(
+      isEnglish
+        ? "Requires periodic monitoring of soil moisture and pests."
+        : "Requer acompanhamento periódico de umidade e pragas."
+    );
   }
 
   return { pros, cons };
@@ -144,16 +283,23 @@ function buildProsAndCons(
 
 function buildNpkTable(
   steps: RotationTrackStep[],
-  breakdown?: Record<string, unknown> | null
+  breakdown?: Record<string, unknown> | null,
+  isEnglish = false
 ): TechnicalNpkRow[] {
   const hasLegume = steps.some((s) => {
     const n = s.name.toLowerCase();
     return (
       n.includes("feij") ||
+      n.includes("bean") ||
+      n.includes("cowpea") ||
+      n.includes("soy") ||
       n.includes("crotal") ||
+      n.includes("sunn") ||
       n.includes("guandu") ||
+      n.includes("pigeon") ||
       n.includes("soja") ||
-      n.includes("amendoim")
+      n.includes("amendoim") ||
+      n.includes("peanut")
     );
   });
 
@@ -162,24 +308,40 @@ function buildNpkTable(
 
   return [
     {
-      nutrient: "Nitrogênio (N)",
-      requirementLevel: hasLegume ? "Baixo" : "Alto",
+      nutrient: isEnglish ? "Nitrogen (N)" : "Nitrogênio (N)",
+      requirementLevel: hasLegume
+        ? isEnglish
+          ? "Low"
+          : "Baixo"
+        : isEnglish
+          ? "High"
+          : "Alto",
       impact: hasLegume
-        ? "Leguminosas da rotação ajudam a fixar nitrogênio no solo."
-        : "Exige adubação nitrogenada de cobertura para manter vigor.",
+        ? isEnglish
+          ? "Legumes in the rotation help fix nitrogen in the soil."
+          : "Leguminosas da rotação ajudam a fixar nitrogênio no solo."
+        : isEnglish
+          ? "Requires top-dressing nitrogen fertilization to maintain vigor."
+          : "Exige adubação nitrogenada de cobertura para manter vigor.",
     },
     {
-      nutrient: "Fósforo (P)",
-      requirementLevel: "Médio",
+      nutrient: isEnglish ? "Phosphorus (P)" : "Fósforo (P)",
+      requirementLevel: isEnglish ? "Medium" : "Médio",
       impact:
         soilBonus && soilBonus > 0.7
-          ? "Bom aproveitamento radicular com a rotação sugerida."
-          : "Favorece o enraizamento inicial e pegamento das mudas.",
+          ? isEnglish
+            ? "Good root uptake with the suggested rotation."
+            : "Bom aproveitamento radicular com a rotação sugerida."
+          : isEnglish
+            ? "Supports early rooting and seedling establishment."
+            : "Favorece o enraizamento inicial e pegamento das mudas.",
     },
     {
-      nutrient: "Potássio (K)",
-      requirementLevel: "Médio",
-      impact: "Contribui para resistência à falta de água e qualidade da colheita.",
+      nutrient: isEnglish ? "Potassium (K)" : "Potássio (K)",
+      requirementLevel: isEnglish ? "Medium" : "Médio",
+      impact: isEnglish
+        ? "Supports drought resistance and harvest quality."
+        : "Contribui para resistência à falta de água e qualidade da colheita.",
     },
   ];
 }
@@ -193,9 +355,15 @@ export function adaptSimulacaoToScenarios(
     priority?: PriorityData | null;
   }
 ): RotationScenario[] {
+  const isEnglish = (i18n.language || "").toLowerCase().startsWith("en");
   const lastCropName = onboarding.cropHistory?.naoLembro
     ? null
-    : onboarding.cropHistory?.ultimoCultivo?.officialName ?? null;
+    : onboarding.cropHistory?.ultimoCultivo
+      ? translateCropStepName(
+          onboarding.cropHistory.ultimoCultivo.officialName,
+          isEnglish
+        )
+      : null;
 
   const sugeridas =
     response.rotacoes_sugeridas.length > 0
@@ -230,21 +398,23 @@ export function adaptSimulacaoToScenarios(
       const isRest = isRestStepName(name);
       const isCover = isCoverStepName(name);
 
-      let statusLabel = "Depois";
+      let statusLabel = i18n.t("simulation.stepStatus.after");
       if (isFirstLastCrop) {
         statusLabel = onboarding.cropHistory?.cultivoEmAndamento
-          ? "Plantado agora"
-          : "Já colhido";
+          ? i18n.t("simulation.stepStatus.plantedNow")
+          : i18n.t("simulation.stepStatus.alreadyHarvested");
       } else if (
         stepIndex === 0 ||
         (lastCropName !== null && stepIndex === 1)
       ) {
-        statusLabel = "A seguir";
+        statusLabel = i18n.t("simulation.stepStatus.next");
       }
+
+      const displayName = translateCropStepName(name, isEnglish);
 
       return {
         id: `sim-${idx}-step-${stepIndex}-${name.toLowerCase().replace(/\s+/g, "-")}`,
-        name,
+        name: displayName,
         statusLabel,
         imageUrl: isRest ? null : findCropImage(name),
         isRest,
@@ -256,7 +426,7 @@ export function adaptSimulacaoToScenarios(
     });
 
     const variant = resolveVariant(item, idx);
-    const { pros, cons } = buildProsAndCons(item, response, variant);
+    const { pros, cons } = buildProsAndCons(item, response, variant, isEnglish);
     const cycleDays =
       idx === 0 && response.tempo_colheita_dias > 0
         ? response.tempo_colheita_dias
@@ -269,7 +439,9 @@ export function adaptSimulacaoToScenarios(
 
     return {
       id: `sim-scenario-${idx + 1}`,
-      optionBadge: `${idx + 1}ª Opção`,
+      optionBadge: i18n.t(`simulation.optionBadges.${idx + 1}`, {
+        defaultValue: i18n.t("simulation.optionBadge", { count: idx + 1 }),
+      }),
       focusTag: mapFocusTag(onboarding.priority, idx),
       variant,
       steps,
@@ -277,23 +449,31 @@ export function adaptSimulacaoToScenarios(
         item.explicacao ||
         response.explicacao_ia ||
         response.explicacao_textual ||
-        "Rotação calculada com base no histórico da área e condições climáticas.",
+        (isEnglish
+          ? "Rotation calculated from your plot history and climate conditions."
+          : "Rotação calculada com base no histórico da área e condições climáticas."),
       pros,
       cons,
       ctaLabel:
-        variant === "risk" ? "Escolher mesmo assim" : "Escolher este plano",
+        variant === "risk"
+          ? i18n.t("simulation.chooseAnyway")
+          : i18n.t("simulation.choosePlan"),
       technicalDetails: {
-        cycleDurationDays: `${cycleDays} dias`,
-        waterDemandMm: `${waterMm} mm (${item.water_risk})`,
+        cycleDurationDays: i18n.t("simulation.days", { count: cycleDays }),
+        waterDemandMm: `${waterMm} mm (${translateWaterRisk(item.water_risk, isEnglish)})`,
         nasaClimateNote:
           response.explicacao_textual ||
-          `Análise climática (${response.origem}) com risco hídrico ${item.water_risk.toLowerCase()}.`,
-        npkTable: buildNpkTable(steps, item.score_breakdown),
+          (isEnglish
+            ? `Climate analysis (${response.origem}) with ${translateWaterRisk(item.water_risk, true)} water risk.`
+            : `Análise climática (${response.origem}) com risco hídrico ${translateWaterRisk(item.water_risk, false)}.`),
+        npkTable: buildNpkTable(steps, item.score_breakdown, isEnglish),
         agrofitAlerts:
           response.riscos_identificados.length > 0
             ? response.riscos_identificados
             : [
-                "Monitore pragas iniciais nas primeiras 3 semanas após o plantio.",
+                isEnglish
+                  ? "Monitor early pests during the first 3 weeks after planting."
+                  : "Monitore pragas iniciais nas primeiras 3 semanas após o plantio.",
               ],
       },
     };
@@ -489,10 +669,65 @@ const PHASE_PALETTE = [
   },
 ];
 
-function extractStageCrop(titulo: string): string {
-  const match = titulo.match(/\[Etapa\s+\d+\s*-\s*([^\]]+)\]/i);
+function extractStageCrop(titulo: string, isEnglish = false): string {
+  const match = titulo.match(/\[(?:Etapa|Stage)\s+\d+\s*-\s*([^\]]+)\]/i);
   if (match?.[1]) return match[1].trim();
-  return "Ciclo principal";
+  return isEnglish ? "Main cycle" : "Ciclo principal";
+}
+
+function localizeCalendarActivityText(text: string, isEnglish: boolean): string {
+  if (!isEnglish || !text) return text;
+  let out = text
+    .replace(/\[Etapa\s+(\d+)\s*-\s*([^\]]+)\]/gi, "[Stage $1 - $2]")
+    .replace(/\[Etapa\s+(\d+)\]/gi, "[Stage $1]")
+    .replace(/\bPlantio de\s+/gi, "Planting of ")
+    .replace(/\bIrrigação inicial\s*—\s*/gi, "Initial irrigation — ")
+    .replace(/\bInspeção fitossanitária\s*—\s*/gi, "Phytosanitary inspection — ")
+    .replace(/\bAdubação de cobertura\s*—\s*/gi, "Top-dressing fertilization — ")
+    .replace(/\bColheita de\s+/gi, "Harvest of ")
+    .replace(/\bVistoria inicial de\s+/gi, "Initial inspection of ")
+    .replace(/\bManejo e rega de\s+/gi, "Management and watering of ");
+
+  out = out
+    .replace(
+      /Preparo do canteiro e semeadura\/plantio de\s+([^.]+)\.?/gi,
+      "Seedbed preparation and sowing/planting of $1."
+    )
+    .replace(
+      /Preparo inicial do solo e semeadura de\s+([^.]+)\.?/gi,
+      "Initial soil preparation and sowing of $1."
+    )
+    .replace(
+      /Rega de estabelecimento para garantir germinação uniforme\.?/gi,
+      "Establishment watering to ensure uniform germination."
+    )
+    .replace(
+      /Verificação preventiva de pragas, doenças e umidade do solo\.?/gi,
+      "Preventive check for pests, diseases, and soil moisture."
+    )
+    .replace(
+      /Verificar germinação, umidade perto da raiz e sinais iniciais de pragas\.?/gi,
+      "Check germination, root-zone moisture, and early signs of pests."
+    )
+    .replace(
+      /Reforço nutricional conforme desenvolvimento vegetativo\.?/gi,
+      "Nutritional boost according to vegetative development."
+    )
+    .replace(
+      /Avaliação do ponto ideal e realização da colheita\.?/gi,
+      "Evaluation of the ideal harvest point and harvesting."
+    )
+    .replace(
+      /Encerramento estimado do ciclo de\s+([^.]+)\.?/gi,
+      "Estimated end of the $1 cycle."
+    )
+    .replace(/Controle hídrico\s*\(/gi, "Water control (")
+    .replace(
+      /Atenção ao risco hídrico simulado: priorize cobertura do solo\.?/gi,
+      "Attention to simulated water risk: prioritize soil cover."
+    );
+
+  return out;
 }
 
 function mapMilestoneType(
@@ -512,11 +747,12 @@ export function adaptAtividadesToCalendarData(
   atividades: AtividadeCalendarioResponse[],
   alertas: AlertaClimaticoResponse[],
   relatorio: RelatorioAdaptacaoResponse | null,
-  todayIso: string
+  todayIso: string,
+  isEnglish = false
 ): AreaCalendarData {
   const grouped = new Map<string, AtividadeCalendarioResponse[]>();
   for (const item of atividades) {
-    const cropName = extractStageCrop(item.titulo);
+    const cropName = extractStageCrop(item.titulo, isEnglish);
     const list = grouped.get(cropName) ?? [];
     list.push(item);
     grouped.set(cropName, list);
@@ -529,8 +765,13 @@ export function adaptAtividadesToCalendarData(
       return {
         id: `phase-${idx + 1}`,
         cropName,
-        objectiveLabel:
-          idx === 0 ? "Etapa atual do plano" : `Etapa ${idx + 1} da rotação`,
+        objectiveLabel: isEnglish
+          ? idx === 0
+            ? "Current plan stage"
+            : `Rotation stage ${idx + 1}`
+          : idx === 0
+            ? "Etapa atual do plano"
+            : `Etapa ${idx + 1} da rotação`,
         startDate: dates[0] ?? todayIso,
         endDate: dates[dates.length - 1] ?? todayIso,
         ...palette,
@@ -541,22 +782,35 @@ export function adaptAtividadesToCalendarData(
   const highlights: Record<string, CalendarDayHighlight> = {};
   const defaultTemp = relatorio
     ? `${Math.round(relatorio.resumo_climatico.temperatura_media_c)}°C`
-    : "Clima monitorado";
+    : isEnglish
+      ? "Monitored weather"
+      : "Clima monitorado";
 
   for (const item of atividades) {
     const existing = highlights[item.data_programada];
     const milestoneType = mapMilestoneType(item.tipo_atividade);
+    const localizedTitle = localizeCalendarActivityText(item.titulo, isEnglish);
+    const localizedDesc = localizeCalendarActivityText(
+      item.descricao || item.titulo,
+      isEnglish
+    );
+    const localizedReason = item.motivo_ajuste
+      ? localizeCalendarActivityText(item.motivo_ajuste, isEnglish)
+      : undefined;
+
     highlights[item.data_programada] = {
       date: item.data_programada,
       milestoneType: existing?.milestoneType ?? milestoneType,
-      milestoneLabel: existing?.milestoneLabel ?? item.titulo,
-      weatherHeadline: existing?.weatherHeadline ?? "Atividade programada",
+      milestoneLabel: existing?.milestoneLabel ?? localizedTitle,
+      weatherHeadline:
+        existing?.weatherHeadline ??
+        (isEnglish ? "Scheduled activity" : "Atividade programada"),
       weatherDetails:
-        existing?.weatherDetails ?? `${defaultTemp} · ${item.descricao || item.titulo}`,
+        existing?.weatherDetails ?? `${defaultTemp} · ${localizedDesc}`,
       weatherKind: existing?.weatherKind ?? "sun",
       importantNotice:
         existing?.importantNotice ??
-        (item.ajustada_por_alerta ? item.motivo_ajuste ?? undefined : undefined),
+        (item.ajustada_por_alerta ? localizedReason : undefined),
     };
   }
 
@@ -652,7 +906,8 @@ export function buildSimulatedDashboardAndCalendar(
   scenario: RotationScenario,
   simulacao: SimulacaoResponse | null,
   areaName: string,
-  cropHistory?: CropHistoryData | null
+  cropHistory?: CropHistoryData | null,
+  isEnglish = false
 ): SimulatedDashboardBundle {
   const todayIso = new Date().toISOString().slice(0, 10);
   const cronograma = buildGerarCronogramaPayload(-1, scenario, cropHistory);
@@ -752,7 +1007,8 @@ export function buildSimulatedDashboardAndCalendar(
     syntheticAtividades,
     [],
     null,
-    todayIso
+    todayIso,
+    isEnglish
   );
 
   const headline =

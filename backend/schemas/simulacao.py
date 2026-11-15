@@ -44,6 +44,10 @@ class SimulacaoRequest(BaseModel):
         default=None,
         description="Parâmetros climáticos opcionais para complementar os dados da NASA",
     )
+    idioma: Optional[str] = Field(
+        default="pt",
+        description="Idioma desejado para textos e explicações ('pt' ou 'en')",
+    )
 
 
 class EtapaRotacaoSimulada(BaseModel):

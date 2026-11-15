@@ -27,6 +27,14 @@ _DISCLAIMER_PADRAO = (
     "Lembre-se: esta ferramenta serve para apoiar a decisão e identificar possibilidades, "
     "mas não substitui a sua experiência local. A decisão final é sempre sua."
 )
+_DISCLAIMER_EN = (
+    "Remember: this tool is designed to support your decision and highlight possibilities, "
+    "but it does not replace your local experience. The final decision is always yours."
+)
+
+
+def _normalizar_idioma(idioma: Optional[str]) -> str:
+    return "en" if str(idioma or "").strip().lower().startswith("en") else "pt"
 
 _ROTACOES_BASE_FALLBACK = [
     {
@@ -676,8 +684,36 @@ def _montar_beneficios_e_riscos(
     water_risk: str,
     prioridades: Dict[str, Any],
     culturas_rotacao: List[str],
+    idioma: str = "pt",
 ) -> Tuple[List[str], List[str]]:
     """Contextualiza benefícios e riscos agronômicos da simulação."""
+    lang = _normalizar_idioma(idioma)
+    if lang == "en":
+        beneficios = [
+            f"Alignment of {nome_cultura}'s cycle with your plot planning",
+            "Use of environmental data for preventive resource management",
+        ]
+        if culturas_rotacao:
+            beneficios.append(
+                f"Productive diversification with rotation involving {', '.join(culturas_rotacao)}"
+            )
+
+        riscos: List[str] = []
+        agua_prioridade = str(prioridades.get("agua", "")).lower()
+        if agua_prioridade in {"escassa", "baixa", "limitada"} and consumo_agua_mm >= 400:
+            riscos.append(
+                f"Plot with limited water availability compared to estimated demand of {consumo_agua_mm:.0f} mm"
+            )
+        if water_risk.lower() in {"medium", "high", "alto", "medio", "critico"}:
+            riscos.append(
+                f"Water risk classified as '{water_risk}' for the analyzed climate scenario"
+            )
+        if not riscos:
+            riscos.append(
+                "Unexpected weather shifts may require dynamic adjustments to the management calendar"
+            )
+        return beneficios, riscos
+
     beneficios = [
         f"Adequação do ciclo de {nome_cultura} ao planejamento da propriedade",
         "Aproveitamento dos dados ambientais para manejo preventivo de recursos",
@@ -687,7 +723,7 @@ def _montar_beneficios_e_riscos(
             f"Diversificação produtiva com rotação envolvendo {', '.join(culturas_rotacao)}"
         )
 
-    riscos: List[str] = []
+    riscos = []
     agua_prioridade = str(prioridades.get("agua", "")).lower()
     if agua_prioridade in {"escassa", "baixa", "limitada"} and consumo_agua_mm >= 400:
         riscos.append(
@@ -712,18 +748,28 @@ def _gerar_explicacao_ia(
     viability_score: float,
     water_risk: str,
     rotation_explainer: Optional[Any],
+    idioma: str = "pt",
 ) -> Tuple[str, bool]:
-    """Chama RotationExplainerAgent injetado com fallback determinístico em português."""
+    """Chama RotationExplainerAgent injetado com fallback determinístico."""
+    lang = _normalizar_idioma(idioma)
     beneficios_txt = "; ".join(beneficios)
     riscos_txt = "; ".join(riscos)
 
     if rotation_explainer is not None:
         try:
-            resposta = rotation_explainer.generate_explanation(
-                crop=nome_cultura,
-                benefits=beneficios_txt,
-                risks=riscos_txt,
-            )
+            try:
+                resposta = rotation_explainer.generate_explanation(
+                    crop=nome_cultura,
+                    benefits=beneficios_txt,
+                    risks=riscos_txt,
+                    idioma=lang,
+                )
+            except TypeError:
+                resposta = rotation_explainer.generate_explanation(
+                    crop=nome_cultura,
+                    benefits=beneficios_txt,
+                    risks=riscos_txt,
+                )
             conteudo = (
                 resposta.content if hasattr(resposta, "content") else str(resposta)
             )
@@ -731,6 +777,16 @@ def _gerar_explicacao_ia(
                 return conteudo.strip(), False
         except Exception:
             logger.exception("Falha em servico externo da simulacao; usando fallback")
+
+    if lang == "en":
+        return (
+            f"The simulation for {nome_cultura} achieved a viability score of "
+            f"{viability_score:.0%} and '{water_risk}' water risk. "
+            f"Key observed benefits: {beneficios_txt}. "
+            f"Attention points and risks: {riscos_txt}. "
+            f"{_DISCLAIMER_EN}",
+            True,
+        )
 
     return (
         f"A simulação para a cultura {nome_cultura} apresentou índice de viabilidade de "
@@ -742,12 +798,15 @@ def _gerar_explicacao_ia(
     )
 
 
-def _garantir_disclaimer(texto: str) -> str:
+def _garantir_disclaimer(texto: str, idioma: str = "pt") -> str:
+    lang = _normalizar_idioma(idioma)
+    disclaimer = _DISCLAIMER_EN if lang == "en" else _DISCLAIMER_PADRAO
     limpo = str(texto or "").strip()
     if not limpo:
-        return _DISCLAIMER_PADRAO
-    if "decisão final" not in limpo.lower():
-        return f"{limpo}\n\n{_DISCLAIMER_PADRAO}"
+        return disclaimer
+    lowered = limpo.lower()
+    if "decisão final" not in lowered and "final decision" not in lowered:
+        return f"{limpo}\n\n{disclaimer}"
     return limpo
 
 
@@ -756,11 +815,13 @@ def _gerar_explicacoes_estrategias(
     metricas_geoespaciais: Dict[str, Any],
     prioridades: Dict[str, Any],
     rotation_explainer: Optional[Any],
+    idioma: str = "pt",
 ) -> Tuple[List[EstrategiaRotacaoSugerida], bool]:
     """Popula `explicacao` individual e `evidencias_numericas` para cada estratégia."""
     if not rotacoes_sugeridas:
         return rotacoes_sugeridas, False
 
+    lang = _normalizar_idioma(idioma)
     try:
         from backend.services.llm_agent import build_strategy_evidence
 
@@ -773,32 +834,50 @@ def _gerar_explicacoes_estrategias(
 
     if rotation_explainer is not None and hasattr(rotation_explainer, "explain_strategies"):
         try:
-            res = rotation_explainer.explain_strategies(
-                strategies=rotacoes_sugeridas,
-                field_metrics=metricas_geoespaciais,
-                farmer_priorities=prioridades,
-            )
+            try:
+                res = rotation_explainer.explain_strategies(
+                    strategies=rotacoes_sugeridas,
+                    field_metrics=metricas_geoespaciais,
+                    farmer_priorities=prioridades,
+                    idioma=lang,
+                )
+            except TypeError:
+                res = rotation_explainer.explain_strategies(
+                    strategies=rotacoes_sugeridas,
+                    field_metrics=metricas_geoespaciais,
+                    farmer_priorities=prioridades,
+                )
             if (
                 isinstance(res, list)
                 and len(res) == len(rotacoes_sugeridas)
                 and all(isinstance(item, str) and item.strip() for item in res)
             ):
                 for estrategia, texto in zip(rotacoes_sugeridas, res):
-                    estrategia.explicacao = _garantir_disclaimer(texto)
+                    estrategia.explicacao = _garantir_disclaimer(texto, lang)
                 return rotacoes_sugeridas, False
         except Exception:
             logger.exception("Falha em explain_strategies; usando fallback por estratégia")
 
     risco_pt = {"low": "baixo", "medium": "médio", "high": "alto"}
+    risco_en = {"baixo": "low", "medio": "medium", "médio": "medium", "alto": "high"}
     for estrategia in rotacoes_sugeridas:
-        risco = risco_pt.get(estrategia.water_risk.lower(), estrategia.water_risk)
-        beneficio = estrategia.benefits or "manutenção produtiva da área"
-        texto = (
-            f"A opção {estrategia.strategy} teve viabilidade estimada de "
-            f"{round(estrategia.viability * 100)}% e risco de falta de água {risco}. "
-            f"Benefício prático: {beneficio}."
-        )
-        estrategia.explicacao = _garantir_disclaimer(texto)
+        if lang == "en":
+            risco = risco_en.get(estrategia.water_risk.lower(), estrategia.water_risk)
+            beneficio = estrategia.benefits or "productive plot maintenance"
+            texto = (
+                f"Option {estrategia.strategy} achieved an estimated viability of "
+                f"{round(estrategia.viability * 100)}% and {risco} water-deficit risk. "
+                f"Practical benefit: {beneficio}."
+            )
+        else:
+            risco = risco_pt.get(estrategia.water_risk.lower(), estrategia.water_risk)
+            beneficio = estrategia.benefits or "manutenção produtiva da área"
+            texto = (
+                f"A opção {estrategia.strategy} teve viabilidade estimada de "
+                f"{round(estrategia.viability * 100)}% e risco de falta de água {risco}. "
+                f"Benefício prático: {beneficio}."
+            )
+        estrategia.explicacao = _garantir_disclaimer(texto, lang)
     return rotacoes_sugeridas, True
 
 
@@ -1036,6 +1115,7 @@ def _processar_simulacao(
         dados_solo, climate_data, crop_requirements, crop_simulator
     )
 
+    idioma = _normalizar_idioma(getattr(payload, "idioma", "pt"))
     culturas_rotacao = [
         c.strip() for c in (payload.culturas_rotacao or []) if c and c.strip()
     ]
@@ -1045,8 +1125,9 @@ def _processar_simulacao(
         water_risk=water_risk,
         prioridades=prioridades_finais,
         culturas_rotacao=culturas_rotacao,
+        idioma=idioma,
     )
-    if rotacoes_sugeridas:
+    if rotacoes_sugeridas and idioma != "en":
         top_bd = rotacoes_sugeridas[0].score_breakdown or {}
         for aviso in (top_bd.get("phytosanitary_warnings") or [])[:2]:
             if isinstance(aviso, str) and aviso not in riscos:
@@ -1075,10 +1156,16 @@ def _processar_simulacao(
         and firms_info.get("data_quality") == "nasa_firms_api"
         and int(firms_info.get("hotspots_count") or 0) > 0
     ):
-        riscos.append(
-            f"NASA FIRMS detectou {int(firms_info['hotspots_count'])} foco(s) de calor "
-            f"no entorno do terreno (risco {firms_info.get('fire_risk', 'moderado')})."
-        )
+        if idioma == "en":
+            riscos.append(
+                f"NASA FIRMS detected {int(firms_info['hotspots_count'])} thermal hotspot(s) "
+                f"near the plot ({firms_info.get('fire_risk', 'moderate')} risk)."
+            )
+        else:
+            riscos.append(
+                f"NASA FIRMS detectou {int(firms_info['hotspots_count'])} foco(s) de calor "
+                f"no entorno do terreno (risco {firms_info.get('fire_risk', 'moderado')})."
+            )
     explicacao, ia_fallback = _gerar_explicacao_ia(
         nome_cultura=nome_cultura,
         beneficios=beneficios,
@@ -1086,12 +1173,14 @@ def _processar_simulacao(
         viability_score=viability_score,
         water_risk=water_risk,
         rotation_explainer=rotation_explainer,
+        idioma=idioma,
     )
     rotacoes_sugeridas, estrategias_ia_fallback = _gerar_explicacoes_estrategias(
         rotacoes_sugeridas=rotacoes_sugeridas,
         metricas_geoespaciais=metricas_geoespaciais,
         prioridades=prioridades_finais,
         rotation_explainer=rotation_explainer,
+        idioma=idioma,
     )
 
     plano_rotacao = [

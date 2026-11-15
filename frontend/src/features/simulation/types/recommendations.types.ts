@@ -19,7 +19,7 @@ export interface RotationTrackStep {
 export interface TechnicalNpkRow {
   nutrient: string;
   impact: string;
-  requirementLevel: "Baixo" | "Médio" | "Alto";
+  requirementLevel: "Baixo" | "Médio" | "Alto" | "Low" | "Medium" | "High";
 }
 
 export interface TechnicalDetailsData {

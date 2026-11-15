@@ -217,7 +217,8 @@ export function AreaCalendarPage({
           atividadesRes.value,
           alertas,
           relatorio,
-          todayIso
+          todayIso,
+          isEnglish
         );
         setLiveCalendarData(adapted);
         setSelectedDate(adapted.todayDate);
@@ -231,7 +232,7 @@ export function AreaCalendarPage({
     return () => {
       cancelled = true;
     };
-  }, [terrenoId, areaLocation]);
+  }, [terrenoId, areaLocation, isEnglish]);
 
   const todayFallback = React.useMemo(
     () => new Date().toISOString().slice(0, 10),
@@ -445,7 +446,7 @@ export function AreaCalendarPage({
 
           {/* Calendário Mensal com Fases da Rotação */}
           <section
-            aria-label="Calendário da rotação de culturas"
+            aria-label={t("calendar.rotationCalendarAria")}
             className="mt-4 rounded-3xl border border-[#E6E4DA] bg-white p-4 shadow-sm"
           >
             {/* Navegação do Mês */}
@@ -576,7 +577,7 @@ export function AreaCalendarPage({
           {/* Card de Progresso da Cultura em Vigor */}
           {activePhase && phaseStats ? (
             <section
-              aria-label="Progresso da cultura em vigor"
+              aria-label={t("calendar.activeCropProgressAria")}
               className={cn(
                 "mt-4 rounded-3xl border p-5 transition-colors",
                 activePhase.cardBgClass
@@ -609,7 +610,9 @@ export function AreaCalendarPage({
 
               <div
                 role="progressbar"
-                aria-label={`Progresso de ${activePhase.cropName}`}
+                aria-label={t("calendar.cropProgressAria", {
+                  crop: activePhase.cropName,
+                })}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={phaseStats.percent}

@@ -157,7 +157,7 @@ function buildMergedPrioridades(
 }
 
 export function App() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [step, setStep] = React.useState<OnboardingStep>("plantations");
   const [currentTerreno, setCurrentTerreno] =
     React.useState<TerrenoResponse | null>(null);
@@ -284,6 +284,12 @@ export function App() {
           priority
         );
 
+        const idioma: "pt" | "en" = (i18n.language || "")
+          .toLowerCase()
+          .startsWith("en")
+          ? "en"
+          : "pt";
+
         const response = await simularRotacao({
           terreno_id:
             currentTerreno && currentTerreno.id > 0
@@ -304,6 +310,7 @@ export function App() {
           dados_solo: soilType
             ? { tipo_solo: soilType.tipoSolo.id }
             : undefined,
+          idioma,
         });
 
         if (!cancelled) {
@@ -339,6 +346,7 @@ export function App() {
   }, [
     step,
     simulationRetryKey,
+    i18n.language,
     currentTerreno,
     draftTerrain,
     cropHistory,
@@ -452,6 +460,26 @@ export function App() {
     isSimulationMode || (currentTerreno?.id ?? -1) < 0
       ? null
       : (currentTerreno?.id ?? null);
+
+  const localizedScenarios = React.useMemo(() => {
+    if (lastSimulacaoResponse) {
+      return adaptSimulacaoToScenarios(lastSimulacaoResponse, {
+        cropHistory,
+        waterDistribution,
+        soilType,
+        priority,
+      });
+    }
+    return remoteScenarios ?? [];
+  }, [
+    lastSimulacaoResponse,
+    remoteScenarios,
+    i18n.language,
+    cropHistory,
+    waterDistribution,
+    soilType,
+    priority,
+  ]);
 
   const renderStep = () => {
     if (step === "summary") {
@@ -616,7 +644,7 @@ export function App() {
       soilType,
       priority,
     });
-    const activeScenarios = remoteScenarios ?? [];
+    const activeScenarios = localizedScenarios;
 
     return (
       <>

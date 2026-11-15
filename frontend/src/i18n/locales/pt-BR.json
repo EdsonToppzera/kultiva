@@ -239,7 +239,54 @@
     "whyPlantTitle": "Por que escolhemos {{plant}}",
     "whyPlantFallback": "{{plant}} atua como planta de preparo intermediário para proteger o solo, guardar umidade, reciclar nutrientes e quebrar o ciclo de pragas antes do próximo cultivo.",
     "equivalencesTitle": "Por que as equivalências são válidas",
-    "equivalencesFallback": "Alternativas como {{alternatives}} cumprem a mesma função agronômica de cobertura, melhoria do solo e ciclagem de nutrientes, permitindo adaptar à disponibilidade de sementes na sua região."
+    "equivalencesFallback": "Alternativas como {{alternatives}} cumprem a mesma função agronômica de cobertura, melhoria do solo e ciclagem de nutrientes, permitindo adaptar à disponibilidade de sementes na sua região.",
+    "swap": "Trocar",
+    "equivalentCrops": "Culturas equivalentes",
+    "trackAria": "Trilha de rotação de culturas",
+    "alternativesAria": "Alternativas equivalentes para {{plant}}",
+    "apiErrorFallback": "Não foi possível obter recomendações da API no momento.",
+    "retry": "Tentar novamente",
+    "chooseAnyway": "Escolher mesmo assim",
+    "optionBadge": "{{count}}ª Opção",
+    "optionBadges": {
+      "1": "1ª Opção",
+      "2": "2ª Opção",
+      "3": "3ª Opção"
+    },
+    "stepStatus": {
+      "plantedNow": "Plantado agora",
+      "alreadyHarvested": "Já colhido",
+      "next": "A seguir",
+      "after": "Depois"
+    },
+    "restStep": "Descanso",
+    "focusTags": {
+      "fastReturn": "RETORNO RÁPIDO",
+      "foodFeed": "ALIMENTO E RAÇÃO",
+      "lowestCost": "MENOR CUSTO",
+      "pestControl": "CONTROLE DE PRAGAS",
+      "targetCrop": "CULTURA DESEJADA",
+      "soilFocus": "FOCO NO SOLO",
+      "plotBalance": "EQUILÍBRIO DA ÁREA"
+    },
+    "coverAlternatives": {
+      "crotalaria": {
+        "name": "Crotalária",
+        "reason": "Fixa nitrogênio e ajuda a controlar nematoides."
+      },
+      "feijao-de-porco": {
+        "name": "Feijão-de-porco",
+        "reason": "Cobre rápido a terra e segura a umidade na seca."
+      },
+      "milheto": {
+        "name": "Milheto",
+        "reason": "Produz muita palhada e aguenta calor."
+      },
+      "guandu": {
+        "name": "Feijão-guandu",
+        "reason": "Raiz funda que ajuda a descompactar o solo."
+      }
+    }
   },
   "dashboard": {
     "overviewTitle": "Panorama da área",
@@ -307,6 +354,9 @@
     "stableWeatherDetails": "24°–30° · Sem alertas climáticos relevantes",
     "normalFollowUp": "Acompanhamento normal de {{crop}}.",
     "noCriticalTasks": "Sem atividades críticas previstas para esta data.",
+    "rotationCalendarAria": "Calendário da rotação de culturas",
+    "activeCropProgressAria": "Progresso da cultura em vigor",
+    "cropProgressAria": "Progresso de {{crop}}",
     "weekdayInitials": [
       "D",
       "S",

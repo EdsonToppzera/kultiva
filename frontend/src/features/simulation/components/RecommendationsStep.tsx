@@ -203,8 +203,7 @@ export function RecommendationsStep({
                   aria-hidden="true"
                 />
                 <p className="text-sm font-medium text-[#1F1C18]">
-                  {errorMessage ||
-                    "Não foi possível obter recomendações da API no momento."}
+                  {errorMessage || t("simulation.apiErrorFallback")}
                 </p>
                 {onRetry && (
                   <Button
@@ -214,7 +213,7 @@ export function RecommendationsStep({
                     onClick={onRetry}
                   >
                     <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                    <span>Tentar novamente</span>
+                    <span>{t("simulation.retry")}</span>
                   </Button>
                 )}
               </div>
@@ -359,11 +358,14 @@ export function RecommendationsStep({
                             <span
                               className={cn(
                                 "inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                                row.requirementLevel === "Alto" &&
+                                (row.requirementLevel === "Alto" ||
+                                  row.requirementLevel === "High") &&
                                   "bg-[#C42311]/15 text-[#8E180B]",
-                                row.requirementLevel === "Médio" &&
+                                (row.requirementLevel === "Médio" ||
+                                  row.requirementLevel === "Medium") &&
                                   "bg-[#FCF59B] text-[#4A3B12]",
-                                row.requirementLevel === "Baixo" &&
+                                (row.requirementLevel === "Baixo" ||
+                                  row.requirementLevel === "Low") &&
                                   "bg-[#91C494]/25 text-[#1E3B21]"
                               )}
                             >

@@ -238,7 +238,54 @@
     "whyPlantTitle": "Why we chose {{plant}}",
     "whyPlantFallback": "{{plant}} acts as an intermediate soil-preparation crop to protect the ground, retain moisture, recycle nutrients, and break pest cycles before the next planting.",
     "equivalencesTitle": "Why the equivalent crops work",
-    "equivalencesFallback": "Alternatives such as {{alternatives}} fulfill the same agronomic role of ground cover, soil improvement, and nutrient cycling, allowing you to adapt based on local seed availability."
+    "equivalencesFallback": "Alternatives such as {{alternatives}} fulfill the same agronomic role of ground cover, soil improvement, and nutrient cycling, allowing you to adapt based on local seed availability.",
+    "swap": "Swap",
+    "equivalentCrops": "Equivalent crops",
+    "trackAria": "Crop rotation track",
+    "alternativesAria": "Equivalent alternatives for {{plant}}",
+    "apiErrorFallback": "Could not load recommendations from the API right now.",
+    "retry": "Try again",
+    "chooseAnyway": "Choose anyway",
+    "optionBadge": "{{count}} Option",
+    "optionBadges": {
+      "1": "1st Option",
+      "2": "2nd Option",
+      "3": "3rd Option"
+    },
+    "stepStatus": {
+      "plantedNow": "Planted now",
+      "alreadyHarvested": "Harvested",
+      "next": "Next",
+      "after": "After"
+    },
+    "restStep": "Rest",
+    "focusTags": {
+      "fastReturn": "FAST RETURN",
+      "foodFeed": "FOOD & FEED",
+      "lowestCost": "LOWEST COST",
+      "pestControl": "PEST CONTROL",
+      "targetCrop": "TARGET CROP",
+      "soilFocus": "SOIL FOCUS",
+      "plotBalance": "PLOT BALANCE"
+    },
+    "coverAlternatives": {
+      "crotalaria": {
+        "name": "Sunn hemp",
+        "reason": "Fixes nitrogen and helps control nematodes."
+      },
+      "feijao-de-porco": {
+        "name": "Jack bean",
+        "reason": "Covers the soil quickly and holds moisture during dry spells."
+      },
+      "milheto": {
+        "name": "Pearl millet",
+        "reason": "Produces abundant mulch and tolerates heat."
+      },
+      "guandu": {
+        "name": "Pigeon pea",
+        "reason": "Deep roots break up compacted soil."
+      }
+    }
   },
   "dashboard": {
     "overviewTitle": "Plot overview",
@@ -306,6 +353,9 @@
     "stableWeatherDetails": "24°–30° · No major weather alerts",
     "normalFollowUp": "Regular follow-up for {{crop}}.",
     "noCriticalTasks": "No critical activities scheduled for this date.",
+    "rotationCalendarAria": "Crop rotation calendar",
+    "activeCropProgressAria": "Active crop progress",
+    "cropProgressAria": "Progress of {{crop}}",
     "weekdayInitials": [
       "S",
       "M",

@@ -74,6 +74,7 @@ export interface SimulacaoRequestPayload {
   prioridades?: Record<string, unknown>;
   dados_solo?: Record<string, unknown>;
   dados_climaticos?: Record<string, unknown>;
+  idioma?: "pt" | "en";
 }
 
 export interface SimulacaoResponse {

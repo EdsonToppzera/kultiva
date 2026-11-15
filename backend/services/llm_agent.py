@@ -47,10 +47,18 @@ DISCLAIMER = (
     "Lembre-se: esta ferramenta serve para apoiar a decisão e identificar possibilidades, "
     "mas não substitui a sua experiência local. A decisão final é sempre sua."
 )
+DISCLAIMER_EN = (
+    "Remember: this tool is designed to support your decision and highlight possibilities, "
+    "but it does not replace your local experience. The final decision is always yours."
+)
 STRATEGY_SEPARATOR = "---ESTRATEGIA---"
 _DEFAULT_MOCK_RESPONSE = (
     "Esta é uma explicação mockada gerada localmente. "
     "A rotação sugerida ajuda na infiltração de água."
+)
+_DEFAULT_MOCK_RESPONSE_EN = (
+    "This is a locally generated mock explanation. "
+    "The suggested rotation improves water infiltration."
 )
 
 _RISK_LABELS = {
@@ -72,6 +80,30 @@ _RISK_LABELS = {
     "critica": "crítica",
     "crítica": "crítica",
 }
+
+_RISK_LABELS_EN = {
+    "low": "low",
+    "medium": "medium",
+    "high": "high",
+    "baixo": "low",
+    "baixa": "low",
+    "medio": "medium",
+    "médio": "medium",
+    "media": "medium",
+    "média": "medium",
+    "moderada": "moderate",
+    "moderado": "moderate",
+    "alto": "high",
+    "alta": "high",
+    "critico": "critical",
+    "crítico": "critical",
+    "critica": "critical",
+    "crítica": "critical",
+}
+
+
+def _normalize_lang(idioma: str | None) -> str:
+    return "en" if str(idioma or "").strip().lower().startswith("en") else "pt"
 
 _EVENT_LABELS = {
     "chuva_intensa": "chuva intensa",
@@ -108,13 +140,16 @@ _ALERT_ACTIONS = {
 }
 
 
-def _ensure_disclaimer(text: str) -> str:
+def _ensure_disclaimer(text: str, idioma: str = "pt") -> str:
     """Garante a presença do aviso mandatório sem duplicá-lo."""
+    lang = _normalize_lang(idioma)
+    disclaimer = DISCLAIMER_EN if lang == "en" else DISCLAIMER
     cleaned = str(text or "").strip()
     if not cleaned:
-        return DISCLAIMER
-    if "decisão final" not in cleaned.lower():
-        return f"{cleaned}\n\n{DISCLAIMER}"
+        return disclaimer
+    lowered = cleaned.lower()
+    if "decisão final" not in lowered and "final decision" not in lowered:
+        return f"{cleaned}\n\n{disclaimer}"
     return cleaned
 
 
@@ -138,22 +173,34 @@ def _to_float(value: Any) -> float | None:
     return None
 
 
-def _translate_risk(risk: str) -> str:
+def _translate_risk(risk: str, idioma: str = "pt") -> str:
     key = str(risk or "").strip().lower()
+    if _normalize_lang(idioma) == "en":
+        return _RISK_LABELS_EN.get(key, key or "not informed")
     return _RISK_LABELS.get(key, key or "não informado")
 
 
-def _format_breakdown_highlights(breakdown: dict[str, Any] | None) -> str:
+def _format_breakdown_highlights(
+    breakdown: dict[str, Any] | None, idioma: str = "pt"
+) -> str:
     """Traduz `score_breakdown` em pontos claros para o agricultor."""
     if not isinstance(breakdown, dict) or not breakdown:
         return ""
 
-    labels = [
-        ("water_fit", "encaixe com a água"),
-        ("heat_fit", "tolerância ao calor"),
-        ("soil_benefit", "melhoria do solo"),
-        ("market", "facilidade de venda"),
-    ]
+    if _normalize_lang(idioma) == "en":
+        labels = [
+            ("water_fit", "water fit"),
+            ("heat_fit", "heat tolerance"),
+            ("soil_benefit", "soil health benefit"),
+            ("market", "market ease"),
+        ]
+    else:
+        labels = [
+            ("water_fit", "encaixe com a água"),
+            ("heat_fit", "tolerância ao calor"),
+            ("soil_benefit", "melhoria do solo"),
+            ("market", "facilidade de venda"),
+        ]
     items: list[str] = []
     for key, label in labels:
         val = _to_float(breakdown.get(key))
@@ -606,12 +653,38 @@ def _build_simple_fallback_explanation(
     current_name: str | None,
     field_metrics: dict[str, Any] | None = None,
     farmer_priorities: dict[str, Any] | None = None,
+    idioma: str = "pt",
 ) -> str:
     """Gera explicação individualizada em linguagem simples quando o LLM não delimita os blocos."""
+    lang = _normalize_lang(idioma)
     name = item["strategy"]
-    is_current = "(atual)" in name.lower()
-    risk_pt = _translate_risk(item["water_risk"])
+    is_current = "(atual)" in name.lower() or "(current)" in name.lower()
+    risk_txt = _translate_risk(item["water_risk"], lang)
     viab = item["viability"]
+    if lang == "en":
+        viab_txt = f"{round(viab * 100)}%" if viab is not None else "good"
+        if is_current:
+            intro = f"The option {name} shows the expected outcome when keeping your current farm practice."
+        elif is_best and current_name:
+            intro = (
+                f"The option {name} stands out as a safer alternative for your plot "
+                f"compared to {current_name}."
+            )
+        else:
+            intro = f"The option {name} is a rotation alternative evaluated for your plot."
+
+        details = [
+            f"It had an estimated success chance of {viab_txt} and {risk_txt} water-deficit risk."
+        ]
+        if item["benefits"]:
+            details.append(f"In practice, it helps because: {item['benefits']}.")
+
+        breakdown_txt = _format_breakdown_highlights(item["score_breakdown"], "en")
+        if breakdown_txt:
+            details.append(f"Key field highlights: {breakdown_txt}.")
+
+        return f"{intro} {' '.join(details)}"
+
     viab_txt = f"{round(viab * 100)}%" if viab is not None else "boa"
 
     if is_current:
@@ -625,12 +698,12 @@ def _build_simple_fallback_explanation(
         intro = f"A opção {name} é uma alternativa de rotação avaliada para o seu terreno."
 
     details = [
-        f"Ela teve chance estimada de dar certo de {viab_txt} e risco de falta de água {risk_pt}."
+        f"Ela teve chance estimada de dar certo de {viab_txt} e risco de falta de água {risk_txt}."
     ]
     if item["benefits"]:
         details.append(f"Na prática, ajuda porque traz: {item['benefits']}.")
 
-    breakdown_txt = _format_breakdown_highlights(item["score_breakdown"])
+    breakdown_txt = _format_breakdown_highlights(item["score_breakdown"], "pt")
     if breakdown_txt:
         details.append(f"Pontos observados para a lavoura: {breakdown_txt}.")
 
@@ -1098,22 +1171,36 @@ class RotationExplainerAgent:
         if self.llm is not self._chain_llm:
             self._build_chains()
 
-    def generate_explanation(self, crop: str, benefits: str, risks: str) -> str:
+    def generate_explanation(
+        self, crop: str, benefits: str, risks: str, idioma: str = "pt"
+    ) -> str:
+        lang = _normalize_lang(idioma)
         self._sync_chains()
-        response = self.chain.invoke({"crop": crop, "benefits": benefits, "risks": risks})
-        return _ensure_disclaimer(_extract_text(response))
+        if isinstance(self.llm, FakeListLLM) and lang == "en":
+            return _ensure_disclaimer(_DEFAULT_MOCK_RESPONSE_EN, "en")
+        benefits_prompt = (
+            f"{benefits}\n[IMPORTANT: Respond strictly in English in simple, clear language.]"
+            if lang == "en"
+            else benefits
+        )
+        response = self.chain.invoke(
+            {"crop": crop, "benefits": benefits_prompt, "risks": risks}
+        )
+        return _ensure_disclaimer(_extract_text(response), lang)
 
     def _try_structured_strategies(
         self,
         strategies_block: str,
         context_block: str,
         expected_count: int,
+        idioma: str = "pt",
     ) -> list[str] | None:
         if (
             self.structured_strategies_chain is None
             or self.strategies_chain is not self._default_strategies_chain
         ):
             return None
+        lang = _normalize_lang(idioma)
         try:
             parsed = self.structured_strategies_chain.invoke(
                 {"strategies": strategies_block, "context": context_block}
@@ -1125,13 +1212,14 @@ class RotationExplainerAgent:
                 return None
 
             blocks: list[str] = []
+            prefix = "In practice:" if lang == "en" else "Na prática:"
             for entry in items:
                 entry_dict = _to_dict(entry)
                 resumo = str(entry_dict.get("resumo") or "").strip()
                 acao = str(entry_dict.get("acao_pratica") or "").strip()
                 if not resumo:
                     return None
-                blocks.append(f"{resumo} Na prática: {acao}" if acao else resumo)
+                blocks.append(f"{resumo} {prefix} {acao}" if acao else resumo)
             return blocks
         except Exception:
             return None
@@ -1141,21 +1229,29 @@ class RotationExplainerAgent:
         strategies: list[Any],
         field_metrics: dict[str, Any] | None = None,
         farmer_priorities: dict[str, Any] | None = None,
+        idioma: str = "pt",
     ) -> list[str]:
         """Explica todas as estratégias em uma única chamada ao LLM (com saída estruturada e cache)."""
         if not strategies:
             return []
 
+        lang = _normalize_lang(idioma)
         normalized = [_normalize_strategy(s) for s in strategies]
         strategies_block = _format_strategies_block(
             normalized, field_metrics=field_metrics, farmer_priorities=farmer_priorities
         )
-        context_block = _format_context(field_metrics, farmer_priorities)
+        base_context_block = _format_context(field_metrics, farmer_priorities)
+        context_block = (
+            f"IMPORTANT: Respond strictly in English (simple, clear language for farmers). {base_context_block}"
+            if lang == "en"
+            else base_context_block
+        )
 
         self._sync_chains()
         cache_key = self._make_cache_key(
             "strategies",
             {
+                "idioma": lang,
                 "strategies_block": strategies_block,
                 "context_block": context_block,
                 "llm_id": id(self.llm),
@@ -1166,15 +1262,17 @@ class RotationExplainerAgent:
         if isinstance(cached, list) and len(cached) == len(normalized):
             return list(cached)
 
-        blocks = self._try_structured_strategies(
-            strategies_block, context_block, len(normalized)
-        )
-        if blocks is None:
-            response = self.strategies_chain.invoke(
-                {"strategies": strategies_block, "context": context_block}
+        blocks: list[str] | None = None
+        if not (isinstance(self.llm, FakeListLLM) and lang == "en"):
+            blocks = self._try_structured_strategies(
+                strategies_block, context_block, len(normalized), idioma=lang
             )
-            raw_text = _extract_text(response)
-            blocks = _split_strategy_blocks(raw_text, len(normalized))
+            if blocks is None:
+                response = self.strategies_chain.invoke(
+                    {"strategies": strategies_block, "context": context_block}
+                )
+                raw_text = _extract_text(response)
+                blocks = _split_strategy_blocks(raw_text, len(normalized))
 
         current_item = next(
             (s for s in normalized if "(atual)" in s["strategy"].lower()),
@@ -1195,17 +1293,17 @@ class RotationExplainerAgent:
                 if not text:
                     is_best = best_viability is not None and item["viability"] == best_viability
                     text = _build_simple_fallback_explanation(
-                        item, is_best, current_name, field_metrics, farmer_priorities
+                        item, is_best, current_name, field_metrics, farmer_priorities, idioma=lang
                     )
                 elif base_name and base_name.lower() not in text.lower():
                     text = f"{name}: {text}"
             else:
                 is_best = best_viability is not None and item["viability"] == best_viability
                 text = _build_simple_fallback_explanation(
-                    item, is_best, current_name, field_metrics, farmer_priorities
+                    item, is_best, current_name, field_metrics, farmer_priorities, idioma=lang
                 )
 
-            explanations.append(_ensure_disclaimer(text))
+            explanations.append(_ensure_disclaimer(text, lang))
 
         self._cache_set(cache_key, list(explanations))
         return explanations

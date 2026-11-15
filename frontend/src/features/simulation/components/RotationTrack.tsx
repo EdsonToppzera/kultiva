@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ArrowLeftRight,
   ArrowRight,
@@ -108,6 +109,7 @@ export function RotationTrack({
   onSelectAlternative,
   className,
 }: RotationTrackProps) {
+  const { t } = useTranslation();
   const normalizedSteps = steps.slice(0, 5);
   const isCompact = normalizedSteps.length >= 4;
   const [expandedStepId, setExpandedStepId] = React.useState<string | null>(
@@ -139,7 +141,7 @@ export function RotationTrack({
 
   return (
     <div
-      aria-label="Trilha de rotação de culturas"
+      aria-label={t("simulation.trackAria")}
       className={cn("rounded-2xl bg-[#F4F3EE] px-3 py-4", className)}
     >
       <ol
@@ -190,7 +192,7 @@ export function RotationTrack({
                       {step.statusLabel}
                     </p>
                     <span className="mt-1 inline-flex items-center gap-0.5 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-[#511D4E] shadow-xs ring-1 ring-[#511D4E]/20">
-                      <span>Trocar</span>
+                      <span>{t("simulation.swap")}</span>
                       <ChevronDown
                         className={cn(
                           "h-3 w-3 transition-transform",
@@ -239,24 +241,40 @@ export function RotationTrack({
       {expandedStep?.alternatives && (
         <div
           role="region"
-          aria-label={`Alternativas equivalentes para ${expandedStep.name}`}
+          aria-label={t("simulation.alternativesAria", {
+            plant: expandedStep.name,
+          })}
           className="mt-3.5 rounded-xl border border-[#511D4E]/25 bg-white p-3"
         >
           <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#511D4E]">
             <ArrowLeftRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            <span>Culturas equivalentes</span>
+            <span>{t("simulation.equivalentCrops")}</span>
           </div>
 
           <ul className="mt-2 flex flex-col gap-2">
             {expandedStep.alternatives.map((alt) => {
-              const isCurrent = alt.name === expandedStep.name;
+              const localizedName = t(
+                `simulation.coverAlternatives.${alt.id}.name`,
+                { defaultValue: alt.name }
+              );
+              const localizedReason = t(
+                `simulation.coverAlternatives.${alt.id}.reason`,
+                { defaultValue: alt.reason }
+              );
+              const isCurrent =
+                localizedName === expandedStep.name ||
+                alt.name === expandedStep.name;
 
               return (
                 <li key={alt.id}>
                   <button
                     type="button"
                     onClick={() =>
-                      handleChooseAlternative(expandedStep.id, alt)
+                      handleChooseAlternative(expandedStep.id, {
+                        ...alt,
+                        name: localizedName,
+                        reason: localizedReason,
+                      })
                     }
                     className={cn(
                       "flex w-full items-center justify-between gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#511D4E]",
@@ -267,7 +285,7 @@ export function RotationTrack({
                   >
                     <div className="flex min-w-0 items-center gap-2.5">
                       <ThumbnailBox
-                        name={alt.name}
+                        name={localizedName}
                         imageUrl={alt.imageUrl}
                         sizeClass="h-9 w-9"
                         iconSizeClass="h-4 w-4"
@@ -280,10 +298,10 @@ export function RotationTrack({
                             isCurrent ? "text-[#511D4E]" : "text-[#1F1C18]"
                           )}
                         >
-                          {alt.name}
+                          {localizedName}
                         </p>
                         <p className="mt-0.5 text-[11px] leading-snug text-[#6D6960]">
-                          {alt.reason}
+                          {localizedReason}
                         </p>
                       </div>
                     </div>
