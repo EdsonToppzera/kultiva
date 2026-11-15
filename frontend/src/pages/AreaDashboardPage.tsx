@@ -33,6 +33,19 @@ import {
 } from "../components/ui/drawer";
 import type { NetworkSyncStatus } from "../features/onboarding/types/cropHistory.types";
 import { cn } from "../lib/utils";
+import {
+  adaptAtividadesToCropProgress,
+  adaptAtividadesToDashboardItems,
+  adaptRelatorioAndAlertasToWeather,
+  mapFieldReportToAlertaPayload,
+} from "../services/adapters";
+import {
+  concluirAtividade,
+  dispararAlertaGatilho,
+  listarAlertas,
+  listarAtividades,
+  obterRelatorioTerreno,
+} from "../services/api";
 
 export type ActivityPeriodId =
   | "manha"
@@ -43,10 +56,12 @@ export type ActivityPeriodId =
 
 export interface AreaActivityItem {
   id: string;
+  backendId?: number;
   period: ActivityPeriodId;
   periodLabel?: string;
   title: string;
   description: string;
+  completed?: boolean;
   paused?: boolean;
   pausedReason?: string;
 }
@@ -75,6 +90,8 @@ export interface FieldReportOption {
 }
 
 export interface AreaDashboardPageProps {
+  terrenoId?: number | null;
+  cropNameFallback?: string;
   areaLocation?: string;
   dateLabel?: string;
   weather?: AreaWeatherSummary;
@@ -184,8 +201,10 @@ const NETWORK_BADGE_CONFIG: Record<
 };
 
 export function AreaDashboardPage({
+  terrenoId,
+  cropNameFallback,
   areaLocation = "Sítio Boa Esperança · Área 1",
-  dateLabel = "Sábado, 14 de novembro",
+  dateLabel,
   weather = DEFAULT_WEATHER,
   cropProgress = DEFAULT_CROP_PROGRESS,
   activities = DEFAULT_ACTIVITIES,
@@ -194,6 +213,16 @@ export function AreaDashboardPage({
   onSubmitReport,
   onBack,
 }: AreaDashboardPageProps) {
+  const todayIso = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const resolvedDateLabel = React.useMemo(() => {
+    if (dateLabel) return dateLabel;
+    return new Date().toLocaleDateString("pt-BR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    });
+  }, [dateLabel]);
+
   const [isOnline, setIsOnline] = React.useState<boolean>(() =>
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
@@ -201,6 +230,64 @@ export function AreaDashboardPage({
   const [selectedReport, setSelectedReport] =
     React.useState<FieldReportOptionId>("choveu_nao_previsto");
   const [reportSavedNotice, setReportSavedNotice] = React.useState(false);
+  const [liveWeather, setLiveWeather] =
+    React.useState<AreaWeatherSummary | null>(null);
+  const [liveCropProgress, setLiveCropProgress] =
+    React.useState<AreaCropProgress | null>(null);
+  const [liveActivities, setLiveActivities] = React.useState<
+    AreaActivityItem[] | null
+  >(null);
+  const [isLoadingDashboard, setIsLoadingDashboard] = React.useState(false);
+  const [isSubmittingReport, setIsSubmittingReport] = React.useState(false);
+
+  const loadDashboardData = React.useCallback(async () => {
+    if (terrenoId == null) return;
+    setIsLoadingDashboard(true);
+    try {
+      const [atividadesRes, alertasRes, relatorioRes] = await Promise.allSettled([
+        listarAtividades({ terreno_id: terrenoId }),
+        listarAlertas({ terreno_id: terrenoId, lido: false }),
+        obterRelatorioTerreno(terrenoId),
+      ]);
+
+      const atividadesData =
+        atividadesRes.status === "fulfilled" ? atividadesRes.value : [];
+      const alertasData =
+        alertasRes.status === "fulfilled" ? alertasRes.value : [];
+      const relatorioData =
+        relatorioRes.status === "fulfilled" ? relatorioRes.value : null;
+
+      if (atividadesRes.status === "fulfilled") {
+        setLiveActivities(
+          adaptAtividadesToDashboardItems(atividadesData, todayIso)
+        );
+        setLiveCropProgress(
+          adaptAtividadesToCropProgress(
+            atividadesData,
+            todayIso,
+            cropNameFallback
+          )
+        );
+      }
+
+      if (relatorioData || alertasData.length > 0) {
+        setLiveWeather(
+          adaptRelatorioAndAlertasToWeather(relatorioData, alertasData)
+        );
+      }
+    } finally {
+      setIsLoadingDashboard(false);
+    }
+  }, [terrenoId, todayIso, cropNameFallback]);
+
+  React.useEffect(() => {
+    void loadDashboardData();
+  }, [loadDashboardData]);
+
+  const effectiveWeather = liveWeather ?? weather;
+  const effectiveCropProgress = liveCropProgress ?? cropProgress;
+  const effectiveActivities =
+    liveActivities !== null ? liveActivities : activities;
 
   React.useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -221,7 +308,7 @@ export function AreaDashboardPage({
 
   const groupedActivities = React.useMemo(() => {
     return PERIOD_ORDER.map((period) => {
-      const items = activities.filter((item) => item.period === period);
+      const items = effectiveActivities.filter((item) => item.period === period);
       if (items.length === 0) return null;
       const periodLabel =
         items[0].periodLabel ?? PERIOD_CONFIG[period].defaultLabel;
@@ -232,9 +319,46 @@ export function AreaDashboardPage({
         items,
       };
     }).filter((group): group is NonNullable<typeof group> => group !== null);
-  }, [activities]);
+  }, [effectiveActivities]);
 
-  const handleSaveReport = () => {
+  const handleToggleActivity = async (item: AreaActivityItem) => {
+    if (item.backendId == null) return;
+    const nextCompleted = !item.completed;
+    setLiveActivities((prev) =>
+      prev
+        ? prev.map((act) =>
+            act.id === item.id ? { ...act, completed: nextCompleted } : act
+          )
+        : prev
+    );
+    try {
+      await concluirAtividade(item.backendId, { concluida: nextCompleted });
+    } catch {
+      setLiveActivities((prev) =>
+        prev
+          ? prev.map((act) =>
+              act.id === item.id ? { ...act, completed: item.completed } : act
+            )
+          : prev
+      );
+    }
+  };
+
+  const handleSaveReport = async () => {
+    if (isSubmittingReport) return;
+    if (terrenoId != null) {
+      setIsSubmittingReport(true);
+      try {
+        await dispararAlertaGatilho(
+          mapFieldReportToAlertaPayload(terrenoId, selectedReport, todayIso)
+        );
+        await loadDashboardData();
+      } catch {
+        // Mantém fallback local caso esteja offline
+      } finally {
+        setIsSubmittingReport(false);
+      }
+    }
     onSubmitReport?.(selectedReport);
     setReportDrawerOpen(false);
     setReportSavedNotice(true);
@@ -263,8 +387,8 @@ export function AreaDashboardPage({
             <span>{areaLocation}</span>
           </div>
 
-          <p className="mt-2.5 text-xs font-medium text-[#6D6960]">
-            {dateLabel}
+          <p className="mt-2.5 text-xs font-medium text-[#6D6960] capitalize">
+            {resolvedDateLabel}
           </p>
 
           {/* Card Roxo de Clima */}
@@ -282,21 +406,21 @@ export function AreaDashboardPage({
 
               <div className="min-w-0 flex-1">
                 <h2 className="text-[17px] font-bold leading-snug text-white">
-                  {weather.headline}
+                  {effectiveWeather.headline}
                 </h2>
                 <p className="mt-0.5 text-xs text-white/80">
-                  {weather.details}
+                  {effectiveWeather.details}
                 </p>
               </div>
             </div>
 
-            {weather.weatherNotice && (
+            {effectiveWeather.weatherNotice && (
               <div className="mt-4 flex items-center gap-2.5 rounded-2xl bg-white/10 px-3.5 py-2.5 text-xs font-medium text-white/95">
                 <Info
                   className="h-4 w-4 shrink-0 text-[#FCF59B]"
                   aria-hidden="true"
                 />
-                <span>{weather.weatherNotice}</span>
+                <span>{effectiveWeather.weatherNotice}</span>
               </div>
             )}
           </section>
@@ -314,7 +438,8 @@ export function AreaDashboardPage({
               />
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold text-[#1F1C18]">
-                  {cropProgress.cropName} · {cropProgress.dayLabel}
+                  {effectiveCropProgress.cropName} ·{" "}
+                  {effectiveCropProgress.dayLabel}
                 </p>
                 <p className="text-xs text-[#5A594E]">
                   Ver calendário completo
@@ -345,6 +470,18 @@ export function AreaDashboardPage({
             )}
 
             <div className="mt-4 space-y-5">
+              {isLoadingDashboard && groupedActivities.length === 0 && (
+                <p className="rounded-2xl border border-[#E6E4DA] bg-white px-4 py-4 text-xs text-[#6D6960]">
+                  Carregando atividades da área...
+                </p>
+              )}
+
+              {!isLoadingDashboard && groupedActivities.length === 0 && (
+                <p className="rounded-2xl border border-[#E6E4DA] bg-white px-4 py-4 text-xs text-[#6D6960]">
+                  Nenhuma atividade programada para esta área ainda.
+                </p>
+              )}
+
               {groupedActivities.map((group) => {
                 const PeriodIcon = group.Icon;
 
@@ -392,6 +529,7 @@ export function AreaDashboardPage({
                               <p
                                 className={cn(
                                   "text-sm font-bold leading-snug",
+                                  item.completed && "line-through opacity-70",
                                   isPaused
                                     ? "text-[#2B5B84]"
                                     : "text-[#1F1C18]"
@@ -412,6 +550,26 @@ export function AreaDashboardPage({
                                   : item.description}
                               </p>
                             </div>
+
+                            {item.backendId != null && (
+                              <button
+                                type="button"
+                                onClick={() => void handleToggleActivity(item)}
+                                aria-label={
+                                  item.completed
+                                    ? `Desmarcar ${item.title}`
+                                    : `Concluir ${item.title}`
+                                }
+                                className={cn(
+                                  "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors",
+                                  item.completed
+                                    ? "border-[#55A630] bg-[#55A630] text-white"
+                                    : "border-[#D6D3C7] bg-white text-transparent hover:border-[#511D4E]"
+                                )}
+                              >
+                                <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                              </button>
+                            )}
                           </li>
                         );
                       })}

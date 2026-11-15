@@ -36,7 +36,15 @@ import {
   CROPS_DICTIONARY,
   formatPopularNames,
 } from "../../../data/cropsDictionary";
+import {
+  PESTS_DICTIONARY,
+  type PestOption,
+} from "../../../data/pestsDictionary";
 import { cn } from "../../../lib/utils";
+import {
+  type TerrenoResponse,
+  atualizarTerreno,
+} from "../../../services/api";
 import type {
   CropOption,
   NetworkSyncStatus,
@@ -84,6 +92,7 @@ export const PRIORITY_OPTIONS: PriorityOption[] = [
     title: "Limpar a terra",
     subtitle: "Tive problemas com insetos ou doenças na última colheita.",
     icon: Bug,
+    requiresPestSelection: true,
   },
 ];
 
@@ -310,12 +319,183 @@ function TargetCropCombobox({
   );
 }
 
+interface TargetPestComboboxProps {
+  value: PestOption | null;
+  pests: PestOption[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSelectPest: (pest: PestOption) => void;
+}
+
+function TargetPestCombobox({
+  value,
+  pests,
+  open,
+  onOpenChange,
+  onSelectPest,
+}: TargetPestComboboxProps) {
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (open) {
+      const frame = window.requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
+      return () => window.cancelAnimationFrame(frame);
+    }
+    setSearchQuery("");
+  }, [open]);
+
+  const handleSelect = (pest: PestOption) => {
+    onSelectPest(pest);
+    setSearchQuery("");
+    onOpenChange(false);
+  };
+
+  return (
+    <div className="mt-1 flex flex-col gap-2 pl-2">
+      <label
+        htmlFor="praga-especifica-trigger"
+        className="text-[11px] font-semibold uppercase tracking-wider text-[#6D6960]"
+      >
+        QUAL PRAGA OU DOENÇA QUER COMBATER?
+      </label>
+
+      <Popover open={open} onOpenChange={onOpenChange}>
+        <PopoverTrigger asChild>
+          {value ? (
+            <button
+              id="praga-especifica-trigger"
+              type="button"
+              className={cn(
+                "flex min-h-[72px] w-full items-center justify-between gap-3 rounded-2xl border bg-white p-3 text-left shadow-sm transition-colors",
+                open
+                  ? "border-[#511D4E] ring-2 ring-[#511D4E]/15"
+                  : "border-[#E6E4DA] hover:border-[#511D4E]/60",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#511D4E]"
+              )}
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#E6E4DA] bg-[#F2F1EA] text-[#511D4E]">
+                  <Bug className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-base font-bold text-[#1F1C18]">
+                    {value.officialName}
+                  </p>
+                  <p className="mt-0.5 line-clamp-2 text-xs text-[#7A756B]">
+                    {formatPopularNames(value.popularNames)}
+                  </p>
+                </div>
+              </div>
+              <ChevronRight
+                className="h-5 w-5 shrink-0 text-[#511D4E]"
+                aria-hidden="true"
+              />
+            </button>
+          ) : (
+            <button
+              id="praga-especifica-trigger"
+              type="button"
+              className={cn(
+                "flex min-h-[58px] w-full items-center justify-between gap-3 rounded-2xl border bg-white/90 px-4 py-3 text-left shadow-xs transition-colors",
+                open
+                  ? "border-[1.5px] border-[#511D4E] bg-white"
+                  : "border-[#D5D1C5] hover:border-[#511D4E] hover:bg-white",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#511D4E]"
+              )}
+            >
+              <span className="flex items-center gap-3 text-sm font-medium text-[#6D6960] sm:text-base">
+                <Search
+                  className="h-5 w-5 shrink-0 text-[#511D4E]"
+                  aria-hidden="true"
+                />
+                <span>Buscar praga ou doença...</span>
+              </span>
+              <ChevronRight
+                className="h-5 w-5 shrink-0 text-[#6D6960]"
+                aria-hidden="true"
+              />
+            </button>
+          )}
+        </PopoverTrigger>
+
+        <PopoverContent align="start" sideOffset={8}>
+          <Command value={searchQuery} onValueChange={setSearchQuery}>
+            <CommandInput
+              ref={inputRef}
+              placeholder="Ex: Lagarta, formiga, nematoide..."
+              aria-label="Buscar praga ou doença"
+            />
+
+            <CommandList>
+              <CommandEmpty>
+                Nenhuma praga encontrada para &ldquo;{searchQuery}&rdquo;. Escolha
+                uma opção da lista ou tente outro nome popular.
+              </CommandEmpty>
+
+              <CommandGroup>
+                {pests.map((pest) => {
+                  const isSelected = value?.id === pest.id;
+
+                  return (
+                    <CommandItem
+                      key={pest.id}
+                      value={pest.officialName}
+                      keywords={pest.popularNames}
+                      onSelect={() => handleSelect(pest)}
+                      className={cn(
+                        isSelected && "border-[#511D4E] bg-[#FCF59B]/25"
+                      )}
+                    >
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#E6E4DA] bg-[#F2F1EA] text-[#511D4E]">
+                        <Bug className="h-5 w-5" aria-hidden="true" />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-base font-bold text-[#1F1C18]">
+                          {pest.officialName}
+                        </p>
+                        <p className="mt-0.5 line-clamp-2 text-xs text-[#7A756B]">
+                          {formatPopularNames(pest.popularNames)}
+                        </p>
+                      </div>
+
+                      {isSelected ? (
+                        <Check
+                          className="h-5 w-5 shrink-0 text-[#511D4E]"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <ChevronRight
+                          className="h-5 w-5 shrink-0 text-[#511D4E]"
+                          aria-hidden="true"
+                        />
+                      )}
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 export interface PrioritiesStepProps {
   options?: PriorityOption[];
   crops?: CropOption[];
+  pests?: PestOption[];
   initialValue?: PriorityId | null;
   initialTargetCrop?: CropOption | null;
+  initialTargetPest?: PestOption | null;
   networkStatus?: NetworkSyncStatus;
+  terrenoId?: number | null;
+  existingPrioridades?: Record<string, unknown> | null;
+  onTerrenoUpdated?: (terreno: TerrenoResponse) => void;
   onBack?: () => void;
   onContinue?: (data: PriorityData) => void;
 }
@@ -327,15 +507,24 @@ export interface PrioritiesStepProps {
 export function PrioritiesStep({
   options = PRIORITY_OPTIONS,
   crops = CROPS_DICTIONARY,
+  pests = PESTS_DICTIONARY,
   initialValue = null,
   initialTargetCrop = null,
+  initialTargetPest = null,
   networkStatus,
+  terrenoId,
+  existingPrioridades,
+  onTerrenoUpdated,
   onBack,
   onContinue,
 }: PrioritiesStepProps) {
   const [isOnline, setIsOnline] = React.useState<boolean>(() =>
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
+  const [syncState, setSyncState] = React.useState<NetworkSyncStatus | null>(
+    null
+  );
+  const [isSaving, setIsSaving] = React.useState(false);
 
   React.useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -350,7 +539,7 @@ export function PrioritiesStep({
   }, []);
 
   const resolvedNetworkStatus: NetworkSyncStatus =
-    networkStatus ?? (isOnline ? "salvo" : "offline");
+    syncState ?? networkStatus ?? (isOnline ? "salvo" : "offline");
 
   const [selectedId, setSelectedId] = React.useState<PriorityId | null>(
     initialValue
@@ -359,6 +548,10 @@ export function PrioritiesStep({
     initialTargetCrop
   );
   const [cropPickerOpen, setCropPickerOpen] = React.useState(false);
+  const [specificPest, setSpecificPest] = React.useState<PestOption | null>(
+    initialTargetPest
+  );
+  const [pestPickerOpen, setPestPickerOpen] = React.useState(false);
 
   const badgeInfo = NETWORK_BADGE_CONFIG[resolvedNetworkStatus];
   const NetworkIcon = badgeInfo.icon;
@@ -370,7 +563,8 @@ export function PrioritiesStep({
 
   const canContinue =
     selectedOption !== null &&
-    (!selectedOption.requiresCropSelection || specificCrop !== null);
+    (!selectedOption.requiresCropSelection || specificCrop !== null) &&
+    (!selectedOption.requiresPestSelection || specificPest !== null);
 
   const handlePriorityChange = (nextValue: string) => {
     const nextId = nextValue as PriorityId;
@@ -379,22 +573,55 @@ export function PrioritiesStep({
     if (!nextOption?.requiresCropSelection) {
       setCropPickerOpen(false);
     }
+    if (!nextOption?.requiresPestSelection) {
+      setPestPickerOpen(false);
+    }
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selectedOption || !canContinue) return;
+    if (!selectedOption || !canContinue || isSaving) return;
+
+    const targetCrop = selectedOption.requiresCropSelection
+      ? specificCrop
+      : null;
+    const targetPest = selectedOption.requiresPestSelection
+      ? specificPest
+      : null;
+
+    if (terrenoId != null) {
+      setIsSaving(true);
+      setSyncState("sincronizando");
+      try {
+        const updated = await atualizarTerreno(terrenoId, {
+          prioridades: {
+            ...(existingPrioridades ?? {}),
+            prioridade: selectedOption.id,
+            objetivo_principal: selectedOption.id,
+            cultura_desejada: targetCrop?.officialName ?? null,
+            praga_alvo: targetPest?.officialName ?? null,
+          },
+        });
+        setSyncState("salvo");
+        onTerrenoUpdated?.(updated);
+      } catch {
+        setSyncState("offline");
+      } finally {
+        setIsSaving(false);
+      }
+    }
 
     onContinue?.({
       prioridade: selectedOption,
-      culturaDesejada: selectedOption.requiresCropSelection ? specificCrop : null,
+      culturaDesejada: targetCrop,
+      pragaAlvo: targetPest,
     });
   };
 
   return (
     <div className="min-h-dvh w-full bg-[#F7F6F0] text-[#1F1C18] md:flex md:items-center md:justify-center md:bg-[#EFECE3] md:p-6">
       <form
-        onSubmit={handleSubmit}
+        onSubmit={(event) => void handleSubmit(event)}
         className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between bg-[#F7F6F0] px-5 pb-8 pt-6 md:min-h-[680px] md:rounded-3xl md:border md:border-[#E6E4DA] md:px-7 md:py-8 md:shadow-sm"
       >
         <div>
@@ -527,6 +754,16 @@ export function PrioritiesStep({
                         onSelectCrop={setSpecificCrop}
                       />
                     )}
+
+                    {isSelected && option.requiresPestSelection && (
+                      <TargetPestCombobox
+                        value={specificPest}
+                        pests={pests}
+                        open={pestPickerOpen}
+                        onOpenChange={setPestPickerOpen}
+                        onSelectPest={setSpecificPest}
+                      />
+                    )}
                   </div>
                 );
               })}
@@ -540,7 +777,7 @@ export function PrioritiesStep({
             type="submit"
             variant="primary"
             size="lg"
-            disabled={!canContinue}
+            disabled={!canContinue || isSaving}
             className="w-full"
           >
             <span>Continuar</span>
