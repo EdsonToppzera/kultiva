@@ -93,8 +93,8 @@
 | A14 | ✅ | Integração "Suitability and Attainable Yield" no catálogo `[M2]` (`/culturas/aptidao-gaez`), `CropSimulator` `[M3]` e `RotationExplainerAgent` + testes de `A13–A14` | `api/cultura.py`, `schemas/rotacao.py`, `ml_models.py`, `llm_agent.py`, `api/simulacao.py`, `backend/tests/test_data_ml.py` | Culturas/rotações e IA usam aptidão GAEZ, produtividade `kg/ha`, solo HWSD e `CMIP6` |
 | A15 | ✅ | Provedor direto **ECOCROP** (sem fallback inventado): extrair `Scientific Name`, `Family`, `TMIN`/`TMAX`, `TOPMIN`/`TOPMAX`, `RMIN`/`RMAX`, `GMIN`/`GMAX` | `backend/services/ecocrop_service.py`, `api/cultura.py`, `schemas/rotacao.py` | Zona de conforto e taxonomia da planta consultáveis via nome/código científico |
 | A16 | ✅ | Provedor direto **AGROFIT (Embrapa AgroAPI)** cruzado por `Scientific Name` + gatilhos climáticos NASA (SMAP/ECOSTRESS/POWER) no `CropSimulator` (penalização/aviso de pragas e família botânica **sem bloquear** subsistência) | `backend/services/agrofit_service.py`, `ml_models.py`, `api/simulacao.py` | Risco fitossanitário calculado no `score_breakdown` sem excluir culturas de subsistência |
-| A17 | ⬜ | Cálculo de **Z-score de anomalia climática** contra baseline histórica do mesmo período (NASA POWER) no `ClimateAnomalyDetector` e `RealNASADataProvider` | `geospatial.py`, `ml_models.py`, `api/alertas.py` | Z-score de chuva/umidade/calor integrado à detecção `[M5]` e métricas `[M3]` |
-| A18 | ⬜ | Explicação estruturada com evidências numéricas (`RotationExplainerAgent` + schema `[M3]`) e integração de **SRTM 30 m** / cobertura **HLS** | `llm_agent.py`, `schemas/simulacao.py`, `geospatial.py` | Blocos estruturados com números reais para cards no frontend + elevação SRTM |
+| A17 | ✅ | Cálculo de **Z-score de anomalia climática** contra baseline histórica do mesmo período (NASA POWER) no `ClimateAnomalyDetector` e `RealNASADataProvider` | `geospatial.py`, `ml_models.py`, `api/alertas.py` | Z-score de chuva/umidade/calor integrado à detecção `[M5]` e métricas `[M3]` |
+| A18 | ✅ | Explicação estruturada com evidências numéricas (`RotationExplainerAgent` + schema `[M3]`) e integração de **SRTM 30 m** / cobertura **HLS** | `llm_agent.py`, `schemas/simulacao.py`, `geospatial.py` | Blocos estruturados com números reais para cards no frontend + elevação SRTM |
 
 ## Dev B — Catálogo, relatórios, terrenos e infra/demo
 
@@ -136,7 +136,7 @@
 1. ✅ **Rodada 1 concluída:** `A1–A6` · `B1–B4` · `C1–C5`.
 2. ✅ **Rodada 2 concluída:** `A7–A9` · `B5–B7` · `C6–C8`.
 3. ✅ **Rodada 3 concluída:** `A10–A14` · `B8` · `C9` · `F1–F2`.
-4. **Rodada 4 — Em execução:** `A15` (ECOCROP) ✅ → `A16` (Agrofit × NASA) ✅ · `A17` (Z-score) · `A18` (Explicação estruturada + SRTM) · `F3` (telas finais + blocos numéricos no frontend).
+4. **Rodada 4 — Em execução:** `A15` (ECOCROP) ✅ → `A16` (Agrofit × NASA) ✅ · `A17` (Z-score) ✅ · `A18` (Explicação estruturada + SRTM) ✅ · `F3` (telas finais + blocos numéricos no frontend).
 
 ## Regras de trabalho
 
