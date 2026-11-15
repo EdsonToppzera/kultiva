@@ -14,7 +14,7 @@ export interface SoilTypeOption {
 }
 
 export interface SoilHandTestItem {
-  id: Exclude<SoilTypeId, "cascalho">;
+  id: SoilTypeId;
   name: string;
   description: string;
   swatchColor: string;

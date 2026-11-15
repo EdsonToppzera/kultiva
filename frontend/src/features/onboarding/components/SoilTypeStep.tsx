@@ -1,16 +1,15 @@
 import * as React from "react";
 import {
-  AlertTriangle,
   ArrowRight,
   Check,
   ChevronLeft,
   HelpCircle,
+  Info,
   Layers,
   RefreshCw,
   Wifi,
   WifiOff,
 } from "lucide-react";
-import { Alert, AlertDescription } from "../../../components/ui/alert";
 import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import {
@@ -79,26 +78,37 @@ export const SOIL_HAND_TEST_GUIDE: SoilHandTestItem[] = [
   {
     id: "areia",
     name: "Areia",
-    description: "Se esfarelar e não formar uma bola.",
+    description:
+      "A terra esfarela toda. Não forma bolinha nem minhoca de jeito nenhum. A sensação é áspera, arranhando a mão.",
     swatchColor: "#D8C39E",
   },
   {
     id: "barro",
     name: "Barro",
-    description: "Se formar uma bola dura e sujar muito a mão.",
+    description:
+      'A terra vira uma "massinha de modelar". Gruda bastante na mão, suja os dedos e permite fazer uma minhoca fina e comprida que não quebra com facilidade.',
     swatchColor: "#8C4530",
   },
   {
     id: "terra_mista",
-    name: "Terra mista",
-    description: "Se formar uma bola, mas quebrar fácil com o dedo.",
+    name: "Terra Mista",
+    description:
+      'É o meio-termo. Forma uma bolinha firme ou uma minhoca mais grossa, mas se tentar afinar ou dobrar, ela quebra em pedaços. Tem a "liga" do barro, mas com um pouco da aspereza da areia.',
     swatchColor: "#7C5E44",
   },
   {
     id: "terra_preta",
-    name: "Terra preta",
-    description: "Se for escura, macia e cheirar a mato úmido.",
+    name: "Terra Preta",
+    description:
+      "O destaque é a cor escura e o cheiro forte de terra (matéria orgânica). Lembra um pouco pó de café úmido. É muito fofa, forma um torrão na mão, mas se desmancha facilmente se apertar.",
     swatchColor: "#3D322C",
+  },
+  {
+    id: "cascalho",
+    name: "Cascalho",
+    description:
+      "Cheio de pedrinhas visíveis. Não dá liga nenhuma com a água, é solto, duro e raspa a mão.",
+    swatchColor: "#9A8978",
   },
 ];
 
@@ -288,27 +298,36 @@ export function SoilTypeStep({
 
           {/* Conteúdo Principal */}
           <main className="mt-8">
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-[26px] font-bold leading-tight tracking-tight text-[#511D4E] sm:text-[28px]">
-                Tipo de Solo
-              </h1>
+            <h1 className="text-[26px] font-bold leading-tight tracking-tight text-[#511D4E] sm:text-[28px]">
+              Tipo de Solo
+            </h1>
 
+            <p className="mt-1.5 text-sm text-[#6D6960] sm:text-base">
+              Escolha a foto mais parecida. Não precisa de análise de
+              laboratório.
+            </p>
+
+            <div className="mt-3">
               <Drawer>
                 <DrawerTrigger asChild>
                   <button
                     type="button"
-                    aria-label="Como descobrir o tipo de solo na mão"
-                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#CAD17A]/35 text-[#511D4E] transition-colors hover:bg-[#CAD17A]/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#511D4E] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F7F6F0]"
+                    className="inline-flex items-center gap-2 rounded-full border border-[#CAD17A] bg-[#CAD17A]/25 px-3.5 py-2 text-xs font-bold text-[#511D4E] transition-colors hover:bg-[#CAD17A]/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#511D4E] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F7F6F0] sm:text-sm"
                   >
-                    <HelpCircle className="h-5 w-5" aria-hidden="true" />
+                    <HelpCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>Como identificar o seu tipo de solo?</span>
                   </button>
                 </DrawerTrigger>
 
-                <DrawerContent>
+                <DrawerContent className="max-h-[85dvh] overflow-y-auto">
                   <DrawerHeader>
-                    <DrawerTitle>Como descobrir sua terra na mão</DrawerTitle>
-                    <DrawerDescription>
-                      Pegue um punhado de terra umedecida e aperte na mão:
+                    <DrawerTitle>Como identificar o seu tipo de solo</DrawerTitle>
+                    <DrawerDescription className="mt-2 rounded-2xl border border-[#E6E4DA] bg-white p-3.5 text-sm leading-relaxed text-[#3D3933]">
+                      Pegue um punhado de terra (de preferência cavando cerca de
+                      um palmo para baixo para evitar a poeira superficial),
+                      pingue um pouco de água até umedecer (sem virar lama) e
+                      amasse na mão tentando fazer uma bolinha ou uma
+                      &ldquo;minhoca&rdquo;.
                     </DrawerDescription>
                   </DrawerHeader>
 
@@ -335,19 +354,25 @@ export function SoilTypeStep({
                     ))}
                   </ul>
 
-                  <Alert variant="warning" className="mt-4">
-                    <AlertTriangle
-                      className="mt-0.5 h-5 w-5 shrink-0 text-[#8A6D14]"
-                      aria-hidden="true"
-                    />
-                    <AlertDescription>
-                      <strong>Atenção:</strong> O Kultiva auxilia no dia a dia,
-                      mas não substitui assistência técnica profissional ou
-                      análise de laboratório. Para recomendações precisas de
-                      adubação, procure um Extensionista Rural (Emater, Senar ou
-                      Secretaria de Agricultura) na sua região.
-                    </AlertDescription>
-                  </Alert>
+                  <div
+                    role="note"
+                    className="mt-4 rounded-2xl border border-[#E6E4DA] border-l-4 border-l-[#511D4E] bg-[#F7F6F0] p-4 shadow-xs"
+                  >
+                    <div className="flex items-center gap-2 text-xs font-bold tracking-wide text-[#511D4E] uppercase">
+                      <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span>Orientação técnica</span>
+                    </div>
+                    <p className="mt-1.5 text-xs leading-relaxed text-[#4E4A43] sm:text-sm">
+                      O Kultiva auxilia no dia a dia, mas não substitui
+                      assistência técnica profissional ou análise de
+                      laboratório. Para recomendações precisas de adubação,
+                      procure um{" "}
+                      <strong className="font-semibold text-[#1F1C18]">
+                        Extensionista Rural
+                      </strong>{" "}
+                      (Emater, Senar ou Secretaria de Agricultura) na sua região.
+                    </p>
+                  </div>
 
                   <DrawerFooter>
                     <DrawerClose asChild>
@@ -359,11 +384,6 @@ export function SoilTypeStep({
                 </DrawerContent>
               </Drawer>
             </div>
-
-            <p className="mt-1.5 text-sm text-[#6D6960] sm:text-base">
-              Escolha a foto mais parecida. Não precisa de análise de
-              laboratório.
-            </p>
 
             <RadioGroup
               aria-label="Tipo de Solo"
