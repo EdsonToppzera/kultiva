@@ -102,6 +102,13 @@ def _calcular_rotacoes_fallback_dinamico(
     )
 
     resultados: List[EstrategiaRotacaoSugerida] = []
+    historico = [
+        str(c).strip().lower()
+        for c in (prioridades.get("historico_cultivos") or [])
+        if str(c).strip()
+    ]
+    ultima_cultura = historico[-1] if historico else None
+
     for item in _ROTACOES_BASE_FALLBACK:
         gap = item["water_demand"] - oferta_hidrica
         water_fit = _clamp01(1.0 - max(gap, 0.0) * 1.8)
@@ -114,6 +121,12 @@ def _calcular_rotacoes_fallback_dinamico(
             + pesos["soil"] * soil_fit
             + pesos["market"] * market_fit
         )
+        if ultima_cultura:
+            primeira_etapa = item["strategy"].split("->")[0].replace("(Atual)", "").strip().lower()
+            if ultima_cultura in primeira_etapa:
+                viability = _clamp01(viability - 0.12)
+            else:
+                viability = _clamp01(viability + 0.05)
         water_risk = "high" if gap > 0.15 else ("medium" if gap > -0.10 else "low")
         resultados.append(
             EstrategiaRotacaoSugerida(
@@ -601,8 +614,12 @@ def _processar_simulacao(
             field_metrics=metricas_geoespaciais,
             origem=str(metricas_geoespaciais.get("origem") or "nasa_geospatial_service"),
         )
+    prioridades_efetivas = dict(prioridades_finais)
+    if payload.historico_cultivos:
+        prioridades_efetivas["historico_cultivos"] = payload.historico_cultivos
+
     rotacoes_sugeridas, estrategias_fallback = _simular_estrategias_rotacao(
-        metricas_geoespaciais, prioridades_finais, crop_simulator
+        metricas_geoespaciais, prioridades_efetivas, crop_simulator
     )
 
     nome_cultura, consumo_agua_mm, tempo_colheita_dias = _resolver_cultura_principal(

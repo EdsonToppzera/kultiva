@@ -20,6 +20,58 @@ logger = logging.getLogger(__name__)
 TIPOS_CHUVA = {"chuva_intensa", "tempestade", "heavy_rain"}
 TIPOS_CALOR_SECA = {"onda_de_calor", "seca", "heatwave", "drought"}
 
+_DISCLAIMER_ALERTA = (
+    "Lembre-se: esta ferramenta serve para apoiar a decisão e identificar possibilidades, "
+    "mas não substitui a sua experiência local. A decisão final é sempre sua."
+)
+
+
+def gerar_orientacao_alerta(
+    tipo_evento: str,
+    severidade: str = "alta",
+    resumo_adaptacao: Optional[str] = None,
+    detalhes_clima: Optional[Dict[str, Any]] = None,
+) -> str:
+    """Gera orientação prática acessível para alertas [M5] via explain_alert (A8) com fallback."""
+    try:
+        llm_mod = importlib.import_module("backend.services.llm_agent")
+        agent_cls = getattr(llm_mod, "RotationExplainerAgent", None)
+        if agent_cls is not None:
+            agent = agent_cls()
+            if hasattr(agent, "explain_alert"):
+                texto = agent.explain_alert(
+                    tipo_evento=tipo_evento,
+                    severidade=severidade,
+                    resumo_adaptacao=resumo_adaptacao,
+                    detalhes_clima=detalhes_clima,
+                )
+                if isinstance(texto, str) and texto.strip():
+                    if "decisão final" not in texto.lower():
+                        return f"{texto.strip()}\n\n{_DISCLAIMER_ALERTA}"
+                    return texto.strip()
+    except Exception as exc:
+        logger.warning("Falha em explain_alert; usando orientação determinística: %s", exc)
+
+    ev = str(tipo_evento or "").strip().lower()
+    if ev in TIPOS_CHUVA:
+        base = (
+            "Há previsão de chuva forte. Evite adubar ou aplicar insumos antes da chuva, "
+            "verifique valas de drenagem e proteja áreas com solo exposto."
+        )
+    elif ev in TIPOS_CALOR_SECA:
+        base = (
+            "Há sinal de calor forte ou tempo seco. Priorize a irrigação nos horários mais frescos "
+            "(início da manhã ou fim da tarde) e reforce a cobertura morta para segurar a umidade do solo."
+        )
+    else:
+        base = (
+            f"Atenção ao alerta de {tipo_evento.replace('_', ' ')} (severidade {severidade}). "
+            "Observe a lavoura de perto e ajuste o manejo preventivo conforme a condição do talhão."
+        )
+    if resumo_adaptacao:
+        base = f"{base} {resumo_adaptacao}"
+    return f"{base}\n\n{_DISCLAIMER_ALERTA}"
+
 
 def obter_intervalo_monitoramento_horas(default: int = 6) -> int:
     """Lê ALERT_MONITOR_INTERVAL_HOURS do ambiente com fallback seguro."""
@@ -323,6 +375,16 @@ def processar_alerta_e_adaptar_calendario(
                 f"a {janela_fim.isoformat()}: {ajustadas} atividade(s) ajustada(s)/adiada(s) "
                 f"e {criadas} nova(s) atividade(s) criada(s)."
             )
+            dados_atualizados = dict(alerta.dados_gatilho or {})
+            dados_atualizados["orientacao_pratica"] = gerar_orientacao_alerta(
+                tipo_evento=alerta.tipo_evento,
+                severidade=alerta.severidade,
+                resumo_adaptacao=alerta.resumo_adaptacao,
+                detalhes_clima=dados_atualizados.get("dados_climaticos")
+                if isinstance(dados_atualizados.get("dados_climaticos"), dict)
+                else None,
+            )
+            alerta.dados_gatilho = dados_atualizados
             db.commit()
         except Exception:
             db.rollback()

@@ -69,6 +69,10 @@ class GerarCronogramaRequest(BaseModel):
         default=None,
         description="Etapas vindas de SimulacaoResponse.plano_rotacao (M3)",
     )
+    substituir_pendentes: bool = Field(
+        default=False,
+        description="Se True, remove atividades pendentes anteriores do terreno antes de gerar o novo cronograma",
+    )
 
 
 class AtividadeCalendarioResponse(AtividadeCalendarioBase):

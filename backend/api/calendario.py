@@ -326,6 +326,16 @@ def gerar_cronograma_inicial(
             duracao_dias=duracao_dias,
         )
 
+    if payload.substituir_pendentes:
+        (
+            db.query(models.Activity)
+            .filter(
+                models.Activity.terreno_id == terreno.id,
+                models.Activity.concluida.is_(False),
+            )
+            .delete(synchronize_session=False)
+        )
+
     db.add_all(atividades)
     db.commit()
     for atividade in atividades:
