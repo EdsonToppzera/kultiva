@@ -12,6 +12,8 @@ export interface RotationTrackStep {
   imageUrl?: string | null;
   isRest?: boolean;
   alternatives?: RotationAlternativeCrop[];
+  prepReason?: string;
+  equivalencesReason?: string;
 }
 
 export interface TechnicalNpkRow {

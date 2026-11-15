@@ -236,7 +236,12 @@
     "requirement": "Exigência",
     "effect": "Efeito",
     "pestAlerts": "Histórico e Alertas de Pragas (AGROFIT)",
-    "closeDetails": "Fechar detalhes"
+    "closeDetails": "Fechar detalhes",
+    "whyPlant": "Por que {{plant}}?",
+    "whyPlantTitle": "Por que escolhemos {{plant}}",
+    "whyPlantFallback": "{{plant}} atua como planta de preparo intermediário para proteger o solo, guardar umidade, reciclar nutrientes e quebrar o ciclo de pragas antes do próximo cultivo.",
+    "equivalencesTitle": "Por que as equivalências são válidas",
+    "equivalencesFallback": "Alternativas como {{alternatives}} cumprem a mesma função agronômica de cobertura, melhoria do solo e ciclagem de nutrientes, permitindo adaptar à disponibilidade de sementes na sua região."
   },
   "dashboard": {
     "overviewTitle": "Panorama da área",

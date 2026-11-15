@@ -1,11 +1,14 @@
+import * as React from "react";
 import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
   ArrowRight,
   Check,
+  ChevronDown,
   CloudRain,
   HelpCircle,
   ShieldAlert,
+  Sprout,
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { cn } from "../../../lib/utils";
@@ -38,9 +41,34 @@ export function RecommendationCard({
   className,
 }: RecommendationCardProps) {
   const { t } = useTranslation();
+  const [isPrepExpanded, setIsPrepExpanded] = React.useState(false);
   const variant = scenario.variant ?? "standard";
   const isRecommended = variant === "recommended";
   const isRisk = variant === "risk";
+
+  const prepStep = React.useMemo(
+    () =>
+      scenario.steps.find(
+        (step) =>
+          !step.isRest &&
+          ((step.alternatives && step.alternatives.length > 0) ||
+            Boolean(step.prepReason) ||
+            Boolean(step.equivalencesReason))
+      ) ?? null,
+    [scenario.steps]
+  );
+
+  const prepPanelId = `prep-info-${scenario.id}`;
+  const selectedAlternative = prepStep?.alternatives?.find(
+    (alt) => alt.name.toLowerCase() === prepStep.name.toLowerCase()
+  );
+  const otherAlternatives =
+    prepStep?.alternatives?.filter(
+      (alt) => alt.name.toLowerCase() !== prepStep.name.toLowerCase()
+    ) ?? [];
+  const alternativesSummary = otherAlternatives
+    .map((alt) => alt.name)
+    .join(", ");
 
   return (
     <article
@@ -100,6 +128,73 @@ export function RecommendationCard({
           className={isRisk ? "border border-[#C42311]/20 bg-white/80" : undefined}
         />
       </div>
+
+      {/* Subtítulo expansível: Por que <planta>? */}
+      {prepStep && (
+        <div className="mt-2.5">
+          <button
+            type="button"
+            aria-expanded={isPrepExpanded}
+            aria-controls={prepPanelId}
+            onClick={() => setIsPrepExpanded((prev) => !prev)}
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#EFECE3]/80 px-3 py-1.5 text-xs font-semibold text-[#511D4E] transition-colors hover:bg-[#CAD17A]/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#511D4E]"
+          >
+            <Sprout className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>{t("simulation.whyPlant", { plant: prepStep.name })}</span>
+            <ChevronDown
+              className={cn(
+                "h-3.5 w-3.5 shrink-0 transition-transform duration-200",
+                isPrepExpanded && "rotate-180"
+              )}
+              aria-hidden="true"
+            />
+          </button>
+
+          {isPrepExpanded && (
+            <div
+              id={prepPanelId}
+              className="mt-2 space-y-2.5 rounded-2xl border border-[#CAD17A]/60 bg-[#F7F6F0] p-3.5 text-xs leading-relaxed text-[#3D3933]"
+            >
+              <div>
+                <p className="font-bold text-[#511D4E]">
+                  {t("simulation.whyPlantTitle", { plant: prepStep.name })}
+                </p>
+                <p className="mt-1">
+                  {prepStep.prepReason ??
+                    selectedAlternative?.reason ??
+                    t("simulation.whyPlantFallback", { plant: prepStep.name })}
+                </p>
+              </div>
+
+              {(prepStep.equivalencesReason || otherAlternatives.length > 0) && (
+                <div className="border-t border-[#E6E4DA] pt-2.5">
+                  <p className="font-bold text-[#511D4E]">
+                    {t("simulation.equivalencesTitle")}
+                  </p>
+                  <p className="mt-1">
+                    {prepStep.equivalencesReason ??
+                      t("simulation.equivalencesFallback", {
+                        alternatives: alternativesSummary,
+                      })}
+                  </p>
+                  {otherAlternatives.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {otherAlternatives.map((alt) => (
+                        <span
+                          key={alt.id}
+                          className="inline-flex items-center rounded-full border border-[#E6E4DA] bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#511D4E]"
+                        >
+                          {alt.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Justificação da IA (NASA/Clima) */}
       <div

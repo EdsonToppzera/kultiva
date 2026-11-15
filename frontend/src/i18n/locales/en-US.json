@@ -235,7 +235,12 @@
     "requirement": "Requirement",
     "effect": "Effect",
     "pestAlerts": "Pest History & Alerts (AGROFIT)",
-    "closeDetails": "Close details"
+    "closeDetails": "Close details",
+    "whyPlant": "Why {{plant}}?",
+    "whyPlantTitle": "Why we chose {{plant}}",
+    "whyPlantFallback": "{{plant}} acts as an intermediate soil-preparation crop to protect the ground, retain moisture, recycle nutrients, and break pest cycles before the next planting.",
+    "equivalencesTitle": "Why the equivalent crops work",
+    "equivalencesFallback": "Alternatives such as {{alternatives}} fulfill the same agronomic role of ground cover, soil improvement, and nutrient cycling, allowing you to adapt based on local seed availability."
   },
   "dashboard": {
     "overviewTitle": "Plot overview",
