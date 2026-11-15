@@ -1699,3 +1699,539 @@ def test_a14_endpoints_aptidao_gaez_e_simular_rotacao_integrados(
         simulacao._SERVICE_CACHE.clear()
         app.dependency_overrides.clear()
         Base.metadata.drop_all(bind=engine)
+
+
+# ---- A15: Provedor direto ECOCROP + endpoint /culturas/ecocrop ------------
+
+def _build_sample_ecocrop_csv() -> str:
+    import csv as _csv
+    import io as _io
+
+    cols = [
+        "EcoPortCode", "ScientificName", "AUTH", "FAMNAME", "SYNO", "COMNAME",
+        "TOPMN", "TOPMX", "TMIN", "TMAX", "ROPMN", "ROPMX", "RMIN", "RMAX",
+        "PHOPMN", "PHOPMX", "PHMIN", "PHMAX", "GMIN", "GMAX",
+    ]
+    rows = [
+        {
+            "EcoPortCode": "2175", "ScientificName": "Zea mays", "AUTH": "L.",
+            "FAMNAME": "Liliopsida:Commelinidae:Cyperales:Gramineae",
+            "COMNAME": "maize, corn, milho",
+            "TOPMN": "18", "TOPMX": "33", "TMIN": "10", "TMAX": "47",
+            "ROPMN": "600", "ROPMX": "1200", "RMIN": "400", "RMAX": "1800",
+            "PHOPMN": "5.5", "PHOPMX": "7.0", "PHMIN": "4.5", "PHMAX": "8.5",
+            "GMIN": "65", "GMAX": "365",
+        },
+        {
+            "EcoPortCode": "2153", "ScientificName": "Vigna unguiculata", "AUTH": "(L.) Walp.",
+            "FAMNAME": "Magnoliopsida:Rosidae:Fabales:Leguminosae",
+            "COMNAME": "cowpea, feijao-caupi",
+            "TOPMN": "25", "TOPMX": "35", "TMIN": "15", "TMAX": "40",
+            "ROPMN": "500", "ROPMX": "1500", "RMIN": "300", "RMAX": "4100",
+            "PHOPMN": "5.5", "PHOPMX": "7.0", "PHMIN": "4.5", "PHMAX": "8.0",
+            "GMIN": "30", "GMAX": "240",
+        },
+        {
+            "EcoPortCode": "1420", "ScientificName": "Manihot esculenta", "AUTH": "Crantz",
+            "FAMNAME": "Magnoliopsida:Dilleniidae:Euphorbiales:Euphorbiaceae",
+            "COMNAME": "cassava, mandioca",
+            "TOPMN": "20", "TOPMX": "29", "TMIN": "10", "TMAX": "35",
+            "ROPMN": "1000", "ROPMX": "1500", "RMIN": "500", "RMAX": "5000",
+            "PHOPMN": "5.5", "PHOPMX": "7.0", "PHMIN": "4.0", "PHMAX": "8.5",
+            "GMIN": "180", "GMAX": "365",
+        },
+        {
+            "EcoPortCode": "708", "ScientificName": "Citrullus lanatus", "AUTH": "(Thunb.) Matsum.",
+            "FAMNAME": "Magnoliopsida:Dilleniidae:Violales:Cucurbitaceae",
+            "COMNAME": "watermelon, melancia",
+            "TOPMN": "20", "TOPMX": "35", "TMIN": "15", "TMAX": "40",
+            "ROPMN": "600", "ROPMX": "1000", "RMIN": "400", "RMAX": "1800",
+            "PHOPMN": "5.5", "PHOPMX": "7.0", "PHMIN": "5.0", "PHMAX": "8.0",
+            "GMIN": "0", "GMAX": "0",
+        },
+    ]
+    buf = _io.StringIO()
+    writer = _csv.DictWriter(buf, fieldnames=cols)
+    writer.writeheader()
+    writer.writerows(rows)
+    return buf.getvalue()
+
+
+_SAMPLE_ECOCROP_CSV = _build_sample_ecocrop_csv()
+
+
+def test_a15_ecocrop_provider_extrai_taxonomia_limites_e_cache(
+    monkeypatch, tmp_path
+):
+    from backend.services import ecocrop_service
+
+    csv_file = tmp_path / "EcoCrop_DB.csv"
+    csv_file.write_text(_SAMPLE_ECOCROP_CSV, encoding="utf-8")
+
+    monkeypatch.setattr(
+        ecocrop_service,
+        "ECOCROP_CSV_URL",
+        "https://example.invalid/EcoCrop_DB.csv",
+    )
+
+    # Sem rede e sem cache: retorna no_data sem inventar valores
+    prov_offline = ecocrop_service.EcoCropDataProvider(
+        data_path=str(tmp_path / "empty_cache"),
+        csv_url="https://example.invalid/missing.csv",
+    )
+    offline_res = prov_offline.lookup_crop("Zea mays")
+    assert offline_res["data_quality"] == "no_data"
+    assert offline_res["found"] is False
+    assert offline_res["crop"] is None
+
+    # Com CSV válido (simulando download HTTP): extrai campos e grava cache em disco
+    class _FakeResp:
+        text = _SAMPLE_ECOCROP_CSV
+
+        @staticmethod
+        def raise_for_status():
+            return None
+
+    monkeypatch.setattr(ecocrop_service.httpx, "get", lambda url, timeout=15.0: _FakeResp())
+
+    cache_dir = tmp_path / "cache"
+    prov = ecocrop_service.EcoCropDataProvider(data_path=str(cache_dir))
+
+    res_milho = prov.lookup_crop("Milho")
+    assert res_milho["data_quality"] == "ecocrop_csv"
+    assert res_milho["found"] is True
+    milho = res_milho["crop"]
+    assert milho["ecoport_code"] == "2175"
+    assert milho["scientific_name"] == "Zea mays"
+    assert milho["family"] == "Gramineae"
+    assert milho["family_canonical"] == "Poaceae"
+    assert milho["tmin"] == 10.0
+    assert milho["tmax"] == 47.0
+    assert milho["topmin"] == 18.0
+    assert milho["topmax"] == 33.0
+    assert milho["rmin"] == 400.0
+    assert milho["rmax"] == 1800.0
+    assert milho["gmin"] == 65
+    assert milho["gmax"] == 365
+
+    # Consulta por código GAEZ, EcoPortCode e nome científico
+    assert prov.lookup_crop("COW")["crop"]["scientific_name"] == "Vigna unguiculata"
+    assert prov.lookup_crop("COW")["crop"]["family_canonical"] == "Fabaceae"
+    assert prov.lookup_crop("1420")["crop"]["scientific_name"] == "Manihot esculenta"
+
+    # GMIN/GMAX zerados na tabela FAO não geram janela inválida (viram None)
+    melancia = prov.lookup_crop("Citrullus lanatus")["crop"]
+    assert melancia["gmin"] is None
+    assert melancia["gmax"] is None
+
+    # Avaliação de conforto climático contra limites ECOCROP
+    conforto_ok = ecocrop_service.evaluate_climate_comfort(milho, temp_c=26.0, annual_rain_mm=900.0, cycle_days=95)
+    assert conforto_ok["status"] == "optimal"
+    assert conforto_ok["comfort_score"] == 1.0
+    conforto_extremo = ecocrop_service.evaluate_climate_comfort(milho, temp_c=49.0, annual_rain_mm=250.0, cycle_days=40)
+    assert conforto_extremo["status"] == "stress"
+    assert len(conforto_extremo["warnings"]) == 3
+
+    # Cache em disco responde mesmo se httpx falhar depois
+    monkeypatch.setattr(
+        ecocrop_service.httpx,
+        "get",
+        MagicMock(side_effect=RuntimeError("rede indisponível")),
+    )
+    prov_cached = ecocrop_service.EcoCropDataProvider(data_path=str(cache_dir))
+    assert prov_cached.lookup_crop("Feijão-caupi")["crop"]["scientific_name"] == "Vigna unguiculata"
+
+
+def test_a15_endpoint_culturas_ecocrop(tmp_path):
+    from fastapi.testclient import TestClient
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    from backend.api import cultura as cultura_api
+    from backend.db import models
+    from backend.db.database import Base, get_db
+    from backend.main import app
+    from backend.services.ecocrop_service import EcoCropDataProvider
+
+    csv_file = tmp_path / "EcoCrop_DB.csv"
+    csv_file.write_text(_SAMPLE_ECOCROP_CSV, encoding="utf-8")
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    def override_get_db():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    with TestingSessionLocal() as db:
+        db.add(
+            models.Cultura(
+                nome="Feijão-caupi",
+                consumo_agua_mm=300.0,
+                tempo_colheita_dias=70,
+                is_seed=True,
+                customizada=False,
+            )
+        )
+        db.commit()
+
+    local_ecocrop = EcoCropDataProvider(
+        data_path=str(tmp_path / "cache"),
+        csv_url=str(csv_file),
+    )
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[cultura_api.get_ecocrop_provider] = lambda: local_ecocrop
+
+    try:
+        with TestClient(app) as client:
+            resp = client.get("/api/v1/culturas/ecocrop", params={"q": "Mandioca"})
+            assert resp.status_code == 200
+            body = resp.json()
+            assert body["origem"] == "fao_ecocrop"
+            assert body["data_quality"] == "ecocrop_csv"
+            assert body["crop"]["scientific_name"] == "Manihot esculenta"
+            assert body["crop"]["family"] == "Euphorbiaceae"
+            assert body["crop"]["topmin"] == 20.0
+            assert body["crop"]["topmax"] == 29.0
+
+            resp_by_id = client.get("/api/v1/culturas/ecocrop", params={"cultura_id": 1})
+            assert resp_by_id.status_code == 200
+            assert resp_by_id.json()["crop"]["scientific_name"] == "Vigna unguiculata"
+
+            resp_404 = client.get("/api/v1/culturas/ecocrop", params={"q": "PlantaInexistenteXYZ"})
+            assert resp_404.status_code == 404
+
+            with patch.object(
+                local_ecocrop,
+                "lookup_crop",
+                return_value={"origem": "fao_ecocrop", "data_quality": "no_data", "query": "Milho", "found": False, "crop": None},
+            ):
+                resp_503 = client.get("/api/v1/culturas/ecocrop", params={"q": "Milho"})
+                assert resp_503.status_code == 503
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(bind=engine)
+
+
+# ---- A16: AGROFIT (Embrapa AgroAPI) x NASA x ECOCROP no CropSimulator -----
+
+
+def test_a16_agrofit_provider_oauth_cache_e_sem_fallback_inventado(
+    monkeypatch, tmp_path
+):
+    from backend.services import agrofit_service
+
+    # Sem credenciais e sem cache -> retorna no_data (sem inventar dados)
+    monkeypatch.delenv("AGROFIT_ACCESS_TOKEN", raising=False)
+    monkeypatch.delenv("EMBRAPA_CONSUMER_KEY", raising=False)
+    monkeypatch.delenv("EMBRAPA_CONSUMER_SECRET", raising=False)
+
+    prov_sem_cred = agrofit_service.AgrofitDataProvider(data_path=str(tmp_path / "sem_cred"))
+    res_no_data = prov_sem_cred.fetch_crop_pests("Zea mays")
+    assert res_no_data["data_quality"] == "no_data"
+    assert res_no_data["reason"] == "missing_credentials"
+    assert res_no_data["pests"] == []
+
+    # Com Consumer Key/Secret -> troca token OAuth2 e consulta pragas + produtos formulados
+    class _FakeResp:
+        def __init__(self, status_code: int, payload):
+            self.status_code = status_code
+            self._payload = payload
+
+        def json(self):
+            return self._payload
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise RuntimeError(f"HTTP {self.status_code}")
+
+    def _fake_post(url, headers=None, data=None, timeout=12.0):
+        assert url.endswith("/token")
+        assert data == {"grant_type": "client_credentials"}
+        return _FakeResp(200, {"access_token": "tok_agrofit_123", "expires_in": 3600})
+
+    def _fake_get(url, headers=None, params=None, timeout=12.0):
+        assert headers["Authorization"] == "Bearer tok_agrofit_123"
+        if url.endswith("/pragas"):
+            return _FakeResp(
+                200,
+                {
+                    "itens": [
+                        {
+                            "nome_comum": "Lagarta-do-cartucho",
+                            "nome_cientifico": "Spodoptera frugiperda",
+                            "tipo": "Inseto",
+                        },
+                        {
+                            "nome_comum": "Cigarrinha-do-milho",
+                            "nome_cientifico": "Dalbulus maidis",
+                            "tipo": "Inseto",
+                        },
+                    ]
+                },
+            )
+        return _FakeResp(
+            200,
+            [
+                {
+                    "numero_registro": "12345",
+                    "indicacao_uso": [
+                        {
+                            "cultura_nome_cientifico": "Zea mays",
+                            "praga_nome_comum": "Ferrugem-polissora",
+                            "praga_nome_cientifico": "Puccinia polysora",
+                            "classe_agronomica": "Fungicida",
+                        }
+                    ],
+                }
+            ],
+        )
+
+    monkeypatch.setattr(agrofit_service.httpx, "post", _fake_post)
+    monkeypatch.setattr(agrofit_service.httpx, "get", _fake_get)
+
+    cache_root = tmp_path / "cache_agrofit"
+    prov = agrofit_service.AgrofitDataProvider(
+        data_path=str(cache_root),
+        consumer_key="ck_demo",
+        consumer_secret="cs_demo",
+    )
+    res_milho = prov.fetch_crop_pests("Milho")
+    assert res_milho["data_quality"] == "agrofit_v1"
+    assert res_milho["scientific_name"] == "Zea mays"
+    assert res_milho["pests_count"] == 3
+    assert res_milho["products_count"] == 1
+    nomes_pragas = {p["nome_comum"] for p in res_milho["pests"]}
+    assert {"Lagarta-do-cartucho", "Cigarrinha-do-milho", "Ferrugem-polissora"} == nomes_pragas
+
+    # Segunda consulta reutiliza o cache em disco mesmo offline
+    monkeypatch.setattr(
+        agrofit_service.httpx,
+        "get",
+        MagicMock(side_effect=RuntimeError("sem rede")),
+    )
+    prov_cached = agrofit_service.AgrofitDataProvider(data_path=str(cache_root))
+    res_cached = prov_cached.fetch_crop_pests("Zea mays")
+    assert res_cached == res_milho
+
+
+def test_a16_crop_simulator_risco_fitossanitario_sem_bloquear_subsistencia(tmp_path):
+    from backend.services.ecocrop_service import EcoCropDataProvider
+
+    csv_file = tmp_path / "EcoCrop_DB.csv"
+    csv_file.write_text(_SAMPLE_ECOCROP_CSV, encoding="utf-8")
+    eco_prov = EcoCropDataProvider(data_path=str(tmp_path / "eco_cache"), csv_url=str(csv_file))
+    eco_map = eco_prov.extract_crops_map(
+        ["Milho", "Soja", "Sorgo", "Feijão-caupi", "Mandioca", "Milheto", "Amendoim"]
+    )
+
+    agro_map = {
+        "origem": "embrapa_agrofit_v1",
+        "data_quality": "agrofit_v1",
+        "crops": {
+            "zea mays": {
+                "data_quality": "agrofit_v1",
+                "scientific_name": "Zea mays",
+                "pests": [
+                    {
+                        "nome_comum": "Lagarta-do-cartucho",
+                        "nome_cientifico": "Spodoptera frugiperda",
+                        "tipo": "Inseto",
+                    },
+                    {
+                        "nome_comum": "Cigarrinha-do-milho",
+                        "nome_cientifico": "Dalbulus maidis",
+                        "tipo": "Inseto",
+                    },
+                ],
+                "pests_count": 2,
+                "products_count": 4,
+            },
+            "manihot esculenta": {
+                "data_quality": "agrofit_v1",
+                "scientific_name": "Manihot esculenta",
+                "pests": [
+                    {
+                        "nome_comum": "Ácaro-verde",
+                        "nome_cientifico": "Mononychellus tanajoa",
+                        "tipo": "Acaro",
+                    }
+                ],
+                "pests_count": 1,
+                "products_count": 1,
+            },
+        },
+    }
+
+    sim = CropSimulator()
+    metricas_risco = {
+        **SECO,
+        "avg_surface_temp_ecostress": 36.5,
+        "ecocrop": eco_map,
+        "agrofit": agro_map,
+    }
+    # Mesmo com histórico de Milho (Gramineae/Poaceae) + praga-alvo Lagarta + seca quente:
+    # - culturas de subsistência como Mandioca -> Crotalária / Milho -> Soja (Atual) NÃO são bloqueadas
+    # - score_breakdown traz risco fitossanitário, famílias botânicas, pragas Agrofit e avisos
+    estrategias = sim.simulate_rotation_strategies(
+        metricas_risco,
+        {
+            "agua": "escassa",
+            "praga_alvo": "lagarta",
+            "pratica_atual": "Mandioca -> Feijão-caupi",
+        },
+        historico_cultivos=["Milho"],
+    )
+    assert len(estrategias) == 3
+    atual = next(e for e in estrategias if "(Atual)" in e["strategy"])
+    assert "Mandioca" in atual["strategy"]  # Subsistência preservada, nunca bloqueada
+
+    # Simula também com prática atual Milho -> Soja para inspecionar penalização da mesma família Poaceae
+    estrategias_milho = sim.simulate_rotation_strategies(
+        metricas_risco,
+        {"praga_alvo": "lagarta"},
+        historico_cultivos=["Milho"],
+    )
+    atual_milho = next(e for e in estrategias_milho if "(Atual)" in e["strategy"])
+    bd_milho = atual_milho["score_breakdown"]
+    assert bd_milho["same_family_as_history"] is True
+    assert "Poaceae" in bd_milho["botanical_families"]
+    assert bd_milho["phytosanitary_risk"] in {"medium", "high"}
+    assert bd_milho["phytosanitary_penalty"] < 0
+    assert bd_milho["agrofit_pests_count"] >= 2
+    assert any("Lagarta-do-cartucho" in p for p in bd_milho["agrofit_pests_sample"])
+    assert len(bd_milho["phytosanitary_warnings"]) >= 1
+
+
+def test_a16_endpoint_simular_rotacao_integra_ecocrop_e_agrofit(
+    tmp_path, geospatial_mod
+):
+    from fastapi.testclient import TestClient
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    from backend.api import simulacao
+    from backend.db import models
+    from backend.db.database import Base, get_db
+    from backend.main import app
+    from backend.services.ecocrop_service import EcoCropDataProvider
+
+    csv_file = tmp_path / "EcoCrop_DB.csv"
+    csv_file.write_text(_SAMPLE_ECOCROP_CSV, encoding="utf-8")
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    def override_get_db():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    with TestingSessionLocal() as db:
+        u = models.Usuario(nome="Produtor A16", email="a16@kultiva.local")
+        db.add(u)
+        db.flush()
+        db.add(
+            models.Terreno(
+                nome_propriedade="Sítio Fitossanitário",
+                usuario_id=u.id,
+                coordenadas_poligono=POLIGONO_SP,
+                prioridades={"agua": "escassa", "praga_alvo": "lagarta"},
+            )
+        )
+        db.commit()
+
+    class _FakeAgrofitProvider:
+        data_path = str(tmp_path / "agro_cache")
+
+        @staticmethod
+        def has_credentials():
+            return True
+
+        @staticmethod
+        def fetch_crops_pests_map(sci_names):
+            return {
+                "origem": "embrapa_agrofit_v1",
+                "data_quality": "agrofit_v1",
+                "crops": {
+                    "zea mays": {
+                        "data_quality": "agrofit_v1",
+                        "scientific_name": "Zea mays",
+                        "pests": [
+                            {
+                                "nome_comum": "Lagarta-do-cartucho",
+                                "nome_cientifico": "Spodoptera frugiperda",
+                                "tipo": "Inseto",
+                            }
+                        ],
+                        "pests_count": 1,
+                        "products_count": 3,
+                    }
+                },
+            }
+
+    local_ecocrop = EcoCropDataProvider(
+        data_path=str(tmp_path / "eco_cache"),
+        csv_url=str(csv_file),
+    )
+    mock_nasa = geospatial_mod.MockNASADataProvider(
+        data_path=str(tmp_path / "nasa_calor"),
+        profile="onda_de_calor",
+    )
+
+    simulacao._SERVICE_CACHE.clear()
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[simulacao.get_nasa_processor] = lambda: mock_nasa
+    app.dependency_overrides[simulacao.get_crop_simulator] = lambda: CropSimulator()
+    app.dependency_overrides[simulacao.get_rotation_explainer] = (
+        lambda: RotationExplainerAgent()
+    )
+    app.dependency_overrides[simulacao.get_ecocrop_provider] = lambda: local_ecocrop
+    app.dependency_overrides[simulacao.get_agrofit_provider] = (
+        lambda: _FakeAgrofitProvider()
+    )
+
+    try:
+        with TestClient(app) as client:
+            resp = client.post(
+                "/api/v1/simular-rotacao",
+                json={
+                    "terreno_id": 1,
+                    "nome_cultura": "Milho",
+                    "historico_cultivos": ["Milho"],
+                },
+            )
+            assert resp.status_code == 200
+            body = resp.json()
+            assert body["metricas_geoespaciais"]["ecocrop"]["data_quality"] == "ecocrop_csv"
+            assert body["metricas_geoespaciais"]["agrofit"]["data_quality"] == "agrofit_v1"
+
+            milho_estrategia = next(
+                e for e in body["rotacoes_sugeridas"] if "Milho" in e["strategy"]
+            )
+            bd = milho_estrategia["score_breakdown"]
+            assert bd["phytosanitary_risk"] in {"low", "medium", "high"}
+            assert "phytosanitary_risk_score" in bd
+            assert bd["same_family_as_history"] is True
+            assert bd["agrofit_pests_count"] >= 1
+    finally:
+        simulacao._SERVICE_CACHE.clear()
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(bind=engine)

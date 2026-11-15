@@ -51,6 +51,9 @@ Remove o terreno e limpa os registros dependentes associados (`metricas_historic
 - `GET /api/v1/culturas/aptidao-gaez`: consulta **diretamente** os COGs do **FAO GAEZ v5** (*Suitability and Attainable Yield* `RES05-SUX`/`YLX`, solo `HWSDV201`, `SQ-IDX`, `SQX.SQ0`, declividade `SLOPE-MED` e projeção `CMIP6 FP2140 SSP370`) para a coordenada/terreno e perfil de manejo (`LRLM`, `HRLM`, `LILM`, `HILM`).
   - **Query Params:** `terreno_id` ou `lat` & `lng`; opcionais `agua`, `metodo_irrigacao`, `nivel_insumo` e `sincronizar_catalogo=true|false` (grava/atualiza culturas viáveis no catálogo `[M2]` preservando `is_seed=true`).
   - **Respostas:** `200 OK` (`origem`, `data_quality`, `input_level`, `ssp_scenario`, `centroid`, `soil`, `culturas_avaliadas`, `culturas_sincronizadas`) ou `503 Service Unavailable` caso o GAEZ v5 não responda (`no_data`, sem fallback inventado).
+- `GET /api/v1/culturas/ecocrop`: consulta diretamente a base **FAO ECOCROP** (`EcoCrop_DB.csv` com cache local, sem fallback inventado) para retornar taxonomia (`scientific_name`, `family`, `family_canonical`) e zona de conforto (`tmin`/`tmax`, `topmin`/`topmax`, `rmin`/`rmax`, `gmin`/`gmax`).
+  - **Query Params:** `q`, `nome`, `scientific_name`, `crop_code`, `ecoport_code` ou `cultura_id`.
+  - **Respostas:** `200 OK`, `404 Not Found` (cultura não encontrada na base) ou `503 Service Unavailable` caso o CSV do ECOCROP esteja indisponível (`no_data`).
 - `GET /api/v1/culturas/{cultura_id}`: obtém detalhes de uma cultura.
 - `POST /api/v1/culturas/` (`200 OK`): cadastra cultura customizada (`is_seed=false`, `customizada=true`), validando nome único e valores positivos (`consumo_agua_mm > 0`, `tempo_colheita_dias > 0`).
 - `PUT /api/v1/culturas/{cultura_id}` (`200 OK`): edita cultura customizada (retorna `403 Forbidden` para culturas `is_seed=true`).
