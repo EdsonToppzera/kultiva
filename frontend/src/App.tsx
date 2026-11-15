@@ -37,11 +37,14 @@ import {
   type PlantationArea,
 } from "./pages/PlantationsPage";
 import {
+  type SimulatedDashboardBundle,
   adaptSimulacaoToScenarios,
   buildGerarCronogramaPayload,
+  buildSimulatedDashboardAndCalendar,
 } from "./services/adapters";
 import {
   type CoordenadaApi,
+  type SimulacaoResponse,
   type TerrenoResponse,
   DEFAULT_USUARIO_ID,
   converterHistoricoParaLista,
@@ -76,6 +79,17 @@ interface DraftTerrain {
   points: MapCoordinate[];
   coordenadas_poligono: CoordenadaApi[];
   area_hectares?: number;
+}
+
+interface NormalFlowSnapshot {
+  currentTerreno: TerrenoResponse | null;
+  selectedArea: PlantationArea | null;
+  cropHistory: CropHistoryData | null;
+  waterDistribution: WaterDistributionData | null;
+  soilType: SoilTypeData | null;
+  priority: PriorityData | null;
+  selectedPlan: RotationScenario | null;
+  remoteScenarios: RotationScenario[] | null;
 }
 
 function buildMergedPrioridades(
@@ -138,6 +152,13 @@ export function App() {
   const [remoteScenarios, setRemoteScenarios] = React.useState<
     RotationScenario[] | null
   >(null);
+  const [isSimulationMode, setIsSimulationMode] = React.useState(false);
+  const [normalSnapshot, setNormalSnapshot] =
+    React.useState<NormalFlowSnapshot | null>(null);
+  const [lastSimulacaoResponse, setLastSimulacaoResponse] =
+    React.useState<SimulacaoResponse | null>(null);
+  const [simulatedDashboard, setSimulatedDashboard] =
+    React.useState<SimulatedDashboardBundle | null>(null);
   const [isSimulating, setIsSimulating] = React.useState(false);
   const [isGeneratingSchedule, setIsGeneratingSchedule] = React.useState(false);
   const [showLoaderPreview, setShowLoaderPreview] = React.useState<boolean>(() => {
@@ -163,12 +184,61 @@ export function App() {
 
   const networkStatus: NetworkSyncStatus = isOnline ? "salvo" : "offline";
 
+  const handleStartSimulation = React.useCallback(() => {
+    setNormalSnapshot({
+      currentTerreno,
+      selectedArea,
+      cropHistory,
+      waterDistribution,
+      soilType,
+      priority,
+      selectedPlan,
+      remoteScenarios,
+    });
+    setIsSimulationMode(true);
+    setSelectedPlan(null);
+    setRemoteScenarios(null);
+    setLastSimulacaoResponse(null);
+    setSimulatedDashboard(null);
+    setDraftTerrain(null);
+    setStep("plantations");
+  }, [
+    currentTerreno,
+    selectedArea,
+    cropHistory,
+    waterDistribution,
+    soilType,
+    priority,
+    selectedPlan,
+    remoteScenarios,
+  ]);
+
+  const handleFinishSimulation = React.useCallback(() => {
+    if (normalSnapshot) {
+      setCurrentTerreno(normalSnapshot.currentTerreno);
+      setSelectedArea(normalSnapshot.selectedArea);
+      setCropHistory(normalSnapshot.cropHistory);
+      setWaterDistribution(normalSnapshot.waterDistribution);
+      setSoilType(normalSnapshot.soilType);
+      setPriority(normalSnapshot.priority);
+      setSelectedPlan(normalSnapshot.selectedPlan);
+      setRemoteScenarios(normalSnapshot.remoteScenarios);
+    }
+    setNormalSnapshot(null);
+    setIsSimulationMode(false);
+    setLastSimulacaoResponse(null);
+    setSimulatedDashboard(null);
+    setDraftTerrain(null);
+    setStep("area-dashboard");
+  }, [normalSnapshot]);
+
   React.useEffect(() => {
     if (step !== "recommendations") return;
 
     let cancelled = false;
     setIsSimulating(true);
     setRemoteScenarios(null);
+    setLastSimulacaoResponse(null);
 
     const runSimulation = async () => {
       try {
@@ -181,7 +251,10 @@ export function App() {
         );
 
         const response = await simularRotacao({
-          terreno_id: currentTerreno?.id,
+          terreno_id:
+            currentTerreno && currentTerreno.id > 0
+              ? currentTerreno.id
+              : undefined,
           nome_propriedade:
             currentTerreno?.nome_propriedade ?? draftTerrain?.nome_propriedade,
           coordenadas_poligono:
@@ -200,6 +273,7 @@ export function App() {
         });
 
         if (!cancelled) {
+          setLastSimulacaoResponse(response);
           setRemoteScenarios(
             adaptSimulacaoToScenarios(response, {
               cropHistory,
@@ -236,6 +310,47 @@ export function App() {
     setSelectedPlan(scenario);
     let resolvedTerreno = currentTerreno;
     let terrenoId = resolvedTerreno?.id ?? selectedArea?.terrenoId;
+
+    if (isSimulationMode) {
+      const simulatedAreaName =
+        resolvedTerreno?.nome_propriedade ??
+        draftTerrain?.nome_propriedade ??
+        selectedArea?.name ??
+        "Área simulada";
+
+      setSimulatedDashboard(
+        buildSimulatedDashboardAndCalendar(
+          scenario,
+          lastSimulacaoResponse,
+          simulatedAreaName,
+          cropHistory
+        )
+      );
+
+      if (draftTerrain) {
+        setSelectedArea({
+          id: "sim-draft",
+          name: draftTerrain.nome_propriedade,
+          sizeLabel: formatarAreaHectares(draftTerrain.area_hectares),
+          areaHectares: draftTerrain.area_hectares ?? null,
+          coordenadasPoligono: draftTerrain.coordenadas_poligono,
+        });
+      } else if (resolvedTerreno) {
+        setSelectedArea({
+          id: String(resolvedTerreno.id),
+          terrenoId: resolvedTerreno.id,
+          name: resolvedTerreno.nome_propriedade,
+          sizeLabel: formatarAreaHectares(resolvedTerreno.area_hectares),
+          areaHectares: resolvedTerreno.area_hectares ?? null,
+          coordenadasPoligono: resolvedTerreno.coordenadas_poligono,
+          prioridades: resolvedTerreno.prioridades ?? null,
+        });
+      }
+
+      setDraftTerrain(null);
+      setStep("area-dashboard");
+      return;
+    }
 
     setIsGeneratingSchedule(true);
     try {
@@ -291,6 +406,11 @@ export function App() {
     setDraftTerrain(null);
     setStep("area-dashboard");
   };
+
+  const activeTerrenoIdForMutations =
+    isSimulationMode || (currentTerreno?.id ?? -1) < 0
+      ? null
+      : (currentTerreno?.id ?? null);
 
   const renderStep = () => {
     if (step === "summary") {
@@ -502,9 +622,11 @@ export function App() {
         initialTargetCrop={priority?.culturaDesejada ?? null}
         initialTargetPest={priority?.pragaAlvo ?? null}
         networkStatus={networkStatus}
-        terrenoId={currentTerreno?.id ?? null}
+        terrenoId={activeTerrenoIdForMutations}
         existingPrioridades={currentTerreno?.prioridades ?? null}
-        onTerrenoUpdated={(updated) => setCurrentTerreno(updated)}
+        onTerrenoUpdated={(updated) => {
+          if (!isSimulationMode) setCurrentTerreno(updated);
+        }}
         onBack={() => setStep(3)}
         onContinue={(data) => {
           setPriority(data);
@@ -519,9 +641,11 @@ export function App() {
       <SoilTypeStep
         initialValue={soilType?.tipoSolo.id ?? null}
         networkStatus={networkStatus}
-        terrenoId={currentTerreno?.id ?? null}
+        terrenoId={activeTerrenoIdForMutations}
         existingPrioridades={currentTerreno?.prioridades ?? null}
-        onTerrenoUpdated={(updated) => setCurrentTerreno(updated)}
+        onTerrenoUpdated={(updated) => {
+          if (!isSimulationMode) setCurrentTerreno(updated);
+        }}
         onBack={() => setStep(2)}
         onContinue={(data) => {
           setSoilType(data);
@@ -536,10 +660,12 @@ export function App() {
       <WaterDistributionStep
         initialValue={waterDistribution?.metodoIrrigacao.id ?? null}
         networkStatus={networkStatus}
-        terrenoId={currentTerreno?.id ?? null}
+        terrenoId={activeTerrenoIdForMutations}
         existingPrioridades={currentTerreno?.prioridades ?? null}
         cropHistory={cropHistory}
-        onTerrenoUpdated={(updated) => setCurrentTerreno(updated)}
+        onTerrenoUpdated={(updated) => {
+          if (!isSimulationMode) setCurrentTerreno(updated);
+        }}
         onBack={() => setStep(1)}
         onContinue={(data) => {
           setWaterDistribution(data);
@@ -623,6 +749,16 @@ export function App() {
               : null
           );
 
+          if (isSimulationMode) {
+            setSelectedPlan(null);
+            setRemoteScenarios(null);
+            setLastSimulacaoResponse(null);
+            setSimulatedDashboard(null);
+            setDraftTerrain(null);
+            setStep(1);
+            return;
+          }
+
           setStep("area-dashboard");
         }}
       />
@@ -632,13 +768,27 @@ export function App() {
   if (step === "area-dashboard") {
     return (
       <AreaDashboardPage
-        terrenoId={selectedArea?.terrenoId ?? currentTerreno?.id ?? null}
+        terrenoId={
+          isSimulationMode
+            ? null
+            : (selectedArea?.terrenoId ?? currentTerreno?.id ?? null)
+        }
+        isSimulationMode={isSimulationMode}
         cropNameFallback={
           cropHistory?.ultimoCultivo?.officialName ??
           priority?.culturaDesejada?.officialName
         }
         areaLocation={selectedArea?.name ?? currentTerreno?.nome_propriedade}
+        weather={isSimulationMode ? simulatedDashboard?.weather : undefined}
+        cropProgress={
+          isSimulationMode ? simulatedDashboard?.cropProgress : undefined
+        }
+        activities={
+          isSimulationMode ? simulatedDashboard?.activities : undefined
+        }
         networkStatus={networkStatus}
+        onStartSimulation={handleStartSimulation}
+        onFinishSimulation={handleFinishSimulation}
         onOpenCalendar={() => setStep("area-calendar")}
         onBack={() => setStep("plantations")}
       />
@@ -648,8 +798,15 @@ export function App() {
   if (step === "area-calendar") {
     return (
       <AreaCalendarPage
-        terrenoId={selectedArea?.terrenoId ?? currentTerreno?.id ?? null}
+        terrenoId={
+          isSimulationMode
+            ? null
+            : (selectedArea?.terrenoId ?? currentTerreno?.id ?? null)
+        }
         areaLocation={selectedArea?.name ?? currentTerreno?.nome_propriedade}
+        calendarData={
+          isSimulationMode ? simulatedDashboard?.calendarData : undefined
+        }
         networkStatus={networkStatus}
         onBack={() => setStep("area-dashboard")}
       />
@@ -685,10 +842,12 @@ export function App() {
     <CropHistoryStep
       initialData={cropHistory ?? undefined}
       networkStatus={networkStatus}
-      terrenoId={currentTerreno?.id ?? null}
+      terrenoId={activeTerrenoIdForMutations}
       existingPrioridades={currentTerreno?.prioridades ?? null}
-      onTerrenoUpdated={(updated) => setCurrentTerreno(updated)}
-      onBack={() => setStep("map-terrain")}
+      onTerrenoUpdated={(updated) => {
+        if (!isSimulationMode) setCurrentTerreno(updated);
+      }}
+      onBack={() => setStep(draftTerrain ? "map-terrain" : "plantations")}
       onContinue={(data) => {
         setCropHistory(data);
         setStep(2);
