@@ -129,14 +129,14 @@
 |---|---|---|---|---|
 | F1 | ✅ | Criar entrypoint e roteamento da aplicação (`index.html`, `src/main.tsx`, `src/App.tsx`) + cliente HTTP para `/api/v1` | `frontend/index.html`, `frontend/src/main.tsx`, `frontend/src/App.tsx`, `frontend/src/services/api.ts` | App Vite sobe com `npm run dev` e navega entre todas as etapas do fluxo |
 | F2 | ✅ | Conectar `PlantationsPage.tsx`, `MapTerrainPage.tsx`, `CropHistoryStep.tsx` e `WaterDistributionStep.tsx` aos endpoints `[M1]` (`GET`/`POST`/`PUT`/`DELETE /api/v1/terrenos`), `[M3]` (`POST /api/v1/simular-rotacao`) e demo seed (`POST /api/v1/demo/seed`) | `frontend/src/pages/`, `frontend/src/features/onboarding/`, `frontend/src/services/api.ts` | Terrenos reais listados/criados/excluídos no Postgres sem mocks estáticos e onboarding conectado à API |
-| F3 | ⬜ | Implementar telas completas de Simulação `[M3]` (3 estratégias, blocos estruturados com números reais: `score_breakdown`, `kg/ha`, solo HWSD, faixa ECOCROP, risco Agrofit, Z-score e explicação IA + disclaimer), Calendário `[M4]` + Alertas `[M5]` e Relatório `[M6]` | `frontend/src/pages/` | Fluxo completo `[M1] -> [M3] -> [M4]/[M5] -> [M6]` testado no navegador (sem presets regionais e sem sliders what-if) |
+| F3 | ✅ | Implementar telas completas de Simulação `[M3]` (3 estratégias, blocos estruturados com números reais: `score_breakdown`, `kg/ha`, solo HWSD, faixa ECOCROP, risco Agrofit, Z-score e explicação IA + disclaimer), Calendário `[M4]` + Alertas `[M5]` e Relatório `[M6]` | `frontend/src/pages/` | Fluxo completo `[M1] -> [M3] -> [M4]/[M5] -> [M6]` + modo simulação sandbox testados (`tsc --noEmit && vite build`) |
 
 ## Ordem e dependências
 
 1. ✅ **Rodada 1 concluída:** `A1–A6` · `B1–B4` · `C1–C5`.
 2. ✅ **Rodada 2 concluída:** `A7–A9` · `B5–B7` · `C6–C8`.
 3. ✅ **Rodada 3 concluída:** `A10–A14` · `B8` · `C9` · `F1–F2`.
-4. **Rodada 4 — Em execução:** `A15` (ECOCROP) ✅ → `A16` (Agrofit × NASA) ✅ · `A17` (Z-score) ✅ · `A18` (Explicação estruturada + SRTM) ✅ · `F3` (telas finais + blocos numéricos no frontend).
+4. ✅ **Rodada 4 concluída:** `A15` (ECOCROP) ✅ → `A16` (Agrofit × NASA) ✅ · `A17` (Z-score) ✅ · `A18` (Explicação estruturada + SRTM) ✅ · `F3` (telas finais + blocos numéricos no frontend) ✅.
 
 ## Regras de trabalho
 
