@@ -71,7 +71,7 @@
 | B5 | ✅ | Configurar `CORSMiddleware` para o frontend (`localhost:5173`), seed de `Usuario` padrão no startup e completar `PUT`/`DELETE /api/v1/terrenos/{terreno_id}` com cálculo automático de área/centroide (A7) | `main.py`, `api/terreno.py`, `schemas/terreno.py` | Frontend conecta sem CORS; terreno criado/editado/removido calcula área quando omitida |
 | B6 | ✅ | Enriquecer relatório `[M6]` com resumo interpretativo da IA (`explain_report` da A8 com fallback determinístico) e comparação entre início/fim do período | `services/relatorio_service.py`, `schemas/relatorio.py`, `api/relatorios.py` | `GET /api/v1/relatorios/...` inclui resumo acessível e comparativo do período |
 | B7 | ✅ | Endpoint/rotina de seed de demonstração (`POST /api/v1/demo/seed` com usuário, terrenos, métricas, atividades e alertas), atualização de `docs/Specs/README.md` e testes de `B5–B7` | `api/`, `docs/Specs/README.md`, `backend/tests/` | Demo populada em 1 chamada; specs e testes atualizados e verdes |
-| B8 | ⬜ | Alinhar `docker-compose.yml` e `.env.example` com `NASA_MOCK_PROFILE`, integrar `api/demo.py` aos perfis da `A9` e atualizar `docs/index.md` removendo itens já entregues do roadmap | `docker-compose.yml`, `.env.example`, `api/demo.py`, `docs/index.md` | Ambiente sobe com perfil configurável, demo usa perfis reais do mock e docs refletem estado atual |
+| B8 | ✅ | Alinhar `docker-compose.yml` e `.env.example` com `NASA_MOCK_PROFILE`, integrar `api/demo.py` aos perfis da `A9` e atualizar `docs/index.md` removendo itens já entregues do roadmap | `docker-compose.yml`, `.env.example`, `api/demo.py`, `docs/index.md` | Ambiente sobe com perfil configurável, demo usa perfis reais do mock e docs refletem estado atual |
 
 ## Dev C — Simulação, alertas e calendário
 
