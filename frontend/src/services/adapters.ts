@@ -631,3 +631,156 @@ export function mapFieldReportToAlertaPayload(
   };
 }
 
+export interface SimulatedDashboardBundle {
+  weather: AreaWeatherSummary;
+  cropProgress: AreaCropProgress;
+  activities: AreaActivityItem[];
+  calendarData: AreaCalendarData;
+}
+
+function addIsoDays(isoDate: string, days: number): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const date = new Date(Date.UTC(y, (m || 1) - 1, (d || 1) + days));
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Gera dados em memória para Dashboard e Calendário durante o modo simulação,
+ * sem persistir terreno ou cronograma no backend.
+ */
+export function buildSimulatedDashboardAndCalendar(
+  scenario: RotationScenario,
+  simulacao: SimulacaoResponse | null,
+  areaName: string,
+  cropHistory?: CropHistoryData | null
+): SimulatedDashboardBundle {
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const cronograma = buildGerarCronogramaPayload(-1, scenario, cropHistory);
+  const fallbackDuration = 90;
+  const etapas =
+    cronograma.plano_rotacao && cronograma.plano_rotacao.length > 0
+      ? cronograma.plano_rotacao
+      : [
+          {
+            ordem: 1,
+            cultura:
+              scenario.steps[0]?.name ??
+              cronograma.nome_cultura ??
+              "Cultivo",
+            duracao_dias: fallbackDuration,
+            risco_hidrico: scenario.variant === "risk" ? "alto" : "moderado",
+          },
+        ];
+
+  const syntheticAtividades: AtividadeCalendarioResponse[] = [];
+  let cursorDate = cronograma.data_inicio || todayIso;
+  let seqId = -1;
+
+  etapas.forEach((etapa, idx) => {
+    const duration = Math.max(30, etapa.duracao_dias || fallbackDuration);
+    const stageTag = `[Etapa ${idx + 1} - ${etapa.cultura}]`;
+    const isRisky =
+      etapa.risco_hidrico === "alto" || scenario.variant === "risk";
+
+    const pushActivity = (
+      offsetDays: number,
+      tipo: string,
+      tituloSuffix: string,
+      descricao: string,
+      adjusted = false,
+      reason?: string
+    ) => {
+      syntheticAtividades.push({
+        id: seqId--,
+        terreno_id: null,
+        titulo: `${stageTag} ${tituloSuffix}`,
+        descricao,
+        tipo_atividade: tipo,
+        data_programada: addIsoDays(cursorDate, offsetDays),
+        prioridade: isRisky ? "alta" : "media",
+        status: "pendente",
+        concluida: false,
+        ajustada_por_alerta: adjusted,
+        motivo_ajuste: reason ?? null,
+      });
+    };
+
+    pushActivity(
+      0,
+      "plantio",
+      `Plantio de ${etapa.cultura}`,
+      `Preparo inicial do solo e semeadura de ${etapa.cultura}.`
+    );
+    pushActivity(
+      7,
+      "inspecao",
+      `Vistoria inicial de ${etapa.cultura}`,
+      "Verificar germinação, umidade perto da raiz e sinais iniciais de pragas."
+    );
+    pushActivity(
+      21,
+      "irrigacao",
+      `Manejo e rega de ${etapa.cultura}`,
+      `Controle hídrico (${scenario.technicalDetails.waterDemandMm}).`,
+      isRisky,
+      isRisky
+        ? "Atenção ao risco hídrico simulado: priorize cobertura do solo."
+        : undefined
+    );
+    pushActivity(
+      duration - 1,
+      "colheita",
+      `Colheita de ${etapa.cultura}`,
+      `Encerramento estimado do ciclo de ${etapa.cultura}.`
+    );
+
+    cursorDate = addIsoDays(cursorDate, duration);
+  });
+
+  const firstCropName = etapas[0]?.cultura ?? scenario.focusTag;
+  const activities = adaptAtividadesToDashboardItems(
+    syntheticAtividades,
+    todayIso
+  );
+  const cropProgress = adaptAtividadesToCropProgress(
+    syntheticAtividades,
+    todayIso,
+    firstCropName
+  );
+  const calendarData = adaptAtividadesToCalendarData(
+    areaName,
+    syntheticAtividades,
+    [],
+    null,
+    todayIso
+  );
+
+  const headline =
+    scenario.variant === "risk"
+      ? `Atenção hídrica · ${scenario.focusTag}`
+      : `${scenario.optionBadge} · ${scenario.focusTag}`;
+  const detailsParts = [
+    `Ciclo: ${scenario.technicalDetails.cycleDurationDays}`,
+    `Água: ${scenario.technicalDetails.waterDemandMm}`,
+  ];
+  if (simulacao?.consumo_agua_mm) {
+    detailsParts.push(`${Math.round(simulacao.consumo_agua_mm)} mm`);
+  }
+
+  const weather: AreaWeatherSummary = {
+    headline,
+    details: detailsParts.join(" · "),
+    weatherNotice:
+      simulacao?.explicacao_textual?.trim() ||
+      scenario.technicalDetails.nasaClimateNote ||
+      scenario.aiJustification,
+  };
+
+  return {
+    weather,
+    cropProgress,
+    activities,
+    calendarData,
+  };
+}
+

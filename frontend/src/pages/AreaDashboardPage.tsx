@@ -13,6 +13,7 @@ import {
   MapPin,
   Moon,
   Pause,
+  Play,
   RefreshCw,
   Sun,
   Sunrise,
@@ -94,6 +95,7 @@ export interface FieldReportOption {
 
 export interface AreaDashboardPageProps {
   terrenoId?: number | null;
+  isSimulationMode?: boolean;
   cropNameFallback?: string;
   areaLocation?: string;
   dateLabel?: string;
@@ -101,6 +103,8 @@ export interface AreaDashboardPageProps {
   cropProgress?: AreaCropProgress;
   activities?: AreaActivityItem[];
   networkStatus?: NetworkSyncStatus;
+  onStartSimulation?: () => void;
+  onFinishSimulation?: () => void;
   onOpenCalendar?: () => void;
   onSubmitReport?: (reportId: FieldReportOptionId) => void;
   onBack?: () => void;
@@ -205,6 +209,7 @@ const NETWORK_BADGE_CONFIG: Record<
 
 export function AreaDashboardPage({
   terrenoId,
+  isSimulationMode = false,
   cropNameFallback,
   areaLocation = "Sítio Boa Esperança · Área 1",
   dateLabel,
@@ -212,6 +217,8 @@ export function AreaDashboardPage({
   cropProgress = DEFAULT_CROP_PROGRESS,
   activities = DEFAULT_ACTIVITIES,
   networkStatus,
+  onStartSimulation,
+  onFinishSimulation,
   onOpenCalendar,
   onSubmitReport,
   onBack,
@@ -246,7 +253,13 @@ export function AreaDashboardPage({
   const [isSubmittingReport, setIsSubmittingReport] = React.useState(false);
 
   const loadDashboardData = React.useCallback(async () => {
-    if (terrenoId == null) return;
+    if (isSimulationMode || terrenoId == null) {
+      setLiveWeather(null);
+      setLiveCropProgress(null);
+      setLiveActivities(null);
+      setIsLoadingDashboard(false);
+      return;
+    }
     setIsLoadingDashboard(true);
     try {
       const [atividadesRes, alertasRes, relatorioRes] = await Promise.allSettled([
@@ -283,7 +296,7 @@ export function AreaDashboardPage({
     } finally {
       setIsLoadingDashboard(false);
     }
-  }, [terrenoId, todayIso, cropNameFallback]);
+  }, [terrenoId, isSimulationMode, todayIso, cropNameFallback]);
 
   React.useEffect(() => {
     void loadDashboardData();
@@ -328,8 +341,16 @@ export function AreaDashboardPage({
   }, [effectiveActivities]);
 
   const handleToggleActivity = async (item: AreaActivityItem) => {
-    if (item.backendId == null) return;
     const nextCompleted = !item.completed;
+    if (isSimulationMode) {
+      setLiveActivities((prev) =>
+        (prev ?? activities).map((act) =>
+          act.id === item.id ? { ...act, completed: nextCompleted } : act
+        )
+      );
+      return;
+    }
+    if (item.backendId == null) return;
     setLiveActivities((prev) =>
       prev
         ? prev.map((act) =>
@@ -352,7 +373,7 @@ export function AreaDashboardPage({
 
   const handleSaveReport = async () => {
     if (isSubmittingReport) return;
-    if (terrenoId != null) {
+    if (!isSimulationMode && terrenoId != null) {
       setIsSubmittingReport(true);
       try {
         await dispararAlertaGatilho(
@@ -389,14 +410,46 @@ export function AreaDashboardPage({
           </header>
 
           {/* Localização e Data */}
-          <div className="mt-4 flex items-center gap-1.5 text-xs font-medium text-[#6D6960]">
-            <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            <span>{areaLocation}</span>
-          </div>
+          <div className="mt-4 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-[#6D6960]">
+                <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span className="truncate">{areaLocation}</span>
+              </div>
 
-          <p className="mt-2.5 text-xs font-medium text-[#6D6960] capitalize">
-            {resolvedDateLabel}
-          </p>
+              <p className="mt-2.5 text-xs font-medium text-[#6D6960] capitalize">
+                {resolvedDateLabel}
+              </p>
+            </div>
+
+            {isSimulationMode
+              ? onFinishSimulation && (
+                  <button
+                    type="button"
+                    onClick={onFinishSimulation}
+                    className="inline-flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border border-[#E6E4DA] bg-white px-2.5 py-1 text-xs font-semibold text-[#511D4E] shadow-2xs transition-colors hover:border-[#511D4E]/50 hover:bg-[#F7F6F0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#511D4E]"
+                  >
+                    <X
+                      className="h-3.5 w-3.5 text-[#511D4E]"
+                      aria-hidden="true"
+                    />
+                    <span>{t("dashboard.cancelSimulation")}</span>
+                  </button>
+                )
+              : onStartSimulation && (
+                  <button
+                    type="button"
+                    onClick={onStartSimulation}
+                    className="inline-flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border border-[#E6E4DA] bg-white px-2.5 py-1 text-xs font-semibold text-[#511D4E] shadow-2xs transition-colors hover:border-[#511D4E]/50 hover:bg-[#F7F6F0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#511D4E]"
+                  >
+                    <Play
+                      className="h-3.5 w-3.5 text-[#511D4E]"
+                      aria-hidden="true"
+                    />
+                    <span>{t("dashboard.createSimulation")}</span>
+                  </button>
+                )}
+          </div>
 
           {/* Card Roxo de Clima */}
           <section

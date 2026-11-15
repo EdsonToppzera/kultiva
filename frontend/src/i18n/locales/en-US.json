@@ -244,6 +244,8 @@
     "overviewTitle": "Plot overview",
     "backToPlantations": "Plantations",
     "openCalendar": "Open calendar",
+    "createSimulation": "Create simulation",
+    "cancelSimulation": "Cancel simulation",
     "alertsTitle": "Recent alerts",
     "noAlerts": "No active climate or phytosanitary alerts.",
     "nextActivities": "Upcoming activities",
