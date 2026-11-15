@@ -25,6 +25,10 @@ import {
 } from "../../../components/ui/drawer";
 import { RadioGroup, RadioGroupItem } from "../../../components/ui/radio-group";
 import { cn } from "../../../lib/utils";
+import {
+  type TerrenoResponse,
+  atualizarTerreno,
+} from "../../../services/api";
 import type { NetworkSyncStatus } from "../types/cropHistory.types";
 import type {
   SoilHandTestItem,
@@ -151,6 +155,9 @@ export interface SoilTypeStepProps {
   options?: SoilTypeOption[];
   initialValue?: SoilTypeId | null;
   networkStatus?: NetworkSyncStatus;
+  terrenoId?: number | null;
+  existingPrioridades?: Record<string, unknown> | null;
+  onTerrenoUpdated?: (terreno: TerrenoResponse) => void;
   onBack?: () => void;
   onContinue?: (data: SoilTypeData) => void;
 }
@@ -163,12 +170,19 @@ export function SoilTypeStep({
   options = SOIL_TYPE_OPTIONS,
   initialValue = null,
   networkStatus,
+  terrenoId,
+  existingPrioridades,
+  onTerrenoUpdated,
   onBack,
   onContinue,
 }: SoilTypeStepProps) {
   const [isOnline, setIsOnline] = React.useState<boolean>(() =>
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
+  const [syncState, setSyncState] = React.useState<NetworkSyncStatus | null>(
+    null
+  );
+  const [isSaving, setIsSaving] = React.useState(false);
 
   React.useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -183,7 +197,7 @@ export function SoilTypeStep({
   }, []);
 
   const resolvedNetworkStatus: NetworkSyncStatus =
-    networkStatus ?? (isOnline ? "salvo" : "offline");
+    syncState ?? networkStatus ?? (isOnline ? "salvo" : "offline");
 
   const [selectedId, setSelectedId] = React.useState<SoilTypeId | null>(
     initialValue
@@ -197,16 +211,36 @@ export function SoilTypeStep({
     [options, selectedId]
   );
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selectedOption) return;
+    if (!selectedOption || isSaving) return;
+
+    if (terrenoId != null) {
+      setIsSaving(true);
+      setSyncState("sincronizando");
+      try {
+        const updated = await atualizarTerreno(terrenoId, {
+          prioridades: {
+            ...(existingPrioridades ?? {}),
+            tipo_solo: selectedOption.id,
+          },
+        });
+        setSyncState("salvo");
+        onTerrenoUpdated?.(updated);
+      } catch {
+        setSyncState("offline");
+      } finally {
+        setIsSaving(false);
+      }
+    }
+
     onContinue?.({ tipoSolo: selectedOption });
   };
 
   return (
     <div className="min-h-dvh w-full bg-[#F7F6F0] text-[#1F1C18] md:flex md:items-center md:justify-center md:bg-[#EFECE3] md:p-6">
       <form
-        onSubmit={handleSubmit}
+        onSubmit={(event) => void handleSubmit(event)}
         className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between bg-[#F7F6F0] px-5 pb-8 pt-6 md:min-h-[680px] md:rounded-3xl md:border md:border-[#E6E4DA] md:px-7 md:py-8 md:shadow-sm"
       >
         <div>

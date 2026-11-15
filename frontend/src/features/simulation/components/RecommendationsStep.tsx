@@ -460,6 +460,8 @@ export interface RecommendationsStepProps {
   propertyLocation?: string;
   areaSummary?: AreaSummaryInfo;
   scenarios?: RotationScenario[];
+  isLoading?: boolean;
+  isSubmittingPlan?: boolean;
   networkStatus?: NetworkSyncStatus;
   onSelectPlan?: (scenario: RotationScenario) => void;
   onBack?: () => void;
@@ -472,6 +474,8 @@ export interface RecommendationsStepProps {
 export function RecommendationsStep({
   propertyLocation = "Sítio Boa Esperança - Área 1",
   scenarios = DEFAULT_RECOMMENDATIONS,
+  isLoading = false,
+  isSubmittingPlan = false,
   networkStatus,
   onSelectPlan,
   onBack,
@@ -580,17 +584,24 @@ export function RecommendationsStep({
 
           {/* Grid Responsivo de Cartões */}
           <main className="mt-6">
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:items-start">
-              {localScenarios.map((scenario) => (
-                <RecommendationCard
-                  key={scenario.id}
-                  scenario={scenario}
-                  onSelectPlan={onSelectPlan}
-                  onOpenDetails={(item) => setActiveScenarioId(item.id)}
-                  onSwapTrackStep={handleSwapTrackStep}
-                />
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-3 rounded-3xl border border-[#E6E4DA] bg-white px-6 py-12 text-sm font-semibold text-[#511D4E]">
+                <RefreshCw className="h-5 w-5 animate-spin" aria-hidden="true" />
+                <span>Calculando recomendações para a sua área...</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:items-start">
+                {localScenarios.map((scenario) => (
+                  <RecommendationCard
+                    key={scenario.id}
+                    scenario={scenario}
+                    onSelectPlan={isSubmittingPlan ? undefined : onSelectPlan}
+                    onOpenDetails={(item) => setActiveScenarioId(item.id)}
+                    onSwapTrackStep={handleSwapTrackStep}
+                  />
+                ))}
+              </div>
+            )}
           </main>
         </div>
 

@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { PestOption } from "../../../data/pestsDictionary";
 import type { CropOption } from "./cropHistory.types";
 
 export type PriorityId =
@@ -15,10 +16,12 @@ export interface PriorityOption {
   subtitle: string;
   icon: LucideIcon;
   requiresCropSelection?: boolean;
+  requiresPestSelection?: boolean;
 }
 
 export interface PriorityData {
   prioridade: PriorityOption;
   culturaDesejada: CropOption | null;
+  pragaAlvo?: PestOption | null;
 }
 

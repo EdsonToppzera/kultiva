@@ -1,5 +1,8 @@
 import { CROPS_DICTIONARY } from "../data/cropsDictionary";
+import { PESTS_DICTIONARY, type PestOption } from "../data/pestsDictionary";
 import type { CropHistoryData, CropOption } from "../features/onboarding/types/cropHistory.types";
+import type { PriorityId } from "../features/onboarding/types/priority.types";
+import type { SoilTypeId } from "../features/onboarding/types/soilType.types";
 import type { WaterDistributionId } from "../features/onboarding/types/waterDistribution.types";
 
 const RAW_API_BASE_URL =
@@ -106,6 +109,208 @@ export interface DemoSeedResponse {
   resumo: string;
 }
 
+export interface AtividadeCalendarioResponse {
+  id: number;
+  terreno_id?: number | null;
+  usuario_id?: number | null;
+  cultura_id?: number | null;
+  titulo: string;
+  descricao?: string | null;
+  tipo_atividade: string;
+  data_programada: string;
+  prioridade: string;
+  status: string;
+  concluida: boolean;
+  data_conclusao?: string | null;
+  ajustada_por_alerta: boolean;
+  motivo_ajuste?: string | null;
+  criado_em?: string | null;
+}
+
+export interface AtividadeStatusPatch {
+  concluida?: boolean;
+  status?: string;
+}
+
+export interface EtapaCronogramaInput {
+  ordem?: number;
+  cultura: string;
+  duracao_dias: number;
+  risco_hidrico?: string;
+}
+
+export interface GerarCronogramaRequest {
+  terreno_id: number;
+  cultura_id?: number;
+  nome_cultura?: string;
+  data_inicio: string;
+  tempo_colheita_dias?: number;
+  estrategia_rotacao?: string;
+  plano_rotacao?: EtapaCronogramaInput[];
+  substituir_pendentes?: boolean;
+}
+
+export interface AlertaGatilhoRequest {
+  terreno_id: number;
+  tipo_evento: string;
+  severidade?: string;
+  data_evento: string;
+  titulo?: string;
+  mensagem?: string;
+  origem_gatilho?: string;
+  serie_temporal_clima?: Array<Record<string, unknown>>;
+  dias_adiamento?: number;
+}
+
+export interface AlertaClimaticoResponse {
+  id: number;
+  terreno_id: number;
+  tipo_evento: string;
+  severidade: string;
+  titulo: string;
+  mensagem: string;
+  data_evento: string;
+  origem_gatilho: string;
+  dados_gatilho?: Record<string, unknown> | null;
+  processado_background: boolean;
+  resumo_adaptacao?: string | null;
+  orientacao_pratica?: string | null;
+  lido: boolean;
+  criado_em: string;
+}
+
+export interface AlertaDisparoResponse {
+  status: string;
+  mensagem: string;
+  alerta: AlertaClimaticoResponse;
+}
+
+export interface ResumoAlertasTerrenoItem {
+  terreno_id: number;
+  nome_propriedade?: string | null;
+  nao_lidos: number;
+  criticos_nao_lidos: number;
+  ultimo_evento?: string | null;
+  ultima_data_evento?: string | null;
+}
+
+export interface ResumoAlertasNaoLidosResponse {
+  total_nao_lidos: number;
+  por_terreno: ResumoAlertasTerrenoItem[];
+}
+
+export interface MetricaHistoricaCreate {
+  data_medicao: string;
+  soil_moisture: number;
+  surface_temp_c: number;
+  precipitation_mm?: number;
+  is_bare_field_period?: boolean;
+  data_quality?: string;
+  origem?: string;
+}
+
+export interface MetricaHistoricaResponse {
+  id: number;
+  terreno_id: number;
+  data_medicao: string;
+  soil_moisture: number;
+  surface_temp_c: number;
+  precipitation_mm: number;
+  is_bare_field_period: boolean;
+  data_quality: string;
+  origem: string;
+  criado_em: string;
+}
+
+export interface ResumoClimaticoRelatorio {
+  umidade_media_solo: number;
+  umidade_min_solo: number;
+  umidade_max_solo: number;
+  temperatura_media_c: number;
+  temperatura_max_c: number;
+  precipitacao_total_mm: number;
+  precipitacao_media_mm: number;
+  dias_solo_exposto: number;
+  total_medicoes: number;
+}
+
+export interface VigorTerrenoResumo {
+  indice: number;
+  classificacao: string;
+  tendencia: string;
+  descricao: string;
+}
+
+export interface VulnerabilidadeTerrenoResumo {
+  indice: number;
+  nivel: string;
+  total_alertas_periodo: number;
+  eventos_criticos: string[];
+  fatores_risco: string[];
+}
+
+export interface AdaptacaoAtividadeItem {
+  atividade_id: number;
+  titulo: string;
+  tipo_atividade: string;
+  data_programada: string;
+  prioridade: string;
+  status: string;
+  motivo_ajuste?: string | null;
+}
+
+export interface AdaptacoesTerrenoResumo {
+  total_atividades_periodo: number;
+  total_ajustadas_por_alerta: number;
+  taxa_adaptacao: number;
+  atividades_ajustadas: AdaptacaoAtividadeItem[];
+}
+
+export interface AlertaResumoRelatorio {
+  id: number;
+  tipo_evento: string;
+  severidade: string;
+  titulo: string;
+  data_evento: string;
+  processado_background: boolean;
+  resumo_adaptacao?: string | null;
+}
+
+export interface ComparativoPeriodoRelatorio {
+  data_inicial?: string | null;
+  data_final?: string | null;
+  umidade_inicial: number;
+  umidade_final: number;
+  variacao_umidade: number;
+  variacao_umidade_percentual: number;
+  temperatura_inicial_c: number;
+  temperatura_final_c: number;
+  variacao_temperatura_c: number;
+  precipitacao_inicial_mm: number;
+  precipitacao_final_mm: number;
+  variacao_precipitacao_mm: number;
+  tendencia_geral: string;
+  resumo_comparativo: string;
+}
+
+export interface RelatorioAdaptacaoResponse {
+  terreno_id: number;
+  nome_propriedade: string;
+  periodo_inicio: string;
+  periodo_fim: string;
+  origem_dados: string;
+  resumo_climatico: ResumoClimaticoRelatorio;
+  vigor: VigorTerrenoResumo;
+  vulnerabilidade: VulnerabilidadeTerrenoResumo;
+  adaptacoes: AdaptacoesTerrenoResumo;
+  alertas_periodo: AlertaResumoRelatorio[];
+  serie_historica: MetricaHistoricaResponse[];
+  recomendacoes_manejo: string[];
+  comparativo_periodo: ComparativoPeriodoRelatorio;
+  resumo_ia: string;
+  explicacao_ia: string;
+}
+
 export class ApiError extends Error {
   status: number;
   detail?: string;
@@ -208,6 +413,127 @@ export function executarDemoSeed(reset = false): Promise<DemoSeedResponse> {
   });
 }
 
+function buildQueryString(
+  params: Record<string, string | number | boolean | undefined | null>
+): string {
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== "") {
+      searchParams.set(key, String(value));
+    }
+  }
+  const serialized = searchParams.toString();
+  return serialized ? `?${serialized}` : "";
+}
+
+export function listarAtividades(params?: {
+  terreno_id?: number;
+  usuario_id?: number;
+  status?: string;
+  concluida?: boolean;
+  tipo_atividade?: string;
+  data_inicio?: string;
+  data_fim?: string;
+}): Promise<AtividadeCalendarioResponse[]> {
+  const query = params ? buildQueryString(params) : "";
+  return requestJson<AtividadeCalendarioResponse[]>(
+    `/calendario/atividades${query}`
+  );
+}
+
+export function gerarCronogramaDeSimulacao(
+  payload: GerarCronogramaRequest
+): Promise<AtividadeCalendarioResponse[]> {
+  return requestJson<AtividadeCalendarioResponse[]>(
+    "/calendario/gerar-de-simulacao",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export function concluirAtividade(
+  atividadeId: number,
+  payload: AtividadeStatusPatch = { concluida: true }
+): Promise<AtividadeCalendarioResponse> {
+  return requestJson<AtividadeCalendarioResponse>(
+    `/calendario/atividades/${atividadeId}/concluir`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export function listarAlertas(params?: {
+  terreno_id?: number;
+  lido?: boolean;
+  severidade?: string;
+  tipo_evento?: string;
+}): Promise<AlertaClimaticoResponse[]> {
+  const query = params ? buildQueryString(params) : "";
+  return requestJson<AlertaClimaticoResponse[]>(`/alertas/${query}`);
+}
+
+export function obterResumoAlertasNaoLidos(
+  terrenoId?: number
+): Promise<ResumoAlertasNaoLidosResponse> {
+  const query =
+    terrenoId !== undefined ? buildQueryString({ terreno_id: terrenoId }) : "";
+  return requestJson<ResumoAlertasNaoLidosResponse>(
+    `/alertas/resumo-nao-lidos${query}`
+  );
+}
+
+export function dispararAlertaGatilho(
+  payload: AlertaGatilhoRequest
+): Promise<AlertaDisparoResponse> {
+  return requestJson<AlertaDisparoResponse>("/alertas/gatilho", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function marcarAlertaComoLido(
+  alertaId: number
+): Promise<AlertaClimaticoResponse> {
+  return requestJson<AlertaClimaticoResponse>(`/alertas/${alertaId}/ler`, {
+    method: "PATCH",
+  });
+}
+
+export function obterRelatorioTerreno(
+  terrenoId: number,
+  params?: { data_inicio?: string; data_fim?: string }
+): Promise<RelatorioAdaptacaoResponse> {
+  const query = params ? buildQueryString(params) : "";
+  return requestJson<RelatorioAdaptacaoResponse>(
+    `/relatorios/terreno/${terrenoId}${query}`
+  );
+}
+
+export function listarMetricasTerreno(
+  terrenoId: number
+): Promise<MetricaHistoricaResponse[]> {
+  return requestJson<MetricaHistoricaResponse[]>(
+    `/relatorios/terreno/${terrenoId}/metricas`
+  );
+}
+
+export function registrarMetricaTerreno(
+  terrenoId: number,
+  payload: MetricaHistoricaCreate
+): Promise<MetricaHistoricaResponse> {
+  return requestJson<MetricaHistoricaResponse>(
+    `/relatorios/terreno/${terrenoId}/metricas`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
 export function formatarAreaHectares(areaHectares?: number | null): string {
   if (
     areaHectares === undefined ||
@@ -273,6 +599,11 @@ export function mapearPrioridadesIrrigacao(
   if (cropHistory) {
     prioridades.historico_cultivos = converterHistoricoParaLista(cropHistory);
     prioridades.nao_lembra_historico = cropHistory.naoLembro;
+    prioridades.cultivo_em_andamento = Boolean(cropHistory.cultivoEmAndamento);
+    prioridades.data_inicio_cultivo =
+      cropHistory.cultivoEmAndamento && cropHistory.dataInicioCultivo
+        ? cropHistory.dataInicioCultivo
+        : null;
   }
 
   return prioridades;
@@ -303,6 +634,12 @@ export function restaurarHistoricoDoTerreno(
   if (!prioridades) return undefined;
 
   const naoLembro = Boolean(prioridades.nao_lembra_historico);
+  const cultivoEmAndamento = Boolean(prioridades.cultivo_em_andamento);
+  const dataInicioCultivo =
+    typeof prioridades.data_inicio_cultivo === "string" &&
+    prioridades.data_inicio_cultivo.trim()
+      ? prioridades.data_inicio_cultivo.trim()
+      : null;
   const rawList = Array.isArray(prioridades.historico_cultivos)
     ? prioridades.historico_cultivos
         .map((item) => String(item).trim())
@@ -318,6 +655,8 @@ export function restaurarHistoricoDoTerreno(
       ultimoCultivo: null,
       cultivoAnterior: null,
       naoLembro: true,
+      cultivoEmAndamento: false,
+      dataInicioCultivo: null,
     };
   }
 
@@ -326,6 +665,8 @@ export function restaurarHistoricoDoTerreno(
       ultimoCultivo: findCropOptionByName(rawList[0]),
       cultivoAnterior: null,
       naoLembro: false,
+      cultivoEmAndamento,
+      dataInicioCultivo,
     };
   }
 
@@ -333,6 +674,8 @@ export function restaurarHistoricoDoTerreno(
     cultivoAnterior: findCropOptionByName(rawList[rawList.length - 2]),
     ultimoCultivo: findCropOptionByName(rawList[rawList.length - 1]),
     naoLembro: false,
+    cultivoEmAndamento,
+    dataInicioCultivo,
   };
 }
 
@@ -370,4 +713,83 @@ export function extrairMetodoIrrigacao(
   }
 
   return null;
+}
+
+const VALID_SOIL_IDS: SoilTypeId[] = [
+  "areia",
+  "barro",
+  "terra_preta",
+  "cascalho",
+  "terra_mista",
+];
+
+export function extrairTipoSolo(
+  prioridades?: Record<string, unknown> | null
+): SoilTypeId | null {
+  if (!prioridades) return null;
+  const raw = prioridades.tipo_solo;
+  if (typeof raw === "string" && VALID_SOIL_IDS.includes(raw as SoilTypeId)) {
+    return raw as SoilTypeId;
+  }
+  return null;
+}
+
+const VALID_PRIORITY_IDS: PriorityId[] = [
+  "recuperar_terra",
+  "retorno_rapido",
+  "consumo_racao",
+  "plantar_especifico",
+  "gastar_minimo",
+  "limpar_terra",
+];
+
+function findPestOptionByName(name: string): PestOption | null {
+  const normalized = name.trim().toLowerCase();
+  if (!normalized) return null;
+
+  return (
+    PESTS_DICTIONARY.find(
+      (item) =>
+        item.officialName.toLowerCase() === normalized ||
+        item.id.toLowerCase() === normalized ||
+        item.popularNames.some((alias) => alias.toLowerCase() === normalized)
+    ) ?? {
+      id: normalized.replace(/\s+/g, "-"),
+      officialName: name.trim(),
+      popularNames: [name.trim()],
+      category: "Outro",
+    }
+  );
+}
+
+export function extrairPrioridadeDoTerreno(
+  prioridades?: Record<string, unknown> | null
+): {
+  priorityId: PriorityId | null;
+  targetCrop: CropOption | null;
+  targetPest: PestOption | null;
+} {
+  if (!prioridades) {
+    return { priorityId: null, targetCrop: null, targetPest: null };
+  }
+
+  const rawPriority = prioridades.prioridade ?? prioridades.objetivo_principal;
+  const priorityId =
+    typeof rawPriority === "string" &&
+    VALID_PRIORITY_IDS.includes(rawPriority as PriorityId)
+      ? (rawPriority as PriorityId)
+      : null;
+
+  const targetCrop =
+    typeof prioridades.cultura_desejada === "string" &&
+    prioridades.cultura_desejada.trim()
+      ? findCropOptionByName(prioridades.cultura_desejada)
+      : null;
+
+  const targetPest =
+    typeof prioridades.praga_alvo === "string" && prioridades.praga_alvo.trim()
+      ? findPestOptionByName(prioridades.praga_alvo)
+      : null;
+
+  return { priorityId, targetCrop, targetPest };
 }
