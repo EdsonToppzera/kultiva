@@ -36,11 +36,9 @@ import {
 } from "../../../components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "../../../components/ui/radio-group";
 import {
-  CROPS_DICTIONARY,
   formatPopularNames,
 } from "../../../data/cropsDictionary";
 import {
-  PESTS_DICTIONARY,
   type PestOption,
 } from "../../../data/pestsDictionary";
 import { useCatalogSearch } from "../../../hooks/useCatalogSearch";
@@ -550,8 +548,8 @@ export interface PrioritiesStepProps {
  */
 export function PrioritiesStep({
   options = PRIORITY_OPTIONS,
-  crops = CROPS_DICTIONARY,
-  pests = PESTS_DICTIONARY,
+  crops = [],
+  pests = [],
   initialValue = null,
   initialTargetCrop = null,
   initialTargetPest = null,

@@ -23,7 +23,6 @@ import {
   X,
 } from "lucide-react";
 import { KultivaLogo } from "../components/KultivaLogo";
-import { LanguageSelector } from "../components/LanguageSelector";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import {
@@ -368,7 +367,6 @@ export function AreaDashboardPage({
                 <StatusIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 <span>{t(badgeConfig.labelKey)}</span>
               </Badge>
-              <LanguageSelector />
             </div>
           </header>
 

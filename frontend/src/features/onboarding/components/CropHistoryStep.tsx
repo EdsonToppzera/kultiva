@@ -29,7 +29,6 @@ import {
   PopoverTrigger,
 } from "../../../components/ui/popover";
 import {
-  CROPS_DICTIONARY,
   formatPopularNames,
 } from "../../../data/cropsDictionary";
 import { useCatalogSearch } from "../../../hooks/useCatalogSearch";
@@ -301,7 +300,7 @@ const NETWORK_BADGE_CONFIG: Record<
  * Permite selecionar os dois últimos cultivos via busca fuzzy com sinônimos regionais ou pular caso não lembre.
  */
 export function CropHistoryStep({
-  crops = CROPS_DICTIONARY,
+  crops = [],
   initialData,
   networkStatus,
   terrenoId,

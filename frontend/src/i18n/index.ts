@@ -6,8 +6,8 @@ import ptBR from "./locales/pt-BR.json";
 const STORAGE_KEY = "kultiva:language";
 
 function getInitialLanguage(): "pt" | "en" {
-  if (typeof window === "undefined") return "pt";
-  return window.localStorage.getItem(STORAGE_KEY) === "en" ? "en" : "pt";
+  if (typeof window === "undefined") return "en";
+  return window.localStorage.getItem(STORAGE_KEY) === "pt" ? "pt" : "en";
 }
 
 void i18n.use(initReactI18next).init({
@@ -18,7 +18,7 @@ void i18n.use(initReactI18next).init({
     "en-US": { translation: enUS },
   },
   lng: getInitialLanguage(),
-  fallbackLng: "pt",
+  fallbackLng: "en",
   interpolation: {
     escapeValue: false,
   },

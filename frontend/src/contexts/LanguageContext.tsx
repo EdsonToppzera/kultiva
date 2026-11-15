@@ -11,14 +11,14 @@ interface LanguageContextValue {
 }
 
 const LanguageContext = React.createContext<LanguageContextValue>({
-  language: "pt",
+  language: "en",
   setLanguage: () => {},
 });
 
 function readStoredLanguage(): AppLanguage {
-  if (typeof window === "undefined") return "pt";
+  if (typeof window === "undefined") return "en";
   const raw = window.localStorage.getItem(STORAGE_KEY);
-  return raw === "en" ? "en" : "pt";
+  return raw === "pt" ? "pt" : "en";
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
