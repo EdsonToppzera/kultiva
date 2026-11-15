@@ -62,6 +62,7 @@ export interface PlantationsPageProps {
   onSelectArea?: (area: PlantationArea) => void;
   onAreaDeleted?: (area: PlantationArea) => void;
   simulationBanner?: React.ReactNode;
+  isSimulationMode?: boolean;
 }
 
 export function PlantationsPage({
@@ -69,6 +70,7 @@ export function PlantationsPage({
   onSelectArea,
   onAreaDeleted,
   simulationBanner,
+  isSimulationMode = false,
 }: PlantationsPageProps) {
   const [areas, setAreas] = React.useState<PlantationArea[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -186,7 +188,7 @@ export function PlantationsPage({
                   <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>Offline</span>
                 </Badge>
-              ) : (
+              ) : !isSimulationMode ? (
                 <Button
                   type="button"
                   variant="outline"
@@ -198,6 +200,13 @@ export function PlantationsPage({
                   <Database className="h-3.5 w-3.5" aria-hidden="true" />
                   <span>{isSeedingDemo ? "Carregando..." : "Demo"}</span>
                 </Button>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="border-[#511D4E]/30 bg-[#511D4E]/10 text-[#511D4E]"
+                >
+                  Modo Simulação
+                </Badge>
               )}
 
               <LanguageSelector />
@@ -208,7 +217,11 @@ export function PlantationsPage({
             <h1 className="text-[32px] font-bold tracking-tight text-[#511D4E] leading-tight">
               Plantações
             </h1>
-            <p className="mt-1.5 text-[15px] text-[#6D6960]">Seus terrenos.</p>
+            <p className="mt-1.5 text-[15px] text-[#6D6960]">
+              {isSimulationMode
+                ? "Escolha qual terreno cadastrado você quer usar para começar a simulação."
+                : "Seus terrenos."}
+            </p>
           </section>
 
           {apiError && (
@@ -262,14 +275,16 @@ export function PlantationsPage({
                       </p>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => handleOpenDeleteModal(area)}
-                      aria-label={`Excluir ${area.name}`}
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 transition-colors hover:bg-red-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
-                    >
-                      <Trash2 className="h-[18px] w-[18px]" aria-hidden="true" />
-                    </button>
+                    {!isSimulationMode && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDeleteModal(area)}
+                        aria-label={`Excluir ${area.name}`}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 transition-colors hover:bg-red-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+                      >
+                        <Trash2 className="h-[18px] w-[18px]" aria-hidden="true" />
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>
