@@ -7,7 +7,7 @@ services:
       - PORT=8000
       - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db:5432/kultiva_db
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.1-flash-lite}
       - ALERT_MONITOR_INTERVAL_HOURS=${ALERT_MONITOR_INTERVAL_HOURS:-6}
       - ALERT_COOLDOWN_HOURS=${ALERT_COOLDOWN_HOURS:-24}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}

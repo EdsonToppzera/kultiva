@@ -255,6 +255,7 @@
     "apiErrorFallback": "Não foi possível obter recomendações da API no momento.",
     "retry": "Tentar novamente",
     "chooseAnyway": "Escolher mesmo assim",
+    "decisionDisclaimer": "Esta sugestão serve para apoiar sua escolha — ninguém conhece a sua terra melhor que você. A decisão final é sempre sua.",
     "optionBadge": "{{count}}ª Opção",
     "optionBadges": {
       "1": "1ª Opção",

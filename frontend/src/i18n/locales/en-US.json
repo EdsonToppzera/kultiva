@@ -254,6 +254,7 @@
     "apiErrorFallback": "Could not load recommendations from the API right now.",
     "retry": "Try again",
     "chooseAnyway": "Choose anyway",
+    "decisionDisclaimer": "These suggestions are here to support your choice — nobody knows your land better than you. The final decision is always yours.",
     "optionBadge": "{{count}} Option",
     "optionBadges": {
       "1": "1st Option",
