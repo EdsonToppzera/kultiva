@@ -1,4 +1,4 @@
-![Kultiva](docs/assets/kultiva-banner.jpg)
+![Kultiva](docs/assets/kultiva-banner.jpeg)
 
 # Kultiva
 
