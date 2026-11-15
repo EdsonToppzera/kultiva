@@ -217,6 +217,32 @@ def _format_context(
                         f"declividade: {soil['slope_range_pct']} (risco de erosão {soil.get('erosion_risk', 'não informado')})"
                     )
 
+        z_scores = field_metrics.get("z_scores")
+        if isinstance(z_scores, dict):
+            z_bits: list[str] = []
+            for label, key in (
+                ("chuva", "precipitation_mm"),
+                ("temperatura", "surface_temp_c"),
+                ("umidade", "soil_moisture"),
+            ):
+                zv = _to_float(z_scores.get(key))
+                if zv is not None:
+                    z_bits.append(f"{label} z={zv:+.2f}")
+            if z_bits:
+                parts.append("desvio histórico (z-score): " + ", ".join(z_bits))
+
+        srtm = field_metrics.get("srtm")
+        if isinstance(srtm, dict):
+            elev = _to_float(srtm.get("elevation_m"))
+            if elev is not None:
+                parts.append(f"elevação SRTM 30m: {elev:.0f} m")
+
+        hls = field_metrics.get("hls")
+        if isinstance(hls, dict):
+            hls_ndvi = _to_float(hls.get("ndvi_mean"))
+            if hls_ndvi is not None:
+                parts.append(f"vigor vegetativo HLS (NDVI): {hls_ndvi:.2f}")
+
     if isinstance(farmer_priorities, dict) and farmer_priorities:
         prio_bits = [f"{k}: {v}" for k, v in farmer_priorities.items() if v is not None]
         if prio_bits:
@@ -308,6 +334,103 @@ def _to_dict(obj: Any) -> dict[str, Any]:
     if hasattr(obj, "__dict__"):
         return dict(vars(obj))
     return {}
+
+
+def build_strategy_evidence(
+    strategy: Any,
+    field_metrics: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Extrai bloco estruturado de evidências numéricas reais por estratégia (sem inventar dados)."""
+    item = _normalize_strategy(strategy)
+    bd = item.get("score_breakdown") or {}
+    fm = field_metrics if isinstance(field_metrics, dict) else {}
+
+    evidence: dict[str, Any] = {
+        "strategy": item["strategy"],
+        "viability_score": item["viability"],
+        "viability_pct": (
+            round(item["viability"] * 100, 1)
+            if item["viability"] is not None
+            else None
+        ),
+        "water_risk": item["water_risk"],
+    }
+
+    subscores: dict[str, float] = {}
+    for k in (
+        "water_fit",
+        "heat_fit",
+        "soil_benefit",
+        "market",
+        "gaez_suitability",
+        "ecocrop_comfort",
+    ):
+        val = _to_float(bd.get(k))
+        if val is not None:
+            subscores[k] = round(val, 4)
+    if subscores:
+        evidence["score_breakdown"] = subscores
+
+    pests_count = bd.get("agrofit_pests_count")
+    if pests_count is not None:
+        evidence["agrofit"] = {
+            "pests_count": int(pests_count),
+            "pests_sample": list(bd.get("agrofit_pests_sample") or [])[:5],
+        }
+
+    gaez = fm.get("gaez")
+    if isinstance(gaez, dict) and gaez:
+        soil = gaez.get("soil") if isinstance(gaez.get("soil"), dict) else {}
+        evidence["gaez"] = {
+            "input_level": gaez.get("input_level"),
+            "soil_group": soil.get("soil_group"),
+            "slope_range_pct": soil.get("slope_range_pct"),
+            "limiting_factor": soil.get("limiting_factor"),
+        }
+
+    if isinstance(fm.get("z_scores"), dict):
+        evidence["z_scores"] = fm["z_scores"]
+    if isinstance(fm.get("srtm"), dict):
+        evidence["srtm"] = fm["srtm"]
+    if isinstance(fm.get("hls"), dict):
+        evidence["hls"] = fm["hls"]
+
+    return evidence
+
+
+def build_simulation_evidence(
+    field_metrics: dict[str, Any] | None = None,
+    strategies: list[Any] | None = None,
+) -> dict[str, Any]:
+    """Consolida evidências numéricas estruturadas da simulação para cards no frontend."""
+    fm = field_metrics if isinstance(field_metrics, dict) else {}
+    clima: dict[str, Any] = {}
+    for out_k, in_keys in (
+        ("soil_moisture", ("avg_soil_moisture_smap", "umidade_solo_estimada")),
+        ("surface_temp_c", ("avg_surface_temp_ecostress", "temperatura_media_c")),
+        ("precipitation_mm_day", ("avg_precipitation_gpm",)),
+        ("precipitation_est_mm", ("precipitacao_estimada_mm",)),
+    ):
+        for k in in_keys:
+            val = _to_float(fm.get(k))
+            if val is not None:
+                clima[out_k] = round(val, 4)
+                break
+
+    payload: dict[str, Any] = {
+        "clima": clima,
+        "z_scores": fm.get("z_scores") if isinstance(fm.get("z_scores"), dict) else None,
+        "gaez": fm.get("gaez") if isinstance(fm.get("gaez"), dict) else None,
+        "ecocrop": fm.get("ecocrop") if isinstance(fm.get("ecocrop"), dict) else None,
+        "agrofit": fm.get("agrofit") if isinstance(fm.get("agrofit"), dict) else None,
+        "srtm": fm.get("srtm") if isinstance(fm.get("srtm"), dict) else None,
+        "hls": fm.get("hls") if isinstance(fm.get("hls"), dict) else None,
+    }
+    if strategies:
+        payload["estrategias"] = [
+            build_strategy_evidence(s, fm) for s in strategies
+        ]
+    return payload
 
 
 def _format_alert_climate_details(detalhes_clima: dict[str, Any] | None) -> str:
@@ -615,6 +738,26 @@ class RotationExplainerAgent:
             explanations.append(_ensure_disclaimer(text))
 
         return explanations
+
+    def explain_strategies_structured(
+        self,
+        strategies: list[Any],
+        field_metrics: dict[str, Any] | None = None,
+        farmer_priorities: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Retorna explicação textual (com disclaimer) + bloco de evidências numéricas por estratégia."""
+        texts = self.explain_strategies(
+            strategies=strategies,
+            field_metrics=field_metrics,
+            farmer_priorities=farmer_priorities,
+        )
+        return [
+            {
+                "explicacao": texto,
+                "evidencias": build_strategy_evidence(strategy, field_metrics),
+            }
+            for strategy, texto in zip(strategies, texts)
+        ]
 
     def explain_alert(
         self,

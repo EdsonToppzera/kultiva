@@ -57,6 +57,7 @@ def _serializar_alerta(alerta: models.AlertaClimatico) -> AlertaClimaticoRespons
 
 def _executar_detector_anomalias(
     serie_temporal: Optional[List[Dict[str, Any]]],
+    baseline_climatology: Optional[Dict[str, Any]] = None,
 ) -> Optional[Dict[str, Any]]:
     """Integra com ClimateAnomalyDetector quando uma série temporal é enviada."""
     if not serie_temporal:
@@ -64,20 +65,30 @@ def _executar_detector_anomalias(
 
     resultado_ml: Any = None
     origem = "fallback_serie_recebida"
+    z_scores: Optional[Dict[str, Any]] = None
     try:
         from backend.services.ml_models import ClimateAnomalyDetector
 
         detector = ClimateAnomalyDetector()
-        resultado_ml = detector.detect_extremes(serie_temporal)
+        resultado_ml = detector.detect_extremes(
+            serie_temporal, baseline=baseline_climatology
+        )
         origem = "climate_anomaly_detector"
+        if isinstance(resultado_ml, dict):
+            detalhes = resultado_ml.get("detalhes")
+            if isinstance(detalhes, dict) and isinstance(detalhes.get("z_scores"), dict):
+                z_scores = detalhes["z_scores"]
     except Exception as exc:
         resultado_ml = {"erro_detector": str(exc)}
 
-    return {
+    payload: Dict[str, Any] = {
         "origem_detector": origem,
         "total_pontos_analisados": len(serie_temporal),
         "resultado_ml": resultado_ml,
     }
+    if z_scores is not None:
+        payload["z_scores"] = z_scores
+    return payload
 
 
 @router.post(

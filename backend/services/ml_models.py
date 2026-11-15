@@ -1296,6 +1296,7 @@ class ClimateAnomalyDetector:
     HEAVY_RAIN_MM = 60.0
     MIN_POINTS_ML = 10
     ROBUST_Z = 3.5
+    Z_SCORE_EXTREME = 2.0
 
     # (chave canônica, aliases aceitos)
     _FEATURES = {
@@ -1410,7 +1411,109 @@ class ClimateAnomalyDetector:
             "heat_stress_index": heat_stress_index,
         }
 
-    def detect_extremes(self, time_series_data: dict | list[dict]) -> dict:
+    def _compute_z_scores(
+        self,
+        max_precip: float,
+        max_temp: float,
+        min_moist: float | None,
+        values: dict[str, list[float | None]],
+        baseline: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Calcula z-scores de chuva, temperatura e umidade contra baseline histórico (ou série)."""
+        base = (
+            baseline.get("baseline_climatology")
+            if isinstance(baseline, dict) and isinstance(baseline.get("baseline_climatology"), dict)
+            else baseline
+        )
+
+        def _z_from_stats(val: float | None, stats: Any) -> float | None:
+            if val is None or not isinstance(stats, dict):
+                return None
+            mean = _to_float(stats.get("mean"))
+            std = _to_float(stats.get("std"))
+            if mean is None or std is None:
+                return None
+            if std > 0.0:
+                return round((val - mean) / std, 3)
+            return 0.0 if val == mean else None
+
+        if isinstance(base, dict) and any(
+            isinstance(base.get(k), dict)
+            for k in ("precipitation_mm", "surface_temp_c", "soil_moisture")
+        ):
+            precips = [v for v in values["precipitation_mm"] if v is not None]
+            temps = [v for v in values["surface_temp_c"] if v is not None]
+            moist = [v for v in values["soil_moisture"] if v is not None]
+            return {
+                "precipitation_mm": _z_from_stats(
+                    max_precip if precips else None, base.get("precipitation_mm")
+                ),
+                "surface_temp_c": _z_from_stats(
+                    max_temp if temps else None, base.get("surface_temp_c")
+                ),
+                "soil_moisture": _z_from_stats(min_moist, base.get("soil_moisture")),
+                "source": "historical_baseline",
+            }
+
+        def _z_internal(col: list[float | None], target: float | None) -> float | None:
+            nums = [v for v in col if v is not None]
+            if target is None or len(nums) < 3:
+                return None
+            arr = np.asarray(nums, dtype=float)
+            std = float(np.std(arr, ddof=1))
+            if std <= 0.0:
+                return None
+            return round((target - float(np.mean(arr))) / std, 3)
+
+        z_p = _z_internal(values["precipitation_mm"], max_precip if values["precipitation_mm"] else None)
+        z_t = _z_internal(values["surface_temp_c"], max_temp if values["surface_temp_c"] else None)
+        z_m = _z_internal(values["soil_moisture"], min_moist)
+        source = (
+            "series_internal"
+            if any(z is not None for z in (z_p, z_t, z_m))
+            else "unavailable"
+        )
+        return {
+            "precipitation_mm": z_p,
+            "surface_temp_c": z_t,
+            "soil_moisture": z_m,
+            "source": source,
+        }
+
+    def _z_score_event(self, z_scores: dict[str, Any]) -> tuple[str, str]:
+        """Dispara anomalia relativa quando há desvio significativo vs. baseline histórico."""
+        if z_scores.get("source") != "historical_baseline":
+            return "nenhum", "baixa"
+
+        candidates: list[tuple[float, str]] = []
+        z_p = _to_float(z_scores.get("precipitation_mm"))
+        z_t = _to_float(z_scores.get("surface_temp_c"))
+        z_m = _to_float(z_scores.get("soil_moisture"))
+
+        if z_p is not None and z_p >= self.Z_SCORE_EXTREME:
+            candidates.append((z_p, "chuva_intensa"))
+        if z_t is not None and z_t >= self.Z_SCORE_EXTREME:
+            candidates.append((z_t, "onda_de_calor"))
+        if z_m is not None and z_m <= -self.Z_SCORE_EXTREME:
+            candidates.append((abs(z_m), "seca"))
+
+        if not candidates:
+            return "nenhum", "baixa"
+        candidates.sort(reverse=True)
+        top_z, tipo = candidates[0]
+        if top_z >= 3.0:
+            sev = "critica"
+        elif top_z >= 2.5:
+            sev = "alta"
+        else:
+            sev = "media"
+        return tipo, sev
+
+    def detect_extremes(
+        self,
+        time_series_data: dict | list[dict],
+        baseline: dict[str, Any] | None = None,
+    ) -> dict:
         """Aceita um ponto (dict) ou série (list[dict]); retorna o contrato descrito acima."""
         series = (
             time_series_data
@@ -1428,9 +1531,22 @@ class ClimateAnomalyDetector:
         max_temp = max(temps, default=0.0)
         min_moist = min(moist) if moist else None
 
+        z_scores = self._compute_z_scores(
+            max_precip=max_precip,
+            max_temp=max_temp,
+            min_moist=min_moist,
+            values=values,
+            baseline=baseline,
+        )
+
         tipo, severidade = self._threshold_event(max_precip, max_temp, min_moist)
         metodo = "limiar"
         indices: list[int] = []
+
+        if tipo == "nenhum":
+            tipo_z, sev_z = self._z_score_event(z_scores)
+            if tipo_z != "nenhum":
+                tipo, severidade, metodo = tipo_z, sev_z, "z_score_historico"
 
         if tipo == "nenhum":
             tipo_ml, indices = self._statistical_event(series, values)
@@ -1450,6 +1566,7 @@ class ClimateAnomalyDetector:
                 "max_precipitation_mm": max_precip,
                 "max_surface_temp_c": max_temp,
                 "min_soil_moisture": min_moist,
+                "z_scores": z_scores,
                 **diagnostics,
             },
         }

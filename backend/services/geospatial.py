@@ -138,7 +138,11 @@ class INASADataProvider(ABC):
 
     @abstractmethod
     def extract_field_metrics(
-        self, polygon_coords: Any, dataset: Any = None, profile: str | None = None
+        self,
+        polygon_coords: Any,
+        dataset: Any = None,
+        profile: str | None = None,
+        include_baseline: bool = False,
     ) -> dict[str, Any]:
         pass
 
@@ -348,6 +352,8 @@ class RealNASADataProvider(INASADataProvider):
         data_path: str = "data",
         days_back: int | None = None,
         enable_nasa_power: bool | None = None,
+        enable_historical_baseline: bool | None = None,
+        enable_terrain_layers: bool | None = None,
     ):
         if credentials is None:
             credentials = {
@@ -367,6 +373,16 @@ class RealNASADataProvider(INASADataProvider):
             bool(enable_nasa_power)
             if enable_nasa_power is not None
             else _is_truthy_env("NASA_POWER_FALLBACK", False)
+        )
+        self.enable_historical_baseline = (
+            bool(enable_historical_baseline)
+            if enable_historical_baseline is not None
+            else _is_truthy_env("NASA_POWER_BASELINE", False)
+        )
+        self.enable_terrain_layers = (
+            bool(enable_terrain_layers)
+            if enable_terrain_layers is not None
+            else _is_truthy_env("NASA_SRTM_HLS_EARTHDATA", False)
         )
 
     @staticmethod
@@ -668,8 +684,374 @@ class RealNASADataProvider(INASADataProvider):
             return None
         return valid_points[-self.days_back :]
 
+    def _fetch_nasa_power_baseline(
+        self,
+        center_lat: float,
+        center_lng: float,
+        end_dt: date,
+        years_back: int = 5,
+        window_days: int = 15,
+    ) -> dict[str, dict[str, float]] | None:
+        """
+        Consulta (com cache local) a série histórica NASA POWER para o mesmo período
+        sazonal nos últimos `years_back` anos e retorna média/desvio-padrão para z-score.
+        Retorna `None` quando offline ou sem dados suficientes.
+        """
+        years_back = max(1, int(years_back))
+        window_days = max(1, int(window_days))
+        hist_end = end_dt - timedelta(days=30)
+        try:
+            hist_start = hist_end.replace(year=hist_end.year - years_back)
+        except ValueError:
+            # 29 de fevereiro em ano não bissexto
+            hist_start = hist_end.replace(year=hist_end.year - years_back, day=28)
+
+        cache_dir = os.path.join(self.data_path, "power_cache")
+        cache_name = (
+            f"baseline_{center_lat:.2f}_{center_lng:.2f}_"
+            f"{end_dt.strftime('%m%d')}_{years_back}y.json"
+        )
+        cache_path = os.path.join(cache_dir, cache_name)
+
+        payload: dict[str, Any] | None = None
+        if os.path.exists(cache_path):
+            try:
+                with open(cache_path, encoding="utf-8") as fp:
+                    payload = json.load(fp)
+            except Exception:
+                payload = None
+
+        if payload is None:
+            params = {
+                "parameters": "GWETTOP,TS,PRECTOTCORR",
+                "community": "AG",
+                "longitude": round(center_lng, 4),
+                "latitude": round(center_lat, 4),
+                "start": hist_start.strftime("%Y%m%d"),
+                "end": hist_end.strftime("%Y%m%d"),
+                "format": "JSON",
+            }
+            try:
+                resp = httpx.get(self.POWER_API_URL, params=params, timeout=12.0)
+                resp.raise_for_status()
+                payload = resp.json()
+                os.makedirs(cache_dir, exist_ok=True)
+                with open(cache_path, "w", encoding="utf-8") as fp:
+                    json.dump(payload, fp)
+            except Exception as exc:
+                logger.warning("Falha ao consultar baseline histórico NASA POWER: %s", exc)
+                return None
+
+        params_data = (payload or {}).get("properties", {}).get("parameter", {})
+        gwettop = params_data.get("GWETTOP") or {}
+        ts_map = params_data.get("TS") or {}
+        precip_map = params_data.get("PRECTOTCORR") or {}
+
+        target_doy = end_dt.timetuple().tm_yday
+        moist_vals: list[float] = []
+        temp_vals: list[float] = []
+        precip_vals: list[float] = []
+
+        for raw_d in sorted(set(gwettop) & set(ts_map) & set(precip_map)):
+            if len(raw_d) != 8 or not raw_d.isdigit():
+                continue
+            try:
+                obs_dt = date(int(raw_d[:4]), int(raw_d[4:6]), int(raw_d[6:8]))
+            except ValueError:
+                continue
+            obs_doy = obs_dt.timetuple().tm_yday
+            diff = abs(obs_doy - target_doy)
+            if min(diff, 365 - diff) > window_days:
+                continue
+
+            m_val = float(gwettop[raw_d])
+            t_val = float(ts_map[raw_d])
+            p_val = float(precip_map[raw_d])
+            if m_val <= -900.0 or t_val <= -900.0 or p_val <= -900.0:
+                continue
+
+            moist_vals.append(max(0.02, min(0.50, m_val * 0.50)))
+            temp_vals.append(t_val)
+            precip_vals.append(max(0.0, p_val))
+
+        if len(moist_vals) < 5:
+            return None
+
+        def _stats(vals: list[float]) -> dict[str, float]:
+            arr = np.asarray(vals, dtype=float)
+            return {
+                "mean": round(float(np.mean(arr)), 4),
+                "std": round(float(np.std(arr, ddof=1 if len(arr) > 1 else 0)), 4),
+                "n": int(len(arr)),
+            }
+
+        return {
+            "soil_moisture": _stats(moist_vals),
+            "surface_temp_c": _stats(temp_vals),
+            "precipitation_mm": _stats(precip_vals),
+        }
+
+    @staticmethod
+    def compute_z_scores(
+        current_metrics: dict[str, float | None],
+        baseline: dict[str, dict[str, float]] | None,
+    ) -> dict[str, float | None]:
+        """Calcula z-score de chuva, umidade e temperatura frente ao baseline histórico."""
+        result: dict[str, float | None] = {
+            "soil_moisture": None,
+            "surface_temp_c": None,
+            "precipitation_mm": None,
+        }
+        if not isinstance(baseline, dict):
+            return result
+
+        for key in ("soil_moisture", "surface_temp_c", "precipitation_mm"):
+            cur = current_metrics.get(key)
+            stats = baseline.get(key)
+            if cur is None or not isinstance(stats, dict):
+                continue
+            mean = stats.get("mean")
+            std = stats.get("std")
+            if mean is None or std is None:
+                continue
+            cur_f = float(cur)
+            mean_f = float(mean)
+            std_f = float(std)
+            if std_f > 0.0:
+                result[key] = round((cur_f - mean_f) / std_f, 3)
+            elif cur_f == mean_f:
+                result[key] = 0.0
+        return result
+
+    def extract_historical_baseline(
+        self,
+        polygon_coords: Any,
+        end_dt: date | None = None,
+        years_back: int = 5,
+        window_days: int = 15,
+    ) -> dict[str, dict[str, float]] | None:
+        """Retorna climatologia histórica NASA POWER para o centroide do polígono."""
+        norm_coords = _normalize_polygon_coords(polygon_coords)
+        geom = _build_polygon_geometry(norm_coords)
+        c = geom.centroid
+        ref_dt = end_dt or datetime.now(timezone.utc).date()
+        return self._fetch_nasa_power_baseline(
+            center_lat=float(c.y),
+            center_lng=float(c.x),
+            end_dt=ref_dt,
+            years_back=years_back,
+            window_days=window_days,
+        )
+
+    def _find_local_raster_or_nc(self, hints: tuple[str, ...]) -> list[str]:
+        real_dir = os.path.join(self.data_path, "real")
+        if not os.path.isdir(real_dir):
+            return []
+        exts = (".tif", ".tiff", *self._REAL_FILE_EXTENSIONS)
+        matches: list[str] = []
+        for entry in sorted(os.listdir(real_dir)):
+            low = entry.lower()
+            if not low.endswith(exts):
+                continue
+            if any(h in low for h in hints):
+                matches.append(os.path.join(real_dir, entry))
+        return matches
+
+    def _extract_srtm_elevation(
+        self,
+        gdf: gpd.GeoDataFrame,
+        geom: Any,
+        ea: Any = None,
+        authenticated: bool = False,
+    ) -> dict[str, Any] | None:
+        """
+        Extrai elevação SRTM 30 m (média, mín, máx) de arquivo local em `{data_path}/real/`
+        ou Earthdata (`SRTMGL1`/`NASADEM_HGT`) quando autenticado.
+        Retorna `None` quando indisponível (sem inventar valores).
+        """
+        local_files = self._find_local_raster_or_nc(("srtm", "nasadem", "dem", "elev"))
+        da: xr.DataArray | None = None
+        source_label = "local_srtm"
+
+        for path in local_files:
+            try:
+                if path.lower().endswith((".tif", ".tiff")):
+                    import rioxarray  # type: ignore
+
+                    opened = rioxarray.open_rasterio(path, masked=True)
+                    if "band" in opened.dims:
+                        opened = opened.isel(band=0)
+                    da = opened.rename({"x": "lon", "y": "lat"}) if "x" in opened.dims else opened
+                else:
+                    with xr.open_dataset(path) as ds:
+                        _, var_name = self._prepare_dataset(
+                            ds, ("elevation", "DEM", "SRTMGL1", "hgt", "Band1")
+                        )
+                        if var_name is not None:
+                            da = ds[var_name].load()
+                if da is not None:
+                    break
+            except Exception:
+                da = None
+
+        if da is None and ea is not None and authenticated and self.enable_terrain_layers:
+            try:
+                minx, miny, maxx, maxy = geom.bounds
+                results = ea.search_data(
+                    short_name="SRTMGL1",
+                    bounding_box=(float(minx), float(miny), float(maxx), float(maxy)),
+                    count=2,
+                )
+                if results:
+                    files = ea.open(results[:1])
+                    ds = xr.open_mfdataset(files, combine="by_coords")
+                    try:
+                        _, var_name = self._prepare_dataset(
+                            ds, ("elevation", "DEM", "SRTMGL1", "hgt", "Band1")
+                        )
+                        if var_name is not None:
+                            da = ds[var_name].load()
+                            source_label = "earthdata_srtm_30m"
+                    finally:
+                        ds.close()
+            except Exception as exc:
+                logger.warning("SRTM Earthdata indisponível: %s", exc)
+                da = None
+
+        if da is None:
+            return None
+
+        try:
+            if "lat" not in da.dims and "y" in da.dims:
+                da = da.rename({"x": "lon", "y": "lat"})
+            ds_tmp = xr.Dataset({"elevation": da})
+            ds_tmp.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
+            if ds_tmp.rio.crs is None:
+                ds_tmp.rio.write_crs("EPSG:4326", inplace=True)
+            serie, quality = MockNASADataProvider._reduce_spatial(
+                ds_tmp, "elevation", gdf, geom
+            )
+            if serie is None or bool(serie.isnull().all()):
+                return None
+            vals = np.asarray(serie.values, dtype=float)
+            vals = vals[np.isfinite(vals)]
+            if vals.size == 0:
+                return None
+            return {
+                "elevation_m": round(float(np.mean(vals)), 2),
+                "elevation_min_m": round(float(np.min(vals)), 2),
+                "elevation_max_m": round(float(np.max(vals)), 2),
+                "resolution_m": 30,
+                "data_quality": quality,
+                "source": source_label,
+            }
+        except Exception:
+            return None
+
+    def _extract_hls_coverage(
+        self,
+        gdf: gpd.GeoDataFrame,
+        geom: Any,
+        temporal: tuple[str, str],
+        ea: Any = None,
+        authenticated: bool = False,
+    ) -> dict[str, Any] | None:
+        """
+        Extrai cobertura/vigor HLS (Harmonized Landsat Sentinel-2) de arquivo local
+        ou Earthdata (`HLSL30`/`HLSS30`) quando autenticado.
+        Retorna `None` quando indisponível (sem inventar valores).
+        """
+        local_files = self._find_local_raster_or_nc(("hls", "hlsl30", "hlss30"))
+        da: xr.DataArray | None = None
+        source_label = "local_hls"
+
+        for path in local_files:
+            try:
+                if path.lower().endswith((".tif", ".tiff")):
+                    import rioxarray  # type: ignore
+
+                    opened = rioxarray.open_rasterio(path, masked=True)
+                    if "band" in opened.dims:
+                        opened = opened.isel(band=0)
+                    da = opened.rename({"x": "lon", "y": "lat"}) if "x" in opened.dims else opened
+                else:
+                    with xr.open_dataset(path) as ds:
+                        _, var_name = self._prepare_dataset(
+                            ds, ("ndvi", "NDVI", "B04", "B05", "Band1")
+                        )
+                        if var_name is not None:
+                            da = ds[var_name].load()
+                if da is not None:
+                    break
+            except Exception:
+                da = None
+
+        if da is None and ea is not None and authenticated and self.enable_terrain_layers:
+            try:
+                minx, miny, maxx, maxy = geom.bounds
+                results = ea.search_data(
+                    short_name="HLSL30",
+                    bounding_box=(float(minx), float(miny), float(maxx), float(maxy)),
+                    temporal=temporal,
+                    count=2,
+                )
+                if results:
+                    files = ea.open(results[:1])
+                    ds = xr.open_mfdataset(files, combine="by_coords")
+                    try:
+                        _, var_name = self._prepare_dataset(
+                            ds, ("ndvi", "NDVI", "B04", "B05", "Band1")
+                        )
+                        if var_name is not None:
+                            da = ds[var_name].load()
+                            source_label = "earthdata_hls_30m"
+                    finally:
+                        ds.close()
+            except Exception as exc:
+                logger.warning("HLS Earthdata indisponível: %s", exc)
+                da = None
+
+        if da is None:
+            return None
+
+        try:
+            if "lat" not in da.dims and "y" in da.dims:
+                da = da.rename({"x": "lon", "y": "lat"})
+            ds_tmp = xr.Dataset({"ndvi": da})
+            ds_tmp.rio.set_spatial_dims(x_dim="lon", y_dim="lat", inplace=True)
+            if ds_tmp.rio.crs is None:
+                ds_tmp.rio.write_crs("EPSG:4326", inplace=True)
+            serie, quality = MockNASADataProvider._reduce_spatial(
+                ds_tmp, "ndvi", gdf, geom
+            )
+            if serie is None or bool(serie.isnull().all()):
+                return None
+            vals = np.asarray(serie.values, dtype=float)
+            vals = vals[np.isfinite(vals)]
+            if vals.size == 0:
+                return None
+            mean_v = float(np.mean(vals))
+            if abs(mean_v) > 2.0:
+                vals = vals * 0.0001
+                mean_v = float(np.mean(vals))
+            return {
+                "ndvi_mean": round(mean_v, 4),
+                "ndvi_min": round(float(np.min(vals)), 4),
+                "ndvi_max": round(float(np.max(vals)), 4),
+                "is_bare_soil": bool(mean_v < self.BARE_NDVI_MAX),
+                "resolution_m": 30,
+                "data_quality": quality,
+                "source": source_label,
+            }
+        except Exception:
+            return None
+
     def extract_field_metrics(
-        self, polygon_coords: Any, dataset: Any = None, profile: str | None = None
+        self,
+        polygon_coords: Any,
+        dataset: Any = None,
+        profile: str | None = None,
+        include_baseline: bool = False,
     ) -> dict[str, Any]:
         _ = profile
         norm_coords = _normalize_polygon_coords(polygon_coords)
@@ -819,15 +1201,32 @@ class RealNASADataProvider(INASADataProvider):
                     }
                 )
 
+        srtm_data = (
+            self._extract_srtm_elevation(
+                gdf, geom, ea=ea, authenticated=authenticated
+            )
+            if dataset is None
+            else None
+        )
+        hls_data = (
+            self._extract_hls_coverage(
+                gdf, geom, temporal=temporal, ea=ea, authenticated=authenticated
+            )
+            if dataset is None
+            else None
+        )
+
         if series.get("ndvi") is not None:
             is_bare = float(series["ndvi"].mean(skipna=True).item()) < self.BARE_NDVI_MAX
+        elif hls_data is not None:
+            is_bare = bool(hls_data["is_bare_soil"])
         else:
             is_bare = (
                 avg_moisture < self.BARE_MOISTURE_MAX
                 and avg_temp >= self.BARE_TEMP_MIN_C
             )
 
-        return {
+        result: dict[str, Any] = {
             "coordinates": polygon_coords,
             "avg_soil_moisture_smap": avg_moisture,
             "avg_surface_temp_ecostress": avg_temp,
@@ -836,6 +1235,30 @@ class RealNASADataProvider(INASADataProvider):
             "data_quality": data_quality,
             "time_series": time_series,
         }
+        if srtm_data is not None:
+            result["srtm"] = srtm_data
+        if hls_data is not None:
+            result["hls"] = hls_data
+
+        if include_baseline or self.enable_historical_baseline:
+            c = geom.centroid
+            baseline = self._fetch_nasa_power_baseline(
+                center_lat=float(c.y),
+                center_lng=float(c.x),
+                end_dt=end_dt,
+            )
+            if baseline is not None:
+                result["baseline_climatology"] = baseline
+                result["z_scores"] = self.compute_z_scores(
+                    {
+                        "soil_moisture": avg_moisture,
+                        "surface_temp_c": avg_temp,
+                        "precipitation_mm": avg_precip,
+                    },
+                    baseline,
+                )
+
+        return result
 
 
 def get_nasa_data_provider(
