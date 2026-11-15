@@ -12,6 +12,7 @@ import {
 } from "react-leaflet";
 import {
   AlertTriangle,
+  ChevronLeft,
   Crosshair,
   Maximize2,
   Minimize2,
@@ -114,7 +115,7 @@ function MapController({
   return null;
 }
 
-export function MapTerrainPage({ onSaveArea }: MapTerrainPageProps) {
+export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
   // Gestão clara do estado de coordenadas do polígono
   const [points, setPoints] = React.useState<MapCoordinate[]>([]);
   const [mapCenter, setMapCenter] = React.useState<{
@@ -424,7 +425,7 @@ export function MapTerrainPage({ onSaveArea }: MapTerrainPageProps) {
           )}
         </div>
 
-        <footer className="mt-8 pt-2">
+        <footer className="mt-8 flex flex-col items-center gap-3 pt-2">
           <Button
             type="button"
             variant="primary"
@@ -434,6 +435,16 @@ export function MapTerrainPage({ onSaveArea }: MapTerrainPageProps) {
             className="w-full"
           >
             Salvar Área
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onBack}
+            className="w-full max-w-[200px] text-sm font-semibold text-[#511D4E]"
+          >
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            <span>Voltar</span>
           </Button>
         </footer>
       </div>
