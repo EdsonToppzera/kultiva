@@ -30,6 +30,11 @@ import {
   formatPopularNames,
 } from "../../../data/cropsDictionary";
 import { cn } from "../../../lib/utils";
+import {
+  type TerrenoResponse,
+  atualizarTerreno,
+  converterHistoricoParaLista,
+} from "../../../services/api";
 import type {
   CropHistoryData,
   CropOption,
@@ -40,6 +45,9 @@ export interface CropHistoryStepProps {
   crops?: CropOption[];
   initialData?: Partial<CropHistoryData>;
   networkStatus?: NetworkSyncStatus;
+  terrenoId?: number | null;
+  existingPrioridades?: Record<string, unknown> | null;
+  onTerrenoUpdated?: (terreno: TerrenoResponse) => void;
   onBack?: () => void;
   onContinue?: (data: CropHistoryData) => void;
   onDontRemember?: () => void;
@@ -277,6 +285,9 @@ export function CropHistoryStep({
   crops = CROPS_DICTIONARY,
   initialData,
   networkStatus,
+  terrenoId,
+  existingPrioridades,
+  onTerrenoUpdated,
   onBack,
   onContinue,
   onDontRemember,
@@ -284,6 +295,10 @@ export function CropHistoryStep({
   const [isOnline, setIsOnline] = React.useState<boolean>(() =>
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
+  const [syncState, setSyncState] = React.useState<NetworkSyncStatus | null>(
+    null
+  );
+  const [isSaving, setIsSaving] = React.useState(false);
 
   React.useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -298,7 +313,7 @@ export function CropHistoryStep({
   }, []);
 
   const resolvedNetworkStatus: NetworkSyncStatus =
-    networkStatus ?? (isOnline ? "salvo" : "offline");
+    networkStatus ?? syncState ?? (isOnline ? "salvo" : "offline");
 
   const [ultimoCultivo, setUltimoCultivo] = React.useState<CropOption | null>(
     initialData?.ultimoCultivo ?? null
@@ -336,20 +351,44 @@ export function CropHistoryStep({
     onDontRemember?.();
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!canContinue) return;
-    onContinue?.({
+    if (!canContinue || isSaving) return;
+
+    const payloadData: CropHistoryData = {
       ultimoCultivo,
       cultivoAnterior,
       naoLembro,
-    });
+    };
+
+    if (terrenoId != null) {
+      setIsSaving(true);
+      setSyncState("sincronizando");
+      try {
+        const historicoCultivos = converterHistoricoParaLista(payloadData);
+        const updated = await atualizarTerreno(terrenoId, {
+          prioridades: {
+            ...(existingPrioridades ?? {}),
+            historico_cultivos: historicoCultivos,
+            nao_lembra_historico: naoLembro,
+          },
+        });
+        setSyncState("salvo");
+        onTerrenoUpdated?.(updated);
+      } catch {
+        setSyncState("offline");
+      } finally {
+        setIsSaving(false);
+      }
+    }
+
+    onContinue?.(payloadData);
   };
 
   return (
     <div className="min-h-dvh w-full bg-[#F7F6F0] text-[#1F1C18] md:flex md:items-center md:justify-center md:bg-[#EFECE3] md:p-6">
       <form
-        onSubmit={handleSubmit}
+        onSubmit={(event) => void handleSubmit(event)}
         className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between bg-[#F7F6F0] px-5 pb-8 pt-6 md:min-h-[680px] md:max-w-lg md:rounded-3xl md:border md:border-[#E6E4DA] md:px-8 md:py-8 md:shadow-sm lg:max-w-xl"
       >
         <div>
@@ -460,10 +499,10 @@ export function CropHistoryStep({
             type="submit"
             variant="primary"
             size="lg"
-            disabled={!canContinue}
+            disabled={!canContinue || isSaving}
             className="w-full"
           >
-            <span>Continuar</span>
+            <span>{isSaving ? "Salvando..." : "Continuar"}</span>
             <ArrowRight className="h-5 w-5" aria-hidden="true" />
           </Button>
 
@@ -471,6 +510,7 @@ export function CropHistoryStep({
             type="button"
             variant="ghost"
             onClick={onBack}
+            disabled={isSaving}
             className="w-full max-w-[200px] text-sm font-semibold text-[#511D4E]"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />

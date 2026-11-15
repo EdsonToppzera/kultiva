@@ -91,15 +91,15 @@
 
 | # | Status | Task | Arquivos | Pronto quando |
 |---|---|---|---|---|
-| F1 | ⬜ | Criar entrypoint e roteamento da aplicação (`index.html`, `src/main.tsx`, `src/App.tsx`) + cliente HTTP para `/api/v1` | `frontend/index.html`, `frontend/src/main.tsx`, `frontend/src/App.tsx` | App Vite sobe com `npm run dev` e navega entre todas as etapas do fluxo |
-| F2 | ⬜ | Conectar `PlantationsPage.tsx`, `MapTerrainPage.tsx` e `CropHistoryStep.tsx` aos endpoints `[M1]` (`GET`/`POST`/`DELETE /api/v1/terrenos`) e demo seed (`POST /api/v1/demo/seed`) | `frontend/src/pages/`, `frontend/src/features/onboarding/` | Terrenos reais listados/criados/excluídos no Postgres sem mocks estáticos |
-| F3 | ⬜ | Implementar telas de Simulação `[M3]` (3 estratégias, `score_breakdown`, explicação IA + disclaimer), Calendário `[M4]` + Alertas `[M5]` e Relatório `[M6]` | `frontend/src/pages/` | Fluxo completo `[M1] -> [M3] -> [M4]/[M5] -> [M6]` testado no navegador |
+| F1 | ✅ | Criar entrypoint e roteamento da aplicação (`index.html`, `src/main.tsx`, `src/App.tsx`) + cliente HTTP para `/api/v1` | `frontend/index.html`, `frontend/src/main.tsx`, `frontend/src/App.tsx`, `frontend/src/services/api.ts` | App Vite sobe com `npm run dev` e navega entre todas as etapas do fluxo |
+| F2 | ✅ | Conectar `PlantationsPage.tsx`, `MapTerrainPage.tsx`, `CropHistoryStep.tsx` e `WaterDistributionStep.tsx` aos endpoints `[M1]` (`GET`/`POST`/`PUT`/`DELETE /api/v1/terrenos`), `[M3]` (`POST /api/v1/simular-rotacao`) e demo seed (`POST /api/v1/demo/seed`) | `frontend/src/pages/`, `frontend/src/features/onboarding/`, `frontend/src/services/api.ts` | Terrenos reais listados/criados/excluídos no Postgres sem mocks estáticos e onboarding conectado à API |
+| F3 | ⬜ | Implementar telas completas de Simulação `[M3]` (3 estratégias, `score_breakdown`, explicação IA + disclaimer), Calendário `[M4]` + Alertas `[M5]` e Relatório `[M6]` | `frontend/src/pages/` | Fluxo completo `[M1] -> [M3] -> [M4]/[M5] -> [M6]` testado no navegador |
 
 ## Ordem e dependências
 
 1. ✅ **Rodada 1 concluída:** `A1–A6` · `B1–B4` · `C1–C5`.
 2. ✅ **Rodada 2 concluída:** `A7–A9` · `B5–B7` · `C6–C8`.
-3. **Rodada 3 — Em andamento:** `A10` ✅ · `C9` ✅ · pendentes: `B8` + `F1, F2, F3` (integração Frontend + ensaio final da demo).
+3. **Rodada 3 — Em andamento:** `A10` ✅ · `B8` ✅ · `C9` ✅ · `F1` ✅ · `F2` ✅ · pendente: `F3` (telas completas de Simulação/Calendário/Alertas/Relatório + ensaio final da demo).
 
 ## Regras de trabalho
 

@@ -21,6 +21,12 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
+import {
+  ApiError,
+  DEFAULT_USUARIO_ID,
+  type TerrenoResponse,
+  criarTerreno,
+} from "../services/api";
 
 export interface MapCoordinate {
   id: string;
@@ -29,7 +35,11 @@ export interface MapCoordinate {
 }
 
 export interface MapTerrainPageProps {
-  onSaveArea?: (points: MapCoordinate[], areaHectares: number) => void;
+  onSaveArea?: (
+    points: MapCoordinate[],
+    areaHectares: number,
+    createdTerreno?: TerrenoResponse
+  ) => void;
   onBack?: () => void;
 }
 
@@ -117,6 +127,7 @@ function MapController({
 
 export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
   // Gestão clara do estado de coordenadas do polígono
+  const [nomePropriedade, setNomePropriedade] = React.useState("");
   const [points, setPoints] = React.useState<MapCoordinate[]>([]);
   const [mapCenter, setMapCenter] = React.useState<{
     lat: number;
@@ -127,7 +138,9 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
   });
   const [isMapExpanded, setIsMapExpanded] = React.useState(false);
   const [isLocating, setIsLocating] = React.useState(false);
+  const [isSaving, setIsSaving] = React.useState(false);
   const [gpsError, setGpsError] = React.useState<string | null>(null);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
 
   const mapRef = React.useRef<L.Map | null>(null);
 
@@ -196,9 +209,34 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
     [points]
   );
 
-  const handleSave = () => {
-    if (!canSave) return;
-    onSaveArea?.(points, areaHectares);
+  const handleSave = async () => {
+    if (!canSave || isSaving) return;
+    setSaveError(null);
+    setIsSaving(true);
+
+    const resolvedName = nomePropriedade.trim() || "Novo Terreno";
+    const coordenadasPoligono = points.map((p) => ({ lat: p.lat, lng: p.lng }));
+    const areaPayload =
+      areaHectares > 0 ? Number(areaHectares.toFixed(4)) : undefined;
+
+    try {
+      const created = await criarTerreno({
+        nome_propriedade: resolvedName,
+        usuario_id: DEFAULT_USUARIO_ID,
+        coordenadas_poligono: coordenadasPoligono,
+        area_hectares: areaPayload,
+      });
+      onSaveArea?.(points, created.area_hectares ?? areaHectares, created);
+    } catch (error) {
+      if (error instanceof ApiError && error.status >= 400 && error.status < 500) {
+        setSaveError(error.message);
+      } else {
+        // Fallback offline para manter o fluxo funcionando sem API ativa
+        onSaveArea?.(points, areaHectares, undefined);
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -218,6 +256,23 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
             <p className="mt-1.5 text-[15px] leading-snug text-[#6D6960]">
               Adicione os pontos que formam o contorno da sua área.
             </p>
+          </section>
+
+          <section className="mt-4">
+            <label
+              htmlFor="nome-propriedade-input"
+              className="block text-[11px] font-bold tracking-[0.08em] text-[#6D6960] uppercase"
+            >
+              Nome da propriedade / talhão
+            </label>
+            <input
+              id="nome-propriedade-input"
+              type="text"
+              value={nomePropriedade}
+              onChange={(event) => setNomePropriedade(event.target.value)}
+              placeholder="Ex: Sítio Boa Esperança - Talhão 1"
+              className="mt-1.5 w-full rounded-2xl border border-[#D5D1C5] bg-white px-4 py-3 text-[15px] text-[#1F1C18] placeholder:text-[#9A958A] focus:border-[#511D4E] focus:outline-none focus:ring-2 focus:ring-[#511D4E]/15"
+            />
           </section>
 
           {/* Mapa Interativo com Overlays */}
@@ -426,21 +481,31 @@ export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
         </div>
 
         <footer className="mt-8 flex flex-col items-center gap-3 pt-2">
+          {saveError && (
+            <p
+              role="alert"
+              className="w-full rounded-xl border border-[#C42311]/30 bg-[#C42311]/10 px-3 py-2 text-center text-xs font-medium text-[#C42311]"
+            >
+              {saveError}
+            </p>
+          )}
+
           <Button
             type="button"
             variant="primary"
             size="lg"
-            disabled={!canSave}
-            onClick={handleSave}
+            disabled={!canSave || isSaving}
+            onClick={() => void handleSave()}
             className="w-full"
           >
-            Salvar Área
+            {isSaving ? "Salvando Área..." : "Salvar Área"}
           </Button>
 
           <Button
             type="button"
             variant="ghost"
             onClick={onBack}
+            disabled={isSaving}
             className="w-full max-w-[200px] text-sm font-semibold text-[#511D4E]"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />

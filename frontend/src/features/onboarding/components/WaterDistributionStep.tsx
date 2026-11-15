@@ -17,7 +17,15 @@ import { Badge } from "../../../components/ui/badge";
 import { Button } from "../../../components/ui/button";
 import { RadioGroup, RadioGroupItem } from "../../../components/ui/radio-group";
 import { cn } from "../../../lib/utils";
-import type { NetworkSyncStatus } from "../types/cropHistory.types";
+import {
+  type TerrenoResponse,
+  atualizarTerreno,
+  mapearPrioridadesIrrigacao,
+} from "../../../services/api";
+import type {
+  CropHistoryData,
+  NetworkSyncStatus,
+} from "../types/cropHistory.types";
 import type {
   WaterDistributionData,
   WaterDistributionId,
@@ -80,8 +88,13 @@ export interface WaterDistributionStepProps {
   options?: WaterDistributionOption[];
   initialValue?: WaterDistributionId | null;
   networkStatus?: NetworkSyncStatus;
+  terrenoId?: number | null;
+  existingPrioridades?: Record<string, unknown> | null;
+  cropHistory?: CropHistoryData | null;
+  isSubmitting?: boolean;
+  onTerrenoUpdated?: (terreno: TerrenoResponse) => void;
   onBack?: () => void;
-  onContinue?: (data: WaterDistributionData) => void;
+  onContinue?: (data: WaterDistributionData) => void | Promise<void>;
 }
 
 /**
@@ -92,12 +105,21 @@ export function WaterDistributionStep({
   options = WATER_DISTRIBUTION_OPTIONS,
   initialValue = null,
   networkStatus,
+  terrenoId,
+  existingPrioridades,
+  cropHistory,
+  isSubmitting = false,
+  onTerrenoUpdated,
   onBack,
   onContinue,
 }: WaterDistributionStepProps) {
   const [isOnline, setIsOnline] = React.useState<boolean>(() =>
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
+  const [syncState, setSyncState] = React.useState<NetworkSyncStatus | null>(
+    null
+  );
+  const [isSaving, setIsSaving] = React.useState(false);
 
   React.useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -112,7 +134,7 @@ export function WaterDistributionStep({
   }, []);
 
   const resolvedNetworkStatus: NetworkSyncStatus =
-    networkStatus ?? (isOnline ? "salvo" : "offline");
+    networkStatus ?? syncState ?? (isOnline ? "salvo" : "offline");
 
   const [selectedId, setSelectedId] = React.useState<WaterDistributionId | null>(
     initialValue
@@ -126,16 +148,42 @@ export function WaterDistributionStep({
     [options, selectedId]
   );
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const isBusy = isSaving || isSubmitting;
+
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selectedOption) return;
-    onContinue?.({ metodoIrrigacao: selectedOption });
+    if (!selectedOption || isBusy) return;
+
+    if (terrenoId != null) {
+      setIsSaving(true);
+      setSyncState("sincronizando");
+      try {
+        const mapped = mapearPrioridadesIrrigacao(
+          selectedOption.id,
+          cropHistory
+        );
+        const updated = await atualizarTerreno(terrenoId, {
+          prioridades: {
+            ...(existingPrioridades ?? {}),
+            ...mapped,
+          },
+        });
+        setSyncState("salvo");
+        onTerrenoUpdated?.(updated);
+      } catch {
+        setSyncState("offline");
+      } finally {
+        setIsSaving(false);
+      }
+    }
+
+    await onContinue?.({ metodoIrrigacao: selectedOption });
   };
 
   return (
     <div className="min-h-dvh w-full bg-[#F7F6F0] text-[#1F1C18] md:flex md:items-center md:justify-center md:bg-[#EFECE3] md:p-6">
       <form
-        onSubmit={handleSubmit}
+        onSubmit={(event) => void handleSubmit(event)}
         className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between bg-[#F7F6F0] px-5 pb-8 pt-6 md:min-h-[680px] md:rounded-3xl md:border md:border-[#E6E4DA] md:px-7 md:py-8 md:shadow-sm"
       >
         <div>
@@ -268,10 +316,10 @@ export function WaterDistributionStep({
             type="submit"
             variant="primary"
             size="lg"
-            disabled={!selectedOption}
+            disabled={!selectedOption || isBusy}
             className="w-full"
           >
-            <span>Continuar</span>
+            <span>{isBusy ? "Processando..." : "Continuar"}</span>
             <ArrowRight className="h-5 w-5" aria-hidden="true" />
           </Button>
 
@@ -279,6 +327,7 @@ export function WaterDistributionStep({
             type="button"
             variant="ghost"
             onClick={onBack}
+            disabled={isBusy}
             className="w-full max-w-[200px] text-sm font-semibold text-[#511D4E]"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
