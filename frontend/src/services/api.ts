@@ -810,6 +810,31 @@ interface PragaCatalogoApiItem {
   category?: string;
 }
 
+function normalizeSearchText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function filterLocalCatalog<
+  T extends { id: string; officialName: string; popularNames: string[] },
+>(items: T[], query: string, limit: number): T[] {
+  const normalized = normalizeSearchText(query);
+  const filtered = normalized
+    ? items.filter(
+        (item) =>
+          normalizeSearchText(item.officialName).includes(normalized) ||
+          normalizeSearchText(item.id).includes(normalized) ||
+          item.popularNames.some((alias) =>
+            normalizeSearchText(alias).includes(normalized)
+          )
+      )
+    : items;
+  return filtered.slice(0, limit);
+}
+
 export async function buscarCulturasCatalogo(
   query = "",
   limit = 30,
@@ -832,7 +857,7 @@ export async function buscarCulturasCatalogo(
       }
     );
     if (!response.ok) {
-      return [];
+      return filterLocalCatalog(CROPS_DICTIONARY, query, limit);
     }
     const data = (await response.json()) as CulturaCatalogoApiItem[];
     if (!Array.isArray(data) || data.length === 0) {
@@ -848,7 +873,7 @@ export async function buscarCulturasCatalogo(
     if (err instanceof DOMException && err.name === "AbortError") {
       throw err;
     }
-    return [];
+    return filterLocalCatalog(CROPS_DICTIONARY, query, limit);
   }
 }
 
@@ -874,7 +899,7 @@ export async function buscarPragasCatalogo(
       }
     );
     if (!response.ok) {
-      return [];
+      return filterLocalCatalog(PESTS_DICTIONARY, query, limit);
     }
     const data = (await response.json()) as PragaCatalogoApiItem[];
     if (!Array.isArray(data) || data.length === 0) {
@@ -891,6 +916,6 @@ export async function buscarPragasCatalogo(
     if (err instanceof DOMException && err.name === "AbortError") {
       throw err;
     }
-    return [];
+    return filterLocalCatalog(PESTS_DICTIONARY, query, limit);
   }
 }
