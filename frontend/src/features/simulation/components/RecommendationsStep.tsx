@@ -5,9 +5,13 @@ import {
   ChevronLeft,
   Clock,
   Droplets,
+  Info,
+  Leaf,
   MapPin,
   RefreshCw,
   ShieldAlert,
+  Sprout,
+  TrendingUp,
   Wifi,
   WifiOff,
 } from "lucide-react";
@@ -128,6 +132,55 @@ export const DEFAULT_RECOMMENDATIONS: RotationScenario[] = [
         "Quebra o ciclo da lagarta-do-cartucho após o milho.",
         "Reduz pressão de nematoides-das-galhas antes do próximo plantio.",
       ],
+      viabilityScorePercent: 86,
+      waterRiskLabel: "Baixo",
+      scoreBreakdown: {
+        waterFitPercent: 90,
+        heatFitPercent: 88,
+        soilBenefitPercent: 92,
+        marketFitPercent: 60,
+        mlModelScorePercent: 84,
+        temporalStabilityPercent: 82,
+      },
+      gaez: {
+        suitabilityPercent: 82,
+        attainableYieldKgHa: 3400,
+        soilQualityIndexPercent: 72,
+        cmip6DeltaPercent: 2.5,
+        inputLevel: "LRLM",
+        slopePercent: 3.5,
+        slopeRangeLabel: "2–5%",
+      },
+      ecocrop: [
+        {
+          cropName: "Feijão-de-porco",
+          scientificName: "Canavalia ensiformis",
+          family: "Fabaceae",
+          tempOptimalRangeC: "20–30 °C",
+          rainOptimalRangeMm: "700–1500 mm/ano",
+          cycleRangeDays: "90–140 dias",
+          comfortScorePercent: 92,
+          comfortStatusLabel: "Ótimo",
+        },
+      ],
+      agrofit: {
+        phytosanitaryRisk: "low",
+        phytosanitaryRiskLabel: "Baixo",
+        phytosanitaryPenaltyPercent: 2,
+        pestsCount: 4,
+        pestsSample: ["Lagarta-do-cartucho", "Percevejo-verde"],
+        botanicalFamilies: ["Poaceae", "Fabaceae"],
+        sameFamilyAsHistory: false,
+        climateTriggers: [],
+      },
+      climateMetrics: {
+        soilMoisturePercent: 31,
+        surfaceTempC: 27.5,
+        annualRainMm: 950,
+        dataOriginLabel: "Referência offline local",
+      },
+      aiDisclaimer:
+        "Lembre-se: esta ferramenta serve para apoiar a decisão e identificar possibilidades, mas não substitui a sua experiência local. A decisão final é sempre sua.",
     },
   },
   {
@@ -185,6 +238,54 @@ export const DEFAULT_RECOMMENDATIONS: RotationScenario[] = [
         "Monitorar pulgão-preto e vaquinha nos primeiros 25 dias (AGROFIT).",
         "Evitar plantio muito adensado em solo de barro encharcado.",
       ],
+      viabilityScorePercent: 78,
+      waterRiskLabel: "Médio",
+      scoreBreakdown: {
+        waterFitPercent: 76,
+        heatFitPercent: 86,
+        soilBenefitPercent: 80,
+        marketFitPercent: 74,
+        mlModelScorePercent: 77,
+        temporalStabilityPercent: 75,
+      },
+      gaez: {
+        suitabilityPercent: 74,
+        attainableYieldKgHa: 1650,
+        soilQualityIndexPercent: 70,
+        cmip6DeltaPercent: -1.5,
+        inputLevel: "LRLM",
+        slopePercent: 3.5,
+      },
+      ecocrop: [
+        {
+          cropName: "Feijão-de-corda",
+          scientificName: "Vigna unguiculata",
+          family: "Fabaceae",
+          tempOptimalRangeC: "22–32 °C",
+          rainOptimalRangeMm: "500–1200 mm/ano",
+          cycleRangeDays: "65–95 dias",
+          comfortScorePercent: 85,
+          comfortStatusLabel: "Adequado",
+        },
+      ],
+      agrofit: {
+        phytosanitaryRisk: "low",
+        phytosanitaryRiskLabel: "Baixo",
+        phytosanitaryPenaltyPercent: 0,
+        pestsCount: 6,
+        pestsSample: ["Pulgão-preto", "Vaquinha"],
+        botanicalFamilies: ["Poaceae", "Fabaceae"],
+        sameFamilyAsHistory: false,
+        climateTriggers: [],
+      },
+      climateMetrics: {
+        soilMoisturePercent: 31,
+        surfaceTempC: 27.5,
+        annualRainMm: 950,
+        dataOriginLabel: "Referência offline local",
+      },
+      aiDisclaimer:
+        "Lembre-se: esta ferramenta serve para apoiar a decisão e identificar possibilidades, mas não substitui a sua experiência local. A decisão final é sempre sua.",
     },
   },
   {
@@ -242,6 +343,54 @@ export const DEFAULT_RECOMMENDATIONS: RotationScenario[] = [
         "Atenção ao mandarová e ácaro-verde em períodos secos prolongados.",
         "Usar manivas sadias para evitar podridão radicular em barro úmido.",
       ],
+      viabilityScorePercent: 72,
+      waterRiskLabel: "Baixo",
+      scoreBreakdown: {
+        waterFitPercent: 82,
+        heatFitPercent: 84,
+        soilBenefitPercent: 64,
+        marketFitPercent: 70,
+        mlModelScorePercent: 71,
+        temporalStabilityPercent: 79,
+      },
+      gaez: {
+        suitabilityPercent: 78,
+        attainableYieldKgHa: 12800,
+        soilQualityIndexPercent: 70,
+        cmip6DeltaPercent: 1.0,
+        inputLevel: "LRLM",
+        slopePercent: 3.5,
+      },
+      ecocrop: [
+        {
+          cropName: "Mandioca",
+          scientificName: "Manihot esculenta",
+          family: "Euphorbiaceae",
+          tempOptimalRangeC: "20–30 °C",
+          rainOptimalRangeMm: "600–1500 mm/ano",
+          cycleRangeDays: "240–360 dias",
+          comfortScorePercent: 88,
+          comfortStatusLabel: "Ótimo",
+        },
+      ],
+      agrofit: {
+        phytosanitaryRisk: "low",
+        phytosanitaryRiskLabel: "Baixo",
+        phytosanitaryPenaltyPercent: 0,
+        pestsCount: 5,
+        pestsSample: ["Mandarová", "Ácaro-verde"],
+        botanicalFamilies: ["Poaceae", "Euphorbiaceae"],
+        sameFamilyAsHistory: false,
+        climateTriggers: [],
+      },
+      climateMetrics: {
+        soilMoisturePercent: 31,
+        surfaceTempC: 27.5,
+        annualRainMm: 950,
+        dataOriginLabel: "Referência offline local",
+      },
+      aiDisclaimer:
+        "Lembre-se: esta ferramenta serve para apoiar a decisão e identificar possibilidades, mas não substitui a sua experiência local. A decisão final é sempre sua.",
     },
   },
 ];
@@ -462,9 +611,34 @@ export interface RecommendationsStepProps {
   scenarios?: RotationScenario[];
   isLoading?: boolean;
   isSubmittingPlan?: boolean;
+  isSimulationMode?: boolean;
   networkStatus?: NetworkSyncStatus;
   onSelectPlan?: (scenario: RotationScenario) => void;
   onBack?: () => void;
+}
+
+function ScoreMetricBar({
+  label,
+  percent,
+}: {
+  label: string;
+  percent: number;
+}) {
+  const safe = Math.max(0, Math.min(100, Math.round(percent)));
+  return (
+    <div>
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-medium text-[#4E4A43]">{label}</span>
+        <span className="font-bold text-[#1F1C18]">{safe}%</span>
+      </div>
+      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-[#EFECE3]">
+        <div
+          className="h-full rounded-full bg-[#511D4E] transition-all"
+          style={{ width: `${safe}%` }}
+        />
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -476,6 +650,7 @@ export function RecommendationsStep({
   scenarios = DEFAULT_RECOMMENDATIONS,
   isLoading = false,
   isSubmittingPlan = false,
+  isSimulationMode = false,
   networkStatus,
   onSelectPlan,
   onBack,
@@ -554,16 +729,24 @@ export function RecommendationsStep({
               Kultiva
             </span>
 
-            <Badge variant={badgeInfo.variant} aria-live="polite">
-              <NetworkIcon
-                className={cn(
-                  "h-3.5 w-3.5",
-                  resolvedNetworkStatus === "sincronizando" && "animate-spin"
-                )}
-                aria-hidden="true"
-              />
-              <span>{badgeInfo.label}</span>
-            </Badge>
+            <div className="flex items-center gap-2">
+              {isSimulationMode && (
+                <Badge variant="outline" className="border-[#511D4E]/30 bg-[#511D4E]/10 text-[#511D4E]">
+                  Modo Simulação
+                </Badge>
+              )}
+
+              <Badge variant={badgeInfo.variant} aria-live="polite">
+                <NetworkIcon
+                  className={cn(
+                    "h-3.5 w-3.5",
+                    resolvedNetworkStatus === "sincronizando" && "animate-spin"
+                  )}
+                  aria-hidden="true"
+                />
+                <span>{badgeInfo.label}</span>
+              </Badge>
+            </div>
           </header>
 
           {/* Localização da propriedade */}
@@ -619,18 +802,18 @@ export function RecommendationsStep({
         </footer>
       </div>
 
-      {/* Drawer de Detalhes Técnicos (NASA + AGROFIT + NPK) */}
+      {/* Drawer de Detalhes Técnicos (Score Breakdown + GAEZ + ECOCROP + AGROFIT + NASA + NPK) */}
       <Drawer
         open={activeScenario !== null}
         onOpenChange={(isOpen) => {
           if (!isOpen) setActiveScenarioId(null);
         }}
       >
-        <DrawerContent>
+        <DrawerContent className="max-h-[88dvh] overflow-y-auto">
           {activeScenario && (
             <>
               <DrawerHeader>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={cn(
                       "inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold",
@@ -644,14 +827,21 @@ export function RecommendationsStep({
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#6D6960]">
                     {activeScenario.focusTag}
                   </span>
+                  {activeScenario.technicalDetails.viabilityScorePercent !==
+                    undefined && (
+                    <span className="ml-auto inline-flex rounded-full bg-[#511D4E]/10 px-2.5 py-0.5 text-xs font-bold text-[#511D4E]">
+                      Viabilidade:{" "}
+                      {activeScenario.technicalDetails.viabilityScorePercent}%
+                    </span>
+                  )}
                 </div>
 
                 <DrawerTitle className="mt-1">
                   Detalhes Técnicos da Rotação
                 </DrawerTitle>
                 <DrawerDescription>
-                  Cruzamento de clima (NASA) e recomendações fitossanitárias
-                  (AGROFIT).
+                  Cruzamento de clima (NASA), aptidão (FAO GAEZ v5), conforto
+                  (ECOCROP) e fitossanidade (Embrapa AGROFIT).
                 </DrawerDescription>
               </DrawerHeader>
 
@@ -681,10 +871,352 @@ export function RecommendationsStep({
                 </div>
               </div>
 
-              {/* Nota climática NASA */}
+              {/* 1. Decomposição do Score (score_breakdown) */}
+              {activeScenario.technicalDetails.scoreBreakdown && (
+                <section className="mt-4 rounded-2xl border border-[#E6E4DA] bg-white p-3.5">
+                  <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#511D4E]">
+                    <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span>Decomposição do Score</span>
+                  </h3>
+
+                  <div className="mt-3 space-y-2.5">
+                    <ScoreMetricBar
+                      label="Adequação hídrica"
+                      percent={
+                        activeScenario.technicalDetails.scoreBreakdown
+                          .waterFitPercent
+                      }
+                    />
+                    <ScoreMetricBar
+                      label="Tolerância ao calor"
+                      percent={
+                        activeScenario.technicalDetails.scoreBreakdown
+                          .heatFitPercent
+                      }
+                    />
+                    <ScoreMetricBar
+                      label="Benefício ao solo"
+                      percent={
+                        activeScenario.technicalDetails.scoreBreakdown
+                          .soilBenefitPercent
+                      }
+                    />
+                    <ScoreMetricBar
+                      label="Potencial de mercado"
+                      percent={
+                        activeScenario.technicalDetails.scoreBreakdown
+                          .marketFitPercent
+                      }
+                    />
+                    {activeScenario.technicalDetails.scoreBreakdown
+                      .mlModelScorePercent != null && (
+                      <ScoreMetricBar
+                        label="Score ML (RandomForest)"
+                        percent={
+                          activeScenario.technicalDetails.scoreBreakdown
+                            .mlModelScorePercent
+                        }
+                      />
+                    )}
+                    {activeScenario.technicalDetails.scoreBreakdown
+                      .temporalStabilityPercent != null && (
+                      <ScoreMetricBar
+                        label="Estabilidade temporal"
+                        percent={
+                          activeScenario.technicalDetails.scoreBreakdown
+                            .temporalStabilityPercent
+                        }
+                      />
+                    )}
+                  </div>
+
+                  {(activeScenario.technicalDetails.scoreBreakdown
+                    .drySpellMaxDays != null ||
+                    activeScenario.technicalDetails.scoreBreakdown
+                      .historyAdjustment != null) && (
+                    <div className="mt-3 flex flex-wrap gap-2 border-t border-[#E6E4DA] pt-2.5 text-[11px] text-[#6D6960]">
+                      {activeScenario.technicalDetails.scoreBreakdown
+                        .drySpellMaxDays != null && (
+                        <span>
+                          Maior veranico:{" "}
+                          <strong className="text-[#1F1C18]">
+                            {
+                              activeScenario.technicalDetails.scoreBreakdown
+                                .drySpellMaxDays
+                            }{" "}
+                            dias
+                          </strong>
+                        </span>
+                      )}
+                      {activeScenario.technicalDetails.scoreBreakdown
+                        .historyAdjustment != null && (
+                        <span>
+                          Ajuste por histórico:{" "}
+                          <strong className="text-[#1F1C18]">
+                            {activeScenario.technicalDetails.scoreBreakdown
+                              .historyAdjustment >= 0
+                              ? "+"
+                              : ""}
+                            {Math.round(
+                              activeScenario.technicalDetails.scoreBreakdown
+                                .historyAdjustment * 100
+                            )}
+                            %
+                          </strong>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {/* 2. Aptidão FAO GAEZ v5, Solo HWSD e Clima Futuro (CMIP6) */}
+              {activeScenario.technicalDetails.gaez && (
+                <section className="mt-4 rounded-2xl border border-[#E6E4DA] bg-white p-3.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#511D4E]">
+                      <Leaf className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span>FAO GAEZ v5 · Solo HWSD · CMIP6</span>
+                    </h3>
+                    {activeScenario.technicalDetails.gaez.inputLevel && (
+                      <span className="rounded-full bg-[#EFECE3] px-2 py-0.5 text-[10px] font-bold text-[#511D4E]">
+                        {activeScenario.technicalDetails.gaez.inputLevel}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    {activeScenario.technicalDetails.gaez.attainableYieldKgHa !=
+                      null && (
+                      <div className="rounded-xl bg-[#F7F6F0] p-2.5">
+                        <p className="text-[10px] font-semibold uppercase text-[#6D6960]">
+                          Produtividade atingível
+                        </p>
+                        <p className="mt-0.5 text-sm font-bold text-[#1F1C18]">
+                          {Math.round(
+                            activeScenario.technicalDetails.gaez
+                              .attainableYieldKgHa
+                          ).toLocaleString("pt-BR")}{" "}
+                          kg/ha
+                        </p>
+                      </div>
+                    )}
+                    {activeScenario.technicalDetails.gaez.suitabilityPercent !=
+                      null && (
+                      <div className="rounded-xl bg-[#F7F6F0] p-2.5">
+                        <p className="text-[10px] font-semibold uppercase text-[#6D6960]">
+                          Aptidão GAEZ
+                        </p>
+                        <p className="mt-0.5 text-sm font-bold text-[#1F1C18]">
+                          {activeScenario.technicalDetails.gaez.suitabilityPercent}%
+                        </p>
+                      </div>
+                    )}
+                    {activeScenario.technicalDetails.gaez
+                      .soilQualityIndexPercent != null && (
+                      <div className="rounded-xl bg-[#F7F6F0] p-2.5">
+                        <p className="text-[10px] font-semibold uppercase text-[#6D6960]">
+                          Qualidade do solo (HWSD)
+                        </p>
+                        <p className="mt-0.5 text-sm font-bold text-[#1F1C18]">
+                          {
+                            activeScenario.technicalDetails.gaez
+                              .soilQualityIndexPercent
+                          }
+                          %
+                        </p>
+                      </div>
+                    )}
+                    {(activeScenario.technicalDetails.gaez.slopePercent !=
+                      null ||
+                      activeScenario.technicalDetails.gaez.slopeRangeLabel) && (
+                      <div className="rounded-xl bg-[#F7F6F0] p-2.5">
+                        <p className="text-[10px] font-semibold uppercase text-[#6D6960]">
+                          Declividade
+                        </p>
+                        <p className="mt-0.5 text-sm font-bold text-[#1F1C18]">
+                          {activeScenario.technicalDetails.gaez.slopeRangeLabel ??
+                            `${activeScenario.technicalDetails.gaez.slopePercent}%`}
+                        </p>
+                      </div>
+                    )}
+                    {activeScenario.technicalDetails.gaez.cmip6DeltaPercent !=
+                      null && (
+                      <div className="col-span-2 rounded-xl bg-[#F7F6F0] p-2.5">
+                        <p className="text-[10px] font-semibold uppercase text-[#6D6960]">
+                          Projeção climática CMIP6 (2021–2040)
+                        </p>
+                        <p className="mt-0.5 text-xs font-bold text-[#1F1C18]">
+                          Variação estimada de aptidão:{" "}
+                          {activeScenario.technicalDetails.gaez
+                            .cmip6DeltaPercent >= 0
+                            ? "+"
+                            : ""}
+                          {activeScenario.technicalDetails.gaez.cmip6DeltaPercent}%
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {(activeScenario.technicalDetails.gaez.soilGroup ||
+                    activeScenario.technicalDetails.gaez.limitingFactor) && (
+                    <p className="mt-2.5 text-[11px] text-[#6D6960]">
+                      {activeScenario.technicalDetails.gaez.soilGroup && (
+                        <span>
+                          Solo HWSD:{" "}
+                          <strong className="text-[#1F1C18]">
+                            {activeScenario.technicalDetails.gaez.soilGroup}
+                          </strong>
+                          .{" "}
+                        </span>
+                      )}
+                      {activeScenario.technicalDetails.gaez.limitingFactor && (
+                        <span>
+                          Fator limitante:{" "}
+                          <strong className="text-[#1F1C18]">
+                            {
+                              activeScenario.technicalDetails.gaez
+                                .limitingFactor
+                            }
+                          </strong>
+                          .
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </section>
+              )}
+
+              {/* 3. Zona de Conforto Fisiológico (FAO ECOCROP) */}
+              {activeScenario.technicalDetails.ecocrop &&
+                activeScenario.technicalDetails.ecocrop.length > 0 && (
+                  <section className="mt-4 rounded-2xl border border-[#E6E4DA] bg-white p-3.5">
+                    <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#511D4E]">
+                      <Sprout className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span>Zona de Conforto (FAO ECOCROP)</span>
+                    </h3>
+
+                    <ul className="mt-2.5 space-y-2">
+                      {activeScenario.technicalDetails.ecocrop.map((eco) => (
+                        <li
+                          key={`${eco.cropName}-${eco.scientificName ?? "eco"}`}
+                          className="rounded-xl border border-[#E6E4DA] bg-[#F7F6F0]/70 p-2.5 text-xs"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-bold text-[#1F1C18]">
+                              {eco.cropName}
+                              {eco.scientificName && (
+                                <span className="ml-1 font-normal italic text-[#6D6960]">
+                                  ({eco.scientificName})
+                                </span>
+                              )}
+                            </span>
+                            {eco.comfortStatusLabel && (
+                              <span className="rounded-full bg-[#CAD17A]/40 px-2 py-0.5 text-[10px] font-bold text-[#2F3A1D]">
+                                {eco.comfortStatusLabel}
+                                {eco.comfortScorePercent != null
+                                  ? ` · ${eco.comfortScorePercent}%`
+                                  : ""}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#4E4A43]">
+                            {eco.family && <span>Família: {eco.family}</span>}
+                            {eco.tempOptimalRangeC && (
+                              <span>Temp. ótima: {eco.tempOptimalRangeC}</span>
+                            )}
+                            {eco.rainOptimalRangeMm && (
+                              <span>Chuva: {eco.rainOptimalRangeMm}</span>
+                            )}
+                            {eco.cycleRangeDays && (
+                              <span>Ciclo: {eco.cycleRangeDays}</span>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+
+              {/* 4. Risco Fitossanitário (Embrapa AGROFIT × Clima NASA) */}
+              {activeScenario.technicalDetails.agrofit && (
+                <section className="mt-4 rounded-2xl border border-[#E6E4DA] bg-white p-3.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#511D4E]">
+                      <Bug className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span>Risco Fitossanitário (AGROFIT × NASA)</span>
+                    </h3>
+                    <span
+                      className={cn(
+                        "rounded-full px-2.5 py-0.5 text-[10px] font-bold",
+                        activeScenario.technicalDetails.agrofit
+                          .phytosanitaryRisk === "high"
+                          ? "bg-[#C42311] text-white"
+                          : activeScenario.technicalDetails.agrofit
+                                .phytosanitaryRisk === "medium"
+                            ? "bg-[#FCF59B] text-[#4A3B12]"
+                            : "bg-[#91C494]/30 text-[#1E3B21]"
+                      )}
+                    >
+                      Risco{" "}
+                      {
+                        activeScenario.technicalDetails.agrofit
+                          .phytosanitaryRiskLabel
+                      }
+                    </span>
+                  </div>
+
+                  <div className="mt-2.5 space-y-1.5 text-xs text-[#4E4A43]">
+                    {activeScenario.technicalDetails.agrofit.botanicalFamilies
+                      .length > 0 && (
+                      <p>
+                        Famílias na sequência:{" "}
+                        <strong className="text-[#1F1C18]">
+                          {activeScenario.technicalDetails.agrofit.botanicalFamilies.join(
+                            " · "
+                          )}
+                        </strong>
+                      </p>
+                    )}
+                    {activeScenario.technicalDetails.agrofit
+                      .sameFamilyAsHistory && (
+                      <p className="font-semibold text-[#8E180B]">
+                        Atenção: repete a mesma família botânica do cultivo
+                        anterior (cultivo não bloqueado).
+                      </p>
+                    )}
+                    {activeScenario.technicalDetails.agrofit.pestsCount !=
+                      null && (
+                      <p>
+                        Pragas catalogadas (AGROFIT):{" "}
+                        <strong className="text-[#1F1C18]">
+                          {activeScenario.technicalDetails.agrofit.pestsCount}
+                        </strong>
+                        {activeScenario.technicalDetails.agrofit.pestsSample
+                          .length > 0 &&
+                          ` (${activeScenario.technicalDetails.agrofit.pestsSample.join(", ")})`}
+                      </p>
+                    )}
+                    {activeScenario.technicalDetails.agrofit.climateTriggers
+                      .length > 0 && (
+                      <p>
+                        Gatilhos climáticos:{" "}
+                        <strong className="text-[#1F1C18]">
+                          {activeScenario.technicalDetails.agrofit.climateTriggers.join(
+                            ", "
+                          )}
+                        </strong>
+                      </p>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {/* 5. Análise Climática NASA (e Z-score quando disponível) */}
               <div
                 className={cn(
-                  "mt-3 rounded-2xl border p-3.5 text-xs leading-relaxed sm:text-sm",
+                  "mt-4 rounded-2xl border p-3.5 text-xs leading-relaxed sm:text-sm",
                   activeScenario.variant === "risk"
                     ? "border-[#C42311]/40 bg-[#C42311]/10 text-[#8E180B]"
                     : "border-[#91C494]/60 bg-[#91C494]/20 text-[#1E3B21]"
@@ -699,6 +1231,54 @@ export function RecommendationsStep({
                   <span>Análise Climática (NASA)</span>
                 </div>
                 <p>{activeScenario.technicalDetails.nasaClimateNote}</p>
+
+                {activeScenario.technicalDetails.climateMetrics && (
+                  <div className="mt-2.5 flex flex-wrap gap-2 border-t border-black/10 pt-2 text-[11px] font-semibold">
+                    {activeScenario.technicalDetails.climateMetrics
+                      .soilMoisturePercent != null && (
+                      <span>
+                        Umidade:{" "}
+                        {
+                          activeScenario.technicalDetails.climateMetrics
+                            .soilMoisturePercent
+                        }
+                        %
+                      </span>
+                    )}
+                    {activeScenario.technicalDetails.climateMetrics
+                      .surfaceTempC != null && (
+                      <span>
+                        · Temp.:{" "}
+                        {
+                          activeScenario.technicalDetails.climateMetrics
+                            .surfaceTempC
+                        }
+                        °C
+                      </span>
+                    )}
+                    {activeScenario.technicalDetails.climateMetrics
+                      .annualRainMm != null && (
+                      <span>
+                        · Chuva:{" "}
+                        {
+                          activeScenario.technicalDetails.climateMetrics
+                            .annualRainMm
+                        }{" "}
+                        mm/ano
+                      </span>
+                    )}
+                    {activeScenario.technicalDetails.climateMetrics
+                      .anomalyZScore != null && (
+                      <span>
+                        · Z-score:{" "}
+                        {
+                          activeScenario.technicalDetails.climateMetrics
+                            .anomalyZScore
+                        }
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Tabela NPK */}
@@ -762,6 +1342,21 @@ export function RecommendationsStep({
                     </li>
                   ))}
                 </ul>
+              </div>
+
+              {/* Disclaimer de Apoio à Decisão IA */}
+              <div
+                role="note"
+                className="mt-4 rounded-2xl border border-[#E6E4DA] border-l-4 border-l-[#511D4E] bg-[#F7F6F0] p-3.5 text-xs leading-relaxed text-[#4E4A43]"
+              >
+                <div className="mb-1 flex items-center gap-1.5 font-bold text-[#511D4E]">
+                  <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>Apoio à Decisão</span>
+                </div>
+                <p>
+                  {activeScenario.technicalDetails.aiDisclaimer ??
+                    "Lembre-se: esta ferramenta serve para apoiar a decisão e identificar possibilidades, mas não substitui a sua experiência local. A decisão final é sempre sua."}
+                </p>
               </div>
 
               <DrawerFooter>
