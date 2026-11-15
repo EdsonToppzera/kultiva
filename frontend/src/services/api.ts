@@ -51,7 +51,6 @@ export interface EstrategiaRotacaoSugerida {
   benefits?: string | null;
   score_breakdown?: Record<string, unknown> | null;
   explicacao?: string | null;
-  evidencias_numericas?: Record<string, unknown> | null;
 }
 
 export interface EtapaRotacaoSimulada {
@@ -94,7 +93,6 @@ export interface SimulacaoResponse {
   fallback_usado: boolean;
   rotacoes_sugeridas: EstrategiaRotacaoSugerida[];
   plano_rotacao: EtapaRotacaoSimulada[];
-  evidencias_estruturadas?: Record<string, unknown> | null;
 }
 
 export interface DemoSeedResponse {
@@ -503,32 +501,6 @@ export function marcarAlertaComoLido(
   return requestJson<AlertaClimaticoResponse>(`/alertas/${alertaId}/ler`, {
     method: "PATCH",
   });
-}
-
-export interface MonitoramentoClimaRequestPayload {
-  terreno_id?: number;
-  intervalo_horas?: number;
-  perfil_climatico?: "normal" | "seca" | "chuva_extrema" | "onda_de_calor";
-}
-
-export interface MonitoramentoClimaResponsePayload {
-  status: string;
-  mensagem: string;
-  intervalo_horas: number;
-  terreno_id?: number | null;
-  perfil_climatico?: string | null;
-}
-
-export function monitorarClimaSobDemanda(
-  payload: MonitoramentoClimaRequestPayload
-): Promise<MonitoramentoClimaResponsePayload> {
-  return requestJson<MonitoramentoClimaResponsePayload>(
-    "/alertas/monitorar-clima",
-    {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }
-  );
 }
 
 export function obterRelatorioTerreno(

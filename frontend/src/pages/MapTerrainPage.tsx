@@ -35,7 +35,6 @@ export interface MapCoordinate {
 }
 
 export interface MapTerrainPageProps {
-  isSimulationMode?: boolean;
   onSaveArea?: (
     points: MapCoordinate[],
     areaHectares: number,
@@ -126,11 +125,7 @@ function MapController({
   return null;
 }
 
-export function MapTerrainPage({
-  isSimulationMode = false,
-  onSaveArea,
-  onBack,
-}: MapTerrainPageProps) {
+export function MapTerrainPage({ onSaveArea, onBack }: MapTerrainPageProps) {
   // Gestão clara do estado de coordenadas do polígono
   const [nomePropriedade, setNomePropriedade] = React.useState("");
   const [points, setPoints] = React.useState<MapCoordinate[]>([]);
@@ -224,20 +219,6 @@ export function MapTerrainPage({
     const areaPayload =
       areaHectares > 0 ? Number(areaHectares.toFixed(4)) : undefined;
 
-    if (isSimulationMode) {
-      const simulatedTerreno: TerrenoResponse = {
-        id: -1,
-        nome_propriedade: resolvedName,
-        usuario_id: DEFAULT_USUARIO_ID,
-        coordenadas_poligono: coordenadasPoligono,
-        area_hectares: areaPayload ?? areaHectares,
-        prioridades: null,
-      };
-      setIsSaving(false);
-      onSaveArea?.(points, areaHectares, simulatedTerreno);
-      return;
-    }
-
     try {
       const created = await criarTerreno({
         nome_propriedade: resolvedName,
@@ -262,15 +243,10 @@ export function MapTerrainPage({
     <div className="min-h-screen bg-[#F7F6F0] md:bg-[#EFECE3] md:py-6">
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-between bg-[#F7F6F0] px-5 pt-7 pb-8 text-[#1F1C18] md:min-h-[820px] md:rounded-[32px] md:border md:border-[#E6E4DA] md:shadow-sm">
         <div>
-          <header className="flex items-center justify-between gap-2">
+          <header className="flex items-center justify-between">
             <span className="font-['Nunito',ui-rounded,system-ui,sans-serif] text-[24px] font-black tracking-tight text-[#511D4E]">
               Kultiva
             </span>
-            {isSimulationMode && (
-              <span className="rounded-full border border-[#511D4E]/30 bg-[#511D4E]/10 px-2.5 py-0.5 text-[11px] font-bold text-[#511D4E]">
-                Modo Simulação
-              </span>
-            )}
           </header>
 
           <section className="mt-6">

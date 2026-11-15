@@ -99,51 +99,6 @@ export function RecommendationCard({
         />
       </div>
 
-      {/* Resumo Numérico (Viabilidade, Produtividade GAEZ, Risco Hídrico e Fitossanidade) */}
-      {(scenario.technicalDetails.viabilityScorePercent !== undefined ||
-        scenario.technicalDetails.gaez?.attainableYieldKgHa != null ||
-        scenario.technicalDetails.waterRiskLabel ||
-        scenario.technicalDetails.agrofit) && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {scenario.technicalDetails.viabilityScorePercent !== undefined && (
-            <span className="inline-flex items-center rounded-full bg-[#511D4E]/10 px-2.5 py-1 text-[11px] font-bold text-[#511D4E]">
-              Viabilidade: {scenario.technicalDetails.viabilityScorePercent}%
-            </span>
-          )}
-          {scenario.technicalDetails.gaez?.attainableYieldKgHa != null && (
-            <span className="inline-flex items-center rounded-full bg-[#91C494]/25 px-2.5 py-1 text-[11px] font-bold text-[#1E3B21]">
-              GAEZ: ~{Math.round(scenario.technicalDetails.gaez.attainableYieldKgHa)} kg/ha
-            </span>
-          )}
-          {scenario.technicalDetails.waterRiskLabel && (
-            <span
-              className={cn(
-                "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold",
-                scenario.technicalDetails.waterRiskLabel.toLowerCase() === "alto"
-                  ? "bg-[#C42311]/12 text-[#8E180B]"
-                  : "bg-[#EFECE3] text-[#4E4A43]"
-              )}
-            >
-              Risco hídrico: {scenario.technicalDetails.waterRiskLabel}
-            </span>
-          )}
-          {scenario.technicalDetails.agrofit && (
-            <span
-              className={cn(
-                "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold",
-                scenario.technicalDetails.agrofit.phytosanitaryRisk === "high"
-                  ? "bg-[#C42311]/12 text-[#8E180B]"
-                  : scenario.technicalDetails.agrofit.phytosanitaryRisk === "medium"
-                    ? "bg-[#FCF59B]/70 text-[#4A3B12]"
-                    : "bg-[#91C494]/20 text-[#1E3B21]"
-              )}
-            >
-              Fitossanidade: {scenario.technicalDetails.agrofit.phytosanitaryRiskLabel}
-            </span>
-          )}
-        </div>
-      )}
-
       {/* Justificação da IA (NASA/Clima) */}
       <div
         className={cn(

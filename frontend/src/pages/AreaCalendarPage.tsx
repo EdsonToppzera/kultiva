@@ -35,7 +35,6 @@ export interface AreaCalendarPageProps {
   terrenoId?: number | null;
   areaLocation?: string;
   calendarData?: AreaCalendarData;
-  isSimulationMode?: boolean;
   networkStatus?: NetworkSyncStatus;
   onBack?: () => void;
 }
@@ -246,7 +245,6 @@ export function AreaCalendarPage({
   terrenoId,
   areaLocation = "Sítio Boa Esperança · Área 1",
   calendarData: propCalendarData = DEFAULT_CALENDAR_DATA,
-  isSimulationMode = false,
   networkStatus,
   onBack,
 }: AreaCalendarPageProps) {
@@ -257,7 +255,7 @@ export function AreaCalendarPage({
   );
 
   React.useEffect(() => {
-    if (isSimulationMode || terrenoId == null) {
+    if (terrenoId == null) {
       setLiveCalendarData(null);
       return;
     }
@@ -299,7 +297,7 @@ export function AreaCalendarPage({
     return () => {
       cancelled = true;
     };
-  }, [terrenoId, areaLocation, isSimulationMode]);
+  }, [terrenoId, areaLocation]);
 
   const calendarData = liveCalendarData ?? propCalendarData;
 
@@ -326,15 +324,6 @@ export function AreaCalendarPage({
   const [viewMonth, setViewMonth] = React.useState<number>(
     initialDate.getMonth()
   );
-
-  React.useEffect(() => {
-    if (isSimulationMode) {
-      setSelectedDate(propCalendarData.todayDate);
-      const parsed = parseIsoDate(propCalendarData.todayDate);
-      setViewYear(parsed.getFullYear());
-      setViewMonth(parsed.getMonth());
-    }
-  }, [isSimulationMode, propCalendarData]);
 
   const effectiveStatus: NetworkSyncStatus =
     networkStatus ?? (isOnline ? "salvo" : "offline");
@@ -439,15 +428,6 @@ export function AreaCalendarPage({
             </span>
 
             <div className="flex items-center gap-2">
-              {isSimulationMode && (
-                <Badge
-                  variant="outline"
-                  className="border-[#511D4E]/30 bg-[#511D4E]/10 text-[#511D4E]"
-                >
-                  Calendário Simulado
-                </Badge>
-              )}
-
               <Badge variant={badgeConfig.variant} aria-live="polite">
                 <StatusIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 <span>{badgeConfig.label}</span>
