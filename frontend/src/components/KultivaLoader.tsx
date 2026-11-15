@@ -1,7 +1,14 @@
 import { cn } from "../lib/utils";
 
+const LOADER_WIDTH_CLASS = {
+  sm: "w-[88px]",
+  md: "w-[130px]",
+  lg: "w-[170px]",
+} as const;
+
 export interface KultivaLoaderProps {
   fullscreen?: boolean;
+  size?: "sm" | "md" | "lg";
   label?: string;
   className?: string;
   onClosePreview?: () => void;
@@ -9,10 +16,14 @@ export interface KultivaLoaderProps {
 
 export function KultivaLoader({
   fullscreen = true,
+  size,
   label = "Carregando...",
   className,
   onClosePreview,
 }: KultivaLoaderProps) {
+  const resolvedSize = size ?? (fullscreen ? "lg" : "md");
+  const isCompact = resolvedSize === "sm";
+
   return (
     <div
       className={cn(
@@ -23,7 +34,12 @@ export function KultivaLoader({
       role="status"
       aria-label={label}
     >
-      <div className="flex flex-col items-center gap-3">
+      <div
+        className={cn(
+          "flex flex-col items-center",
+          isCompact ? "gap-1.5" : "gap-3"
+        )}
+      >
         <video
           src="/images/kultiva-loader.webm"
           autoPlay
@@ -34,12 +50,19 @@ export function KultivaLoader({
           aria-hidden="true"
           className={cn(
             "pointer-events-none h-auto select-none object-contain",
-            fullscreen ? "w-[170px]" : "w-[130px]"
+            LOADER_WIDTH_CLASS[resolvedSize]
           )}
         />
 
         {label && (
-          <span className="text-sm font-semibold text-[#511D4E]">{label}</span>
+          <span
+            className={cn(
+              "font-semibold text-[#511D4E]",
+              isCompact ? "text-xs" : "text-sm"
+            )}
+          >
+            {label}
+          </span>
         )}
 
         {onClosePreview && (
