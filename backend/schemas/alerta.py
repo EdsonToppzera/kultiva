@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AlertaGatilhoRequest(BaseModel):
@@ -39,11 +39,11 @@ class AlertaClimaticoResponse(BaseModel):
     dados_gatilho: Optional[Dict[str, Any]] = None
     processado_background: bool
     resumo_adaptacao: Optional[str] = None
+    orientacao_pratica: Optional[str] = None
     lido: bool
     criado_em: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AlertaDisparoResponse(BaseModel):
@@ -57,11 +57,11 @@ class MonitoramentoClimaRequest(BaseModel):
         default=None,
         description="ID do terreno a monitorar (se omitido, monitora todos os terrenos cadastrados)",
     )
-    intervalo_horas: int = Field(
-        default=6,
+    intervalo_horas: Optional[int] = Field(
+        default=None,
         ge=1,
         le=24,
-        description="Intervalo periódico em horas (ex: 6 ou 12)",
+        description="Intervalo periódico em horas (se omitido, usa ALERT_MONITOR_INTERVAL_HOURS)",
     )
 
 
@@ -70,3 +70,17 @@ class MonitoramentoClimaResponse(BaseModel):
     mensagem: str
     intervalo_horas: int
     terreno_id: Optional[int] = None
+
+
+class ResumoAlertasTerrenoItem(BaseModel):
+    terreno_id: int
+    nome_propriedade: Optional[str] = None
+    nao_lidos: int
+    criticos_nao_lidos: int
+    ultimo_evento: Optional[str] = None
+    ultima_data_evento: Optional[date] = None
+
+
+class ResumoAlertasNaoLidosResponse(BaseModel):
+    total_nao_lidos: int
+    por_terreno: List[ResumoAlertasTerrenoItem]

@@ -89,8 +89,8 @@ def test_m3_simulacao_com_fallback_e_rotacao(client_e_db):
     body = resp.json()
     assert body["terreno_id"] == terreno_id
     assert body["cultura_principal"] == "Feijão Carioca"
-    assert body["viability_score"] == 0.85
-    assert body["water_risk"] == "low"
+    assert 0.0 <= body["viability_score"] <= 1.0
+    assert body["water_risk"] in {"low", "medium", "high"}
     assert body["metricas_geoespaciais"]["total_vertices_poligono"] == 3
     assert "decisão final" in body["explicacao_ia"]
     assert body["explicacao_textual"] == body["explicacao_ia"]
@@ -501,7 +501,7 @@ def test_m5_monitoramento_periodico_gera_alerta_no_banco(client_e_db, monkeypatc
     assert alertas[0]["processado_background"] is True
     fake_detector_instance.detect_extremes.assert_called_once()
 
-    # Valida também o agendador periódico assíncrono com 1 ciclo
+    # Valida também o agendador periódico assíncrono com 1 ciclo (deduplicado no mesmo dia)
     ids_ciclo = asyncio.run(
         alert_tasks.iniciar_monitoramento_periodico(
             intervalo_horas=12,
@@ -510,8 +510,8 @@ def test_m5_monitoramento_periodico_gera_alerta_no_banco(client_e_db, monkeypatc
             session_factory=TestingSessionLocal,
         )
     )
-    assert len(ids_ciclo) == 1
+    assert len(ids_ciclo) == 0
     alertas_apos_ciclo = client.get(
         "/api/v1/alertas/", params={"terreno_id": terreno_id}
     ).json()
-    assert len(alertas_apos_ciclo) == 2
+    assert len(alertas_apos_ciclo) == 1

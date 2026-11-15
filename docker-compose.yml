@@ -7,8 +7,13 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db:5432/kultiva_db
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - ALERT_MONITOR_INTERVAL_HOURS=${ALERT_MONITOR_INTERVAL_HOURS:-6}
+      - NASA_PROVIDER=${NASA_PROVIDER:-mock}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
       - .:/app
 
@@ -18,6 +23,11 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=kultiva_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d kultiva_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     ports:
       - "5432:5432"
     volumes:

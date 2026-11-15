@@ -10,13 +10,49 @@ from backend.schemas.alerta import (
     AlertaGatilhoRequest,
     MonitoramentoClimaRequest,
     MonitoramentoClimaResponse,
+    ResumoAlertasNaoLidosResponse,
+    ResumoAlertasTerrenoItem,
 )
 from backend.services.alert_tasks import (
+    buscar_alerta_duplicado,
     executar_ciclo_monitoramento_alertas,
+    gerar_orientacao_alerta,
+    obter_intervalo_monitoramento_horas,
     processar_alerta_e_adaptar_calendario,
 )
 
 router = APIRouter(prefix="/alertas", tags=["Alertas Climáticos (M5)"])
+
+
+def _serializar_alerta(alerta: models.AlertaClimatico) -> AlertaClimaticoResponse:
+    """Converte AlertaClimatico garantindo orientacao_pratica acessível."""
+    dados = alerta.dados_gatilho if isinstance(alerta.dados_gatilho, dict) else {}
+    orientacao = dados.get("orientacao_pratica")
+    if not orientacao:
+        orientacao = gerar_orientacao_alerta(
+            tipo_evento=alerta.tipo_evento,
+            severidade=alerta.severidade,
+            resumo_adaptacao=alerta.resumo_adaptacao,
+            detalhes_clima=dados.get("dados_climaticos")
+            if isinstance(dados.get("dados_climaticos"), dict)
+            else None,
+        )
+    return AlertaClimaticoResponse(
+        id=alerta.id,
+        terreno_id=alerta.terreno_id,
+        tipo_evento=alerta.tipo_evento,
+        severidade=alerta.severidade,
+        titulo=alerta.titulo,
+        mensagem=alerta.mensagem,
+        data_evento=alerta.data_evento,
+        origem_gatilho=alerta.origem_gatilho,
+        dados_gatilho=alerta.dados_gatilho,
+        processado_background=alerta.processado_background,
+        resumo_adaptacao=alerta.resumo_adaptacao,
+        orientacao_pratica=orientacao,
+        lido=alerta.lido,
+        criado_em=alerta.criado_em,
+    )
 
 
 def _executar_detector_anomalias(
@@ -69,7 +105,24 @@ def disparar_alerta_climatico(
             detail="Terreno não encontrado",
         )
 
-    dados_gatilho = _executar_detector_anomalias(payload.serie_temporal_clima)
+    alerta_existente = buscar_alerta_duplicado(
+        db=db,
+        terreno_id=payload.terreno_id,
+        tipo_evento=payload.tipo_evento,
+        data_evento=payload.data_evento,
+    )
+    if alerta_existente is not None:
+        return AlertaDisparoResponse(
+            status="deduplicated",
+            mensagem="Alerta equivalente já registrado para este terreno/evento (deduplicado).",
+            alerta=_serializar_alerta(alerta_existente),
+        )
+
+    dados_gatilho = _executar_detector_anomalias(payload.serie_temporal_clima) or {}
+    dados_gatilho["orientacao_pratica"] = gerar_orientacao_alerta(
+        tipo_evento=payload.tipo_evento,
+        severidade=payload.severidade,
+    )
     titulo = payload.titulo or f"Alerta climático: {payload.tipo_evento.replace('_', ' ')}"
     mensagem = payload.mensagem or (
         f"Detectado evento '{payload.tipo_evento}' com severidade '{payload.severidade}' "
@@ -101,7 +154,7 @@ def disparar_alerta_climatico(
     return AlertaDisparoResponse(
         status="accepted",
         mensagem="Alerta registrado e rotina de adaptação do calendário agendada em segundo plano.",
-        alerta=db_alerta,
+        alerta=_serializar_alerta(db_alerta),
     )
 
 
@@ -131,19 +184,25 @@ def iniciar_monitoramento_clima(
                 detail="Terreno não encontrado",
             )
 
+    intervalo_efetivo = (
+        payload.intervalo_horas
+        if payload.intervalo_horas is not None
+        else obter_intervalo_monitoramento_horas()
+    )
+
     background_tasks.add_task(
         executar_ciclo_monitoramento_alertas,
         payload.terreno_id,
-        payload.intervalo_horas,
+        intervalo_efetivo,
     )
 
     return MonitoramentoClimaResponse(
         status="accepted",
         mensagem=(
             "Monitoramento climático em segundo plano agendado "
-            f"(janela configurada de {payload.intervalo_horas}h)."
+            f"(janela configurada de {intervalo_efetivo}h)."
         ),
-        intervalo_horas=payload.intervalo_horas,
+        intervalo_horas=intervalo_efetivo,
         terreno_id=payload.terreno_id,
     )
 
@@ -168,10 +227,55 @@ def listar_alertas(
     if tipo_evento is not None:
         query = query.filter(models.AlertaClimatico.tipo_evento == tipo_evento)
 
-    return query.order_by(
+    alertas = query.order_by(
         models.AlertaClimatico.data_evento.desc(),
         models.AlertaClimatico.id.desc(),
     ).all()
+    return [_serializar_alerta(a) for a in alertas]
+
+
+@router.get("/resumo-nao-lidos", response_model=ResumoAlertasNaoLidosResponse)
+def resumo_alertas_nao_lidos(
+    terreno_id: Optional[int] = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    """Retorna a contagem de alertas não lidos por terreno para o painel do produtor."""
+    query = db.query(models.AlertaClimatico).filter(
+        models.AlertaClimatico.lido.is_(False)
+    )
+    if terreno_id is not None:
+        query = query.filter(models.AlertaClimatico.terreno_id == terreno_id)
+
+    nao_lidos = query.order_by(
+        models.AlertaClimatico.data_evento.desc(),
+        models.AlertaClimatico.id.desc(),
+    ).all()
+
+    terrenos_map = {
+        t.id: t.nome_propriedade for t in db.query(models.Terreno).all()
+    }
+    agrupado: Dict[int, Dict[str, Any]] = {}
+    for alerta in nao_lidos:
+        item = agrupado.setdefault(
+            alerta.terreno_id,
+            {
+                "terreno_id": alerta.terreno_id,
+                "nome_propriedade": terrenos_map.get(alerta.terreno_id),
+                "nao_lidos": 0,
+                "criticos_nao_lidos": 0,
+                "ultimo_evento": alerta.tipo_evento,
+                "ultima_data_evento": alerta.data_evento,
+            },
+        )
+        item["nao_lidos"] += 1
+        if (alerta.severidade or "").strip().lower() == "critica":
+            item["criticos_nao_lidos"] += 1
+
+    por_terreno = [ResumoAlertasTerrenoItem(**dados) for dados in agrupado.values()]
+    return ResumoAlertasNaoLidosResponse(
+        total_nao_lidos=len(nao_lidos),
+        por_terreno=por_terreno,
+    )
 
 
 @router.get("/{alerta_id}", response_model=AlertaClimaticoResponse)
@@ -187,7 +291,7 @@ def obter_alerta(alerta_id: int, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Alerta climático não encontrado",
         )
-    return alerta
+    return _serializar_alerta(alerta)
 
 
 @router.patch("/{alerta_id}/ler", response_model=AlertaClimaticoResponse)
@@ -206,4 +310,4 @@ def marcar_alerta_como_lido(alerta_id: int, db: Session = Depends(get_db)):
     alerta.lido = True
     db.commit()
     db.refresh(alerta)
-    return alerta
+    return _serializar_alerta(alerta)

@@ -24,6 +24,10 @@ class SimulacaoRequest(BaseModel):
         default=None,
         description="Lista opcional de culturas subsequentes para simular rotação",
     )
+    historico_cultivos: Optional[List[str]] = Field(
+        default=None,
+        description="Histórico recente de cultivos do talhão (ex: ['Milho', 'Milho'])",
+    )
     prioridades: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Prioridades adicionais do produtor (ex: {'water_conservation': True})",
@@ -51,6 +55,9 @@ class EstrategiaRotacaoSugerida(BaseModel):
     strategy: str
     viability: float
     water_risk: str
+    benefits: Optional[str] = None
+    score_breakdown: Optional[Dict[str, Any]] = None
+    explicacao: Optional[str] = None
 
 
 class SimulacaoResponse(BaseModel):
@@ -66,5 +73,7 @@ class SimulacaoResponse(BaseModel):
     riscos_identificados: List[str]
     explicacao_ia: str
     explicacao_textual: str
+    origem: str = "servicos_ia_nasa"
+    fallback_usado: bool = False
     rotacoes_sugeridas: List[EstrategiaRotacaoSugerida]
     plano_rotacao: List[EtapaRotacaoSimulada]

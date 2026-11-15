@@ -1,6 +1,6 @@
 from datetime import date, datetime
-from typing import Optional
-from pydantic import BaseModel, Field
+from typing import List, Optional
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AtividadeCalendarioBase(BaseModel):
@@ -48,12 +48,31 @@ class AtividadeStatusPatch(BaseModel):
     )
 
 
+class EtapaCronogramaInput(BaseModel):
+    ordem: Optional[int] = None
+    cultura: str = Field(..., min_length=1)
+    duracao_dias: int = Field(default=90, ge=5, le=730)
+    risco_hidrico: Optional[str] = None
+
+
 class GerarCronogramaRequest(BaseModel):
     terreno_id: int
     cultura_id: Optional[int] = None
     nome_cultura: Optional[str] = "Cultura Principal"
     data_inicio: date
     tempo_colheita_dias: int = Field(default=90, ge=5, le=730)
+    estrategia_rotacao: Optional[str] = Field(
+        default=None,
+        description="Estratégia vinda do M3 (ex: 'Sorgo -> Feijão-caupi')",
+    )
+    plano_rotacao: Optional[List[EtapaCronogramaInput]] = Field(
+        default=None,
+        description="Etapas vindas de SimulacaoResponse.plano_rotacao (M3)",
+    )
+    substituir_pendentes: bool = Field(
+        default=False,
+        description="Se True, remove atividades pendentes anteriores do terreno antes de gerar o novo cronograma",
+    )
 
 
 class AtividadeCalendarioResponse(AtividadeCalendarioBase):
@@ -65,8 +84,7 @@ class AtividadeCalendarioResponse(AtividadeCalendarioBase):
     motivo_ajuste: Optional[str] = None
     criado_em: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Aliases alinhados ao modelo Activity

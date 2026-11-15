@@ -5,10 +5,14 @@ Documentação interativa automática (Swagger UI): `GET /docs`
 
 ---
 
-## [M1] Terrenos (`backend/api/terreno.py`)
+## [M1] Terrenos e Configuração Inicial (`backend/api/terreno.py`, `backend/main.py`)
+
+### Configuração de Startup e CORS
+- `CORSMiddleware` habilitado no FastAPI para origens locais do frontend (`http://localhost:5173`, `http://127.0.0.1:5173`, `http://localhost:3000`, `http://localhost:8000`) e origens adicionais via `CORS_ALLOWED_ORIGINS`.
+- Seed automático de `Usuario` padrão (`seed_usuario_padrao` / `produtor@kultiva.agro`) e do catálogo base no startup (`lifespan`).
 
 ### `POST /api/v1/terrenos/`
-Cria um novo terreno com o polígono geográfico e prioridades do produtor.
+Cria um novo terreno com o polígono geográfico e prioridades do produtor. Quando `area_hectares` ou `localizacao_central` forem omitidos, são calculados automaticamente a partir de `coordenadas_poligono` via `calcular_geometria_terreno`.
 
 **Request Body:**
 ```json
@@ -27,7 +31,34 @@ Cria um novo terreno com o polígono geográfico e prioridades do produtor.
 }
 ```
 
-**Response (`200 OK`):** Retorna os dados do terreno criado acrescidos de `"id"`.
+**Response (`200 OK`):** Retorna os dados do terreno criado acrescidos de `"id"`, `"area_hectares"` e `"localizacao_central"`.
+
+### `GET /api/v1/terrenos/` (`200 OK`) e `GET /api/v1/terrenos/{terreno_id}` (`200 OK`)
+Lista terrenos (com filtro opcional `usuario_id`) ou busca um terreno específico (`404` se inexistente).
+
+### `PUT /api/v1/terrenos/{terreno_id}` (`200 OK`)
+Atualiza parcialmente ou integralmente um terreno. Ao alterar `coordenadas_poligono`, recalcula automaticamente `area_hectares` e `localizacao_central` quando não enviados no payload.
+
+### `DELETE /api/v1/terrenos/{terreno_id}` (`204 No Content`)
+Remove o terreno e limpa os registros dependentes associados (`metricas_historicas_terreno`, `alertas_climaticos`, `atividades_calendario` e rotações customizadas do terreno).
+
+---
+
+## [M2] Catálogo de Culturas e Rotações (`backend/api/cultura.py`)
+
+### Culturas (`/api/v1/culturas`)
+- `GET /api/v1/culturas/`: lista culturas com filtros opcionais (`is_seed`, `customizada`, `usuario_id`).
+- `GET /api/v1/culturas/{cultura_id}`: obtém detalhes de uma cultura.
+- `POST /api/v1/culturas/` (`200 OK`): cadastra cultura customizada (`is_seed=false`, `customizada=true`), validando nome único e valores positivos (`consumo_agua_mm > 0`, `tempo_colheita_dias > 0`).
+- `PUT /api/v1/culturas/{cultura_id}` (`200 OK`): edita cultura customizada (retorna `403 Forbidden` para culturas `is_seed=true`).
+- `DELETE /api/v1/culturas/{cultura_id}` (`204 No Content`): remove cultura customizada (retorna `403 Forbidden` para `is_seed=true`).
+
+### Rotações do Produtor (`/api/v1/rotacoes`)
+- `GET /api/v1/rotacoes/`: lista rotações com filtros (`usuario_id`, `terreno_id`, `preferencial`, `is_seed`).
+- `GET /api/v1/rotacoes/{rotacao_id}`: obtém detalhes de uma rotação.
+- `POST /api/v1/rotacoes/` (`201 Created`): cadastra rotação preferencial (`culturas` com pelo menos 2 culturas). Rotações com `preferencial=true` entram automaticamente no ranking do simulador `[M3]`.
+- `PUT /api/v1/rotacoes/{rotacao_id}` (`200 OK`): atualiza rotação customizada (`403` se `is_seed=true`).
+- `DELETE /api/v1/rotacoes/{rotacao_id}` (`204 No Content`): remove rotação customizada (`403` se `is_seed=true`).
 
 ---
 
@@ -233,3 +264,34 @@ Obtém os detalhes do alerta e o campo `resumo_adaptacao`.
 
 ### `PATCH /api/v1/alertas/{alerta_id}/ler` (`200 OK`)
 Marca o alerta como lido (`"lido": true`).
+
+---
+
+## [M6] Relatórios Periódicos e Histórico de Métricas (`backend/api/relatorios.py`)
+
+### `GET /api/v1/relatorios/terreno/{terreno_id}` (`200 OK`)
+*(Também acessível em `GET /api/v1/relatorios/?terreno_id=...`)*
+
+Consolida o relatório periódico de adaptação para o terreno (`data_inicio` e `data_fim` opcionais, padrão últimos 30 dias):
+- Série histórica de umidade, temperatura, precipitação e indicador de solo exposto (`metricas_historicas_terreno`). Se não houver snapshots gravados no período, consulta `INASADataProvider.extract_field_metrics()` sob demanda e persiste a série.
+- Índices calculados de **vigor** (`indice`, `classificacao`, `tendencia`) e **vulnerabilidade** (`indice`, `nivel`, `fatores_risco`).
+- Contabilização de **adaptações** no calendário (`ajustada_por_alerta == true`) e alertas climáticos do período.
+- **Comparativo do período** (`comparativo_periodo`): variações entre a primeira e a última medição da série histórica (`umidade_inicial`/`umidade_final`, `variacao_umidade`, `variacao_umidade_percentual`, temperatura, precipitação e `tendencia_geral`).
+- **Resumo interpretativo da IA** (`resumo_ia` e `explicacao_ia`): síntese em linguagem simples gerada via `RotationExplainerAgent.explain_report()` (com fallback determinístico offline), sempre concluída com o aviso legal (`DISCLAIMER`).
+
+### `GET /api/v1/relatorios/terreno/{terreno_id}/metricas` (`200 OK`)
+Lista os snapshots diários persistidos para o terreno com filtro opcional por `data_inicio` e `data_fim`.
+
+### `POST /api/v1/relatorios/terreno/{terreno_id}/metricas` (`201 Created`)
+Permite registrar manualmente uma medição climática ou acionar a sincronização via `INASADataProvider` quando o corpo JSON é omitido.
+
+---
+
+## [Demo] Seed de Demonstração (`backend/api/demo.py`)
+
+### `POST /api/v1/demo/seed` (`200 OK`)
+*(Query param opcional: `reset=false|true`)*
+
+Popula o ambiente de demonstração completo em uma única chamada (usuário padrão, culturas/rotações seed e customizada, dois terrenos com perfis climáticos distintos, 10 dias de métricas históricas por terreno, atividades no calendário com registros `ajustada_por_alerta=true` e alertas climáticos com explicação prática):
+- `reset=false` *(padrão)*: operação **idempotente** que cria apenas o que ainda não existir, preservando IDs e contagens entre chamadas consecutivas.
+- `reset=true`: remove e recria do zero os dados associados aos terrenos de demonstração.
