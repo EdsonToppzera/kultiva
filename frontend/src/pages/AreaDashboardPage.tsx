@@ -1,0 +1,540 @@
+import * as React from "react";
+import {
+  ArrowLeftRight,
+  Bug,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  CloudRain,
+  Info,
+  Leaf,
+  MapPin,
+  Moon,
+  Pause,
+  RefreshCw,
+  Sun,
+  Sunrise,
+  Sunset,
+  Wifi,
+  WifiOff,
+  X,
+} from "lucide-react";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "../components/ui/drawer";
+import type { NetworkSyncStatus } from "../features/onboarding/types/cropHistory.types";
+import { cn } from "../lib/utils";
+
+export type ActivityPeriodId =
+  | "manha"
+  | "meio-dia"
+  | "tarde"
+  | "noite"
+  | "qualquer-momento";
+
+export interface AreaActivityItem {
+  id: string;
+  period: ActivityPeriodId;
+  periodLabel?: string;
+  title: string;
+  description: string;
+  paused?: boolean;
+  pausedReason?: string;
+}
+
+export interface AreaWeatherSummary {
+  headline: string;
+  details: string;
+  weatherNotice?: string;
+  sourceLabel?: string;
+}
+
+export interface AreaCropProgress {
+  cropName: string;
+  dayLabel: string;
+}
+
+export type FieldReportOptionId =
+  | "choveu_nao_previsto"
+  | "nao_choveu_esperado"
+  | "encontrei_praga";
+
+export interface FieldReportOption {
+  id: FieldReportOptionId;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+export interface AreaDashboardPageProps {
+  areaLocation?: string;
+  dateLabel?: string;
+  weather?: AreaWeatherSummary;
+  cropProgress?: AreaCropProgress;
+  activities?: AreaActivityItem[];
+  networkStatus?: NetworkSyncStatus;
+  onOpenCalendar?: () => void;
+  onSubmitReport?: (reportId: FieldReportOptionId) => void;
+  onBack?: () => void;
+}
+
+const PERIOD_CONFIG: Record<
+  ActivityPeriodId,
+  {
+    defaultLabel: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }
+> = {
+  manha: { defaultLabel: "Manhã", icon: Sunrise },
+  "meio-dia": { defaultLabel: "Meio-dia", icon: Sun },
+  tarde: { defaultLabel: "Tarde", icon: Sunset },
+  noite: { defaultLabel: "Noite", icon: Moon },
+  "qualquer-momento": { defaultLabel: "Qualquer momento", icon: Clock },
+};
+
+const PERIOD_ORDER: ActivityPeriodId[] = [
+  "manha",
+  "meio-dia",
+  "tarde",
+  "noite",
+  "qualquer-momento",
+];
+
+const DEFAULT_WEATHER: AreaWeatherSummary = {
+  headline: "Chuva no fim da tarde",
+  details: "24°–29° · Chance de chuva: 80%",
+  weatherNotice: "A rega de hoje foi pausada.",
+};
+
+const DEFAULT_CROP_PROGRESS: AreaCropProgress = {
+  cropName: "Feijão-de-porco",
+  dayLabel: "Dia 12",
+};
+
+const DEFAULT_ACTIVITIES: AreaActivityItem[] = [
+  {
+    id: "act-1",
+    period: "manha",
+    periodLabel: "Manhã cedo",
+    title: "Conferir a umidade da terra",
+    description: "Veja a terra perto da raiz.",
+  },
+  {
+    id: "act-2",
+    period: "manha",
+    periodLabel: "Manhã cedo",
+    title: "Olhar as folhas novas",
+    description: "Procure manchas ou sinais de pragas.",
+  },
+  {
+    id: "act-3",
+    period: "tarde",
+    periodLabel: "Fim de tarde",
+    title: "Irrigar a área",
+    description: "Rega programada para o fim do dia.",
+    paused: true,
+    pausedReason: "Pausado: chuva prevista para hoje.",
+  },
+  {
+    id: "act-4",
+    period: "qualquer-momento",
+    periodLabel: "Qualquer momento",
+    title: "Conferir a cobertura do solo",
+    description: "Cubra os pontos de terra exposta.",
+  },
+];
+
+const REPORT_OPTIONS: FieldReportOption[] = [
+  {
+    id: "choveu_nao_previsto",
+    label: "Choveu e não estava previsto",
+    icon: CloudRain,
+  },
+  {
+    id: "nao_choveu_esperado",
+    label: "Não choveu como o esperado",
+    icon: Sun,
+  },
+  {
+    id: "encontrei_praga",
+    label: "Encontrei uma praga",
+    icon: Bug,
+  },
+];
+
+const NETWORK_BADGE_CONFIG: Record<
+  NetworkSyncStatus,
+  {
+    label: string;
+    variant: "saved" | "offline" | "outline";
+    icon: React.ComponentType<{ className?: string }>;
+  }
+> = {
+  salvo: { label: "Salvo", variant: "saved", icon: Wifi },
+  sincronizando: { label: "Salvando", variant: "outline", icon: RefreshCw },
+  offline: { label: "Sem internet", variant: "offline", icon: WifiOff },
+};
+
+export function AreaDashboardPage({
+  areaLocation = "Sítio Boa Esperança · Área 1",
+  dateLabel = "Sábado, 14 de novembro",
+  weather = DEFAULT_WEATHER,
+  cropProgress = DEFAULT_CROP_PROGRESS,
+  activities = DEFAULT_ACTIVITIES,
+  networkStatus,
+  onOpenCalendar,
+  onSubmitReport,
+  onBack,
+}: AreaDashboardPageProps) {
+  const [isOnline, setIsOnline] = React.useState<boolean>(() =>
+    typeof navigator !== "undefined" ? navigator.onLine : true
+  );
+  const [reportDrawerOpen, setReportDrawerOpen] = React.useState(false);
+  const [selectedReport, setSelectedReport] =
+    React.useState<FieldReportOptionId>("choveu_nao_previsto");
+  const [reportSavedNotice, setReportSavedNotice] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  const effectiveStatus: NetworkSyncStatus =
+    networkStatus ?? (isOnline ? "salvo" : "offline");
+  const badgeConfig = NETWORK_BADGE_CONFIG[effectiveStatus];
+  const StatusIcon = badgeConfig.icon;
+
+  const groupedActivities = React.useMemo(() => {
+    return PERIOD_ORDER.map((period) => {
+      const items = activities.filter((item) => item.period === period);
+      if (items.length === 0) return null;
+      const periodLabel =
+        items[0].periodLabel ?? PERIOD_CONFIG[period].defaultLabel;
+      return {
+        period,
+        label: periodLabel,
+        Icon: PERIOD_CONFIG[period].icon,
+        items,
+      };
+    }).filter((group): group is NonNullable<typeof group> => group !== null);
+  }, [activities]);
+
+  const handleSaveReport = () => {
+    onSubmitReport?.(selectedReport);
+    setReportDrawerOpen(false);
+    setReportSavedNotice(true);
+    window.setTimeout(() => setReportSavedNotice(false), 3000);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F7F6F0] md:bg-[#EFECE3] md:py-6">
+      <div className="mx-auto flex min-h-screen max-w-md flex-col justify-between bg-[#F7F6F0] px-5 pt-7 pb-8 text-[#1F1C18] md:min-h-[820px] md:rounded-[32px] md:border md:border-[#E6E4DA] md:shadow-sm">
+        <div>
+          {/* Header */}
+          <header className="flex items-center justify-between gap-3">
+            <span className="font-['Nunito',ui-rounded,system-ui,sans-serif] text-[24px] font-black tracking-tight text-[#511D4E]">
+              Kultiva
+            </span>
+
+            <Badge variant={badgeConfig.variant} aria-live="polite">
+              <StatusIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span>{badgeConfig.label}</span>
+            </Badge>
+          </header>
+
+          {/* Localização e Data */}
+          <div className="mt-4 flex items-center gap-1.5 text-xs font-medium text-[#6D6960]">
+            <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>{areaLocation}</span>
+          </div>
+
+          <p className="mt-2.5 text-xs font-medium text-[#6D6960]">
+            {dateLabel}
+          </p>
+
+          {/* Card Roxo de Clima */}
+          <section
+            aria-label="Previsão do tempo e ajustes do dia"
+            className="mt-3 rounded-3xl bg-[#511D4E] p-5 text-white shadow-sm"
+          >
+            <div className="flex items-start gap-3.5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10">
+                <CloudRain
+                  className="h-7 w-7 text-[#CAD17A]"
+                  aria-hidden="true"
+                />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h2 className="text-[17px] font-bold leading-snug text-white">
+                  {weather.headline}
+                </h2>
+                <p className="mt-0.5 text-xs text-white/80">
+                  {weather.details}
+                </p>
+              </div>
+            </div>
+
+            {weather.weatherNotice && (
+              <div className="mt-4 flex items-center gap-2.5 rounded-2xl bg-white/10 px-3.5 py-2.5 text-xs font-medium text-white/95">
+                <Info
+                  className="h-4 w-4 shrink-0 text-[#FCF59B]"
+                  aria-hidden="true"
+                />
+                <span>{weather.weatherNotice}</span>
+              </div>
+            )}
+          </section>
+
+          {/* Botão Verde de Calendário */}
+          <button
+            type="button"
+            onClick={onOpenCalendar}
+            className="mt-4 flex w-full items-center justify-between gap-3 rounded-2xl bg-[#CAD17A]/35 px-4 py-3.5 text-left transition-colors hover:bg-[#CAD17A]/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#511D4E]"
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <Leaf
+                className="h-5 w-5 shrink-0 text-[#511D4E]"
+                aria-hidden="true"
+              />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-[#1F1C18]">
+                  {cropProgress.cropName} · {cropProgress.dayLabel}
+                </p>
+                <p className="text-xs text-[#5A594E]">
+                  Ver calendário completo
+                </p>
+              </div>
+            </div>
+
+            <ChevronRight
+              className="h-4 w-4 shrink-0 text-[#511D4E]"
+              aria-hidden="true"
+            />
+          </button>
+
+          {/* Atividades do dia (cards informativos por período) */}
+          <section className="mt-6" aria-label="Atividades recomendadas para hoje">
+            <h1 className="text-[22px] font-bold tracking-tight text-[#511D4E]">
+              Seu dia na área
+            </h1>
+
+            {reportSavedNotice && (
+              <p
+                role="status"
+                className="mt-3 rounded-2xl border border-[#CAD17A] bg-[#FCF59B]/60 px-3.5 py-2.5 text-xs font-semibold text-[#1F1C18]"
+              >
+                Relato salvo! Vamos considerar sua observação nas próximas
+                orientações.
+              </p>
+            )}
+
+            <div className="mt-4 space-y-5">
+              {groupedActivities.map((group) => {
+                const PeriodIcon = group.Icon;
+
+                return (
+                  <div key={group.period}>
+                    <div className="mb-2 flex items-center gap-1.5 text-xs font-bold text-[#511D4E]">
+                      <PeriodIcon
+                        className="h-4 w-4 shrink-0"
+                        aria-hidden="true"
+                      />
+                      <span>{group.label}</span>
+                    </div>
+
+                    <ul className="space-y-2.5">
+                      {group.items.map((item) => {
+                        const isPaused = Boolean(item.paused);
+
+                        return (
+                          <li
+                            key={item.id}
+                            className={cn(
+                              "flex items-start gap-3 rounded-2xl border px-4 py-3.5",
+                              isPaused
+                                ? "border-[#BDD7EE] bg-[#EAF3FB]"
+                                : "border-[#E6E4DA] bg-white"
+                            )}
+                          >
+                            {isPaused ? (
+                              <span
+                                className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#BDD7EE] bg-white text-[#2B5B84]"
+                                aria-hidden="true"
+                              >
+                                <Pause className="h-3.5 w-3.5" />
+                              </span>
+                            ) : (
+                              <span
+                                className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F4F3EE] text-[#511D4E]"
+                                aria-hidden="true"
+                              >
+                                <PeriodIcon className="h-3.5 w-3.5" />
+                              </span>
+                            )}
+
+                            <div className="min-w-0 flex-1">
+                              <p
+                                className={cn(
+                                  "text-sm font-bold leading-snug",
+                                  isPaused
+                                    ? "text-[#2B5B84]"
+                                    : "text-[#1F1C18]"
+                                )}
+                              >
+                                {item.title}
+                              </p>
+                              <p
+                                className={cn(
+                                  "mt-0.5 text-xs leading-relaxed",
+                                  isPaused
+                                    ? "text-[#3D6F9B]"
+                                    : "text-[#6D6960]"
+                                )}
+                              >
+                                {isPaused && item.pausedReason
+                                  ? item.pausedReason
+                                  : item.description}
+                              </p>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+
+        {/* Botão Amarelo "Aconteceu diferente" */}
+        <footer className="mt-8 flex flex-col items-center gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => setReportDrawerOpen(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#FCF59B] px-5 py-3.5 text-sm font-bold text-[#1F1C18] shadow-xs transition-colors hover:bg-[#F5EC7D] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#511D4E]"
+          >
+            <ArrowLeftRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>Aconteceu diferente</span>
+          </button>
+
+          {onBack && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onBack}
+              className="w-full max-w-[200px] text-sm font-semibold text-[#511D4E]"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              <span>Voltar</span>
+            </Button>
+          )}
+        </footer>
+      </div>
+
+      {/* Drawer de Relato */}
+      <Drawer open={reportDrawerOpen} onOpenChange={setReportDrawerOpen}>
+        <DrawerContent>
+          <DrawerHeader>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-bold tracking-[0.08em] text-[#6D6960] uppercase">
+                SUA EXPERIÊNCIA CONTA
+              </span>
+              <DrawerClose
+                aria-label="Fechar"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-[#511D4E] hover:bg-[#EFECE3]"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </DrawerClose>
+            </div>
+
+            <DrawerTitle className="mt-2 text-2xl font-bold text-[#511D4E]">
+              Aconteceu diferente?
+            </DrawerTitle>
+            <DrawerDescription className="mt-1 text-sm text-[#6D6960]">
+              Conte o que mudou na sua área.
+            </DrawerDescription>
+          </DrawerHeader>
+
+          <div
+            role="radiogroup"
+            aria-label="O que mudou na sua área"
+            className="mt-4 space-y-2.5"
+          >
+            {REPORT_OPTIONS.map((option) => {
+              const OptionIcon = option.icon;
+              const isSelected = selectedReport === option.id;
+
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  onClick={() => setSelectedReport(option.id)}
+                  className={cn(
+                    "flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#511D4E]",
+                    isSelected
+                      ? "border-[#511D4E] bg-[#511D4E]/[0.05]"
+                      : "border-[#E6E4DA] bg-white hover:border-[#511D4E]/40"
+                  )}
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <OptionIcon
+                      className="h-5 w-5 shrink-0 text-[#511D4E]"
+                      aria-hidden="true"
+                    />
+                    <span className="text-sm font-semibold text-[#1F1C18]">
+                      {option.label}
+                    </span>
+                  </div>
+
+                  {isSelected ? (
+                    <Check
+                      className="h-4 w-4 shrink-0 text-[#511D4E]"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <ChevronRight
+                      className="h-4 w-4 shrink-0 text-[#6D6960]"
+                      aria-hidden="true"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <DrawerFooter className="mt-6">
+            <Button
+              type="button"
+              variant="primary"
+              size="lg"
+              onClick={handleSaveReport}
+              className="w-full"
+            >
+              Salvar relato
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    </div>
+  );
+}
+
