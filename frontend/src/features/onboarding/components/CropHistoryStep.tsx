@@ -424,7 +424,7 @@ export function CropHistoryStep({
     <div className="min-h-dvh w-full bg-[#F7F6F0] text-[#1F1C18] md:flex md:items-center md:justify-center md:bg-[#EFECE3] md:p-6">
       <form
         onSubmit={(event) => void handleSubmit(event)}
-        className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between bg-[#F7F6F0] px-5 pb-8 pt-6 md:min-h-[680px] md:max-w-lg md:rounded-3xl md:border md:border-[#E6E4DA] md:px-8 md:py-8 md:shadow-sm lg:max-w-xl"
+        className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-between bg-[#F7F6F0] px-5 pb-8 pt-6 md:min-h-[680px] md:rounded-3xl md:border md:border-[#E6E4DA] md:px-7 md:py-8 md:shadow-sm"
       >
         <div>
           {/* Header */}
