@@ -14,7 +14,9 @@ from backend.schemas.simulacao import (
     SimulacaoRequest,
     SimulacaoResponse,
 )
+from backend.services.geospatial import calcular_geometria_terreno
 from backend.services.metrics_service import persistir_metricas_terreno
+from backend.services.mock_nasa_data import normalize_climate_profile
 
 logger = logging.getLogger(__name__)
 
@@ -166,22 +168,36 @@ def _get_cached_service(
         return None
 
 
-def get_nasa_processor() -> Optional[Any]:
+def get_nasa_processor(profile: Optional[str] = None) -> Optional[Any]:
     """Provedor de dependência para INASADataProvider (mock ou real via NASA_PROVIDER)."""
     provider_mode = os.getenv("NASA_PROVIDER", "mock").strip().lower() or "mock"
+    active_profile = profile if profile is not None else (os.getenv("NASA_MOCK_PROFILE") or None)
 
     def _build(geo_module: Any) -> Any:
         factory = getattr(geo_module, "get_nasa_data_provider", None)
         if callable(factory):
+            if active_profile is not None:
+                try:
+                    return factory(
+                        data_path="data",
+                        provider_type=provider_mode,
+                        profile=active_profile,
+                    )
+                except TypeError:
+                    return factory(data_path="data", provider_type=provider_mode)
             return factory(data_path="data", provider_type=provider_mode)
         provider_cls = getattr(geo_module, "MockNASADataProvider", None) or getattr(
             geo_module, "NasaDataProcessor"
         )
+        if active_profile is not None:
+            try:
+                return provider_cls(data_path="data", profile=active_profile)
+            except TypeError:
+                return provider_cls(data_path="data")
         return provider_cls(data_path="data")
 
-    return _get_cached_service(
-        f"nasa:{provider_mode}", "backend.services.geospatial", _build
-    )
+    cache_key = f"nasa:{provider_mode}:{active_profile or 'default'}"
+    return _get_cached_service(cache_key, "backend.services.geospatial", _build)
 
 
 def get_crop_simulator() -> Optional[Any]:
@@ -205,22 +221,14 @@ def _calcular_metricas_fallback(
 ) -> Dict[str, Any]:
     """Calcula resumo geoespacial determinístico a partir do polígono do terreno."""
     coords = coordenadas_poligono if isinstance(coordenadas_poligono, list) else []
-    latitudes = [
-        float(c["lat"]) for c in coords if isinstance(c, dict) and "lat" in c
-    ]
-    longitudes = [
-        float(c["lng"]) for c in coords if isinstance(c, dict) and "lng" in c
-    ]
-    centroide = None
-    if latitudes and longitudes:
-        centroide = {
-            "lat": round(sum(latitudes) / len(latitudes), 6),
-            "lng": round(sum(longitudes) / len(longitudes), 6),
-        }
+    geometria = calcular_geometria_terreno(coords)
+    total_vertices = int(geometria["total_vertices"])
+    centroide = geometria["localizacao_central"] if total_vertices > 0 else None
 
     return {
         "origem": "fallback_geoespacial",
-        "total_vertices_poligono": len(coords),
+        "total_vertices_poligono": total_vertices,
+        "area_hectares": float(geometria["area_hectares"]),
         "centroide": centroide,
         "precipitacao_estimada_mm": dados_climaticos.get("precipitacao_mm", 520.0),
         "temperatura_media_c": dados_climaticos.get("temperatura_media_c", 25.5),
@@ -232,23 +240,39 @@ def _extrair_metricas_geoespaciais(
     coordenadas_poligono: Any,
     dados_climaticos: Dict[str, Any],
     nasa_processor: Optional[Any],
+    perfil_climatico: Optional[str] = None,
 ) -> Tuple[Dict[str, Any], bool]:
     """Consulta o serviço geoespacial da NASA injetado com fallback seguro."""
     fallback = _calcular_metricas_fallback(coordenadas_poligono, dados_climaticos)
+    if perfil_climatico is not None:
+        fallback["perfil_climatico"] = perfil_climatico
+
     if nasa_processor is not None:
         try:
-            metricas = nasa_processor.extract_field_metrics(
-                coordenadas_poligono, dataset=None
-            )
-            if isinstance(metricas, dict) and metricas:
-                return (
-                    {
-                        **fallback,
-                        **{k: v for k, v in metricas.items() if v is not None},
-                        "origem": "nasa_geospatial_service",
-                    },
-                    False,
+            if perfil_climatico is not None:
+                try:
+                    metricas = nasa_processor.extract_field_metrics(
+                        coordenadas_poligono,
+                        dataset=None,
+                        profile=perfil_climatico,
+                    )
+                except TypeError:
+                    metricas = nasa_processor.extract_field_metrics(
+                        coordenadas_poligono, dataset=None
+                    )
+            else:
+                metricas = nasa_processor.extract_field_metrics(
+                    coordenadas_poligono, dataset=None
                 )
+            if isinstance(metricas, dict) and metricas:
+                resultado = {
+                    **fallback,
+                    **{k: v for k, v in metricas.items() if v is not None},
+                    "origem": "nasa_geospatial_service",
+                }
+                if perfil_climatico is not None:
+                    resultado["perfil_climatico"] = perfil_climatico
+                return resultado, False
         except Exception:
             logger.exception("Falha em servico externo da simulacao; usando fallback")
 
@@ -604,8 +628,27 @@ def _processar_simulacao(
 
     dados_solo = payload.dados_solo or {"prioridades_terreno": prioridades_finais}
 
+    perfil_raw = (
+        payload.perfil_climatico
+        if payload.perfil_climatico is not None
+        else dados_climaticos_req.get("perfil_climatico")
+        or prioridades_finais.get("perfil_climatico")
+    )
+    perfil_climatico: Optional[str] = None
+    if perfil_raw is not None:
+        try:
+            perfil_climatico = normalize_climate_profile(str(perfil_raw))
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=str(exc),
+            ) from exc
+
     metricas_geoespaciais, geo_fallback = _extrair_metricas_geoespaciais(
-        coordenadas_poligono, dados_climaticos_req, nasa_processor
+        coordenadas_poligono,
+        dados_climaticos_req,
+        nasa_processor,
+        perfil_climatico=perfil_climatico,
     )
     if terreno_id_resp is not None:
         persistir_metricas_terreno(

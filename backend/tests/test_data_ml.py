@@ -844,3 +844,144 @@ def test_perfil_climatico_aliases_env_e_erro_perfil_invalido(
     m_seca = prov.extract_field_metrics(POLIGONO_SP)
     assert m_seca["avg_soil_moisture_smap"] <= 0.10
     assert m_seca["is_bare_field_period"] is True
+
+
+# ---- A10: Perfil climático em runtime e area_hectares na simulação ------
+
+
+def test_a10_extract_field_metrics_aceita_profile_em_runtime(tmp_path, geospatial_mod):
+    prov = geospatial_mod.MockNASADataProvider(data_path=str(tmp_path))
+
+    m_seca = prov.extract_field_metrics(POLIGONO_SP, profile="seca")
+    assert m_seca["avg_soil_moisture_smap"] <= 0.10
+    assert m_seca["is_bare_field_period"] is True
+
+    m_chuva = prov.extract_field_metrics(POLIGONO_SP, profile="chuva_extrema")
+    assert m_chuva["avg_precipitation_gpm"] >= 60.0
+
+    m_calor = prov.extract_field_metrics(POLIGONO_SP, profile="onda_de_calor")
+    assert m_calor["avg_surface_temp_ecostress"] >= 35.0
+
+    # Ao omitir `profile`, volta ao padrão ("normal") sem manter extremos anteriores
+    m_normal = prov.extract_field_metrics(POLIGONO_SP)
+    assert m_normal["avg_precipitation_gpm"] < 60.0
+    assert m_normal["avg_soil_moisture_smap"] > m_seca["avg_soil_moisture_smap"]
+
+
+def test_a10_simulacao_endpoint_com_perfil_climatico_e_area_hectares(
+    tmp_path, geospatial_mod
+):
+    from fastapi.testclient import TestClient
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    from backend.api import simulacao
+    from backend.db import models
+    from backend.db.database import Base, get_db
+    from backend.main import app
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    def override_get_db():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    with TestingSessionLocal() as db:
+        db.add(models.Usuario(nome="Produtor A10", email="a10@kultiva.local"))
+        db.add(models.Cultura(nome="Milho", consumo_agua_mm=500.0, tempo_colheita_dias=90))
+        db.commit()
+
+    poligono_100ha = [
+        {"lat": -15.500, "lng": -47.500},
+        {"lat": -15.500, "lng": -47.49068},
+        {"lat": -15.509, "lng": -47.49068},
+        {"lat": -15.509, "lng": -47.500},
+    ]
+
+    prov = geospatial_mod.MockNASADataProvider(data_path=str(tmp_path))
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[simulacao.get_nasa_processor] = lambda: prov
+    app.dependency_overrides[simulacao.get_crop_simulator] = lambda: CropSimulator()
+    app.dependency_overrides[simulacao.get_rotation_explainer] = (
+        lambda: RotationExplainerAgent()
+    )
+
+    try:
+        with TestClient(app) as client:
+            resp_seca = client.post(
+                "/api/v1/simular-rotacao",
+                json={
+                    "nome_propriedade": "Sítio A10",
+                    "coordenadas_poligono": poligono_100ha,
+                    "nome_cultura": "Milho",
+                    "perfil_climatico": "seca",
+                    "historico_cultivos": {
+                        "ultimoCultivo": {"id": "milho", "officialName": "Milho"},
+                        "cultivoAnterior": {"id": "milho", "officialName": "Milho"},
+                        "naoLembro": False,
+                    },
+                },
+            )
+            assert resp_seca.status_code == 200
+            body_seca = resp_seca.json()
+            assert 85.0 <= body_seca["metricas_geoespaciais"]["area_hectares"] <= 115.0
+            assert body_seca["metricas_geoespaciais"]["perfil_climatico"] == "seca"
+            assert body_seca["metricas_geoespaciais"]["avg_soil_moisture_smap"] <= 0.10
+
+            resp_chuva = client.post(
+                "/api/v1/simular-rotacao",
+                json={
+                    "nome_propriedade": "Sítio A10",
+                    "coordenadas_poligono": poligono_100ha,
+                    "nome_cultura": "Milho",
+                    "perfil_climatico": "chuva_extrema",
+                },
+            )
+            assert resp_chuva.status_code == 200
+            body_chuva = resp_chuva.json()
+            assert (
+                body_chuva["metricas_geoespaciais"]["perfil_climatico"]
+                == "chuva_extrema"
+            )
+            assert body_chuva["metricas_geoespaciais"]["avg_precipitation_gpm"] >= 60.0
+            assert (
+                body_seca["metricas_geoespaciais"]["avg_soil_moisture_smap"]
+                < body_chuva["metricas_geoespaciais"]["avg_soil_moisture_smap"]
+            )
+            assert body_seca["viability_score"] < body_chuva["viability_score"]
+
+            # Mesmo em fallback de provedor, area_hectares permanece calculada
+            app.dependency_overrides[simulacao.get_nasa_processor] = lambda: None
+            resp_fb = client.post(
+                "/api/v1/simular-rotacao",
+                json={
+                    "nome_propriedade": "Sítio A10 Fallback",
+                    "coordenadas_poligono": poligono_100ha,
+                    "nome_cultura": "Milho",
+                },
+            )
+            assert resp_fb.status_code == 200
+            assert 85.0 <= resp_fb.json()["metricas_geoespaciais"]["area_hectares"] <= 115.0
+
+            resp_invalido = client.post(
+                "/api/v1/simular-rotacao",
+                json={
+                    "nome_propriedade": "Sítio Inválido",
+                    "perfil_climatico": "nevasca_polar",
+                },
+            )
+            assert resp_invalido.status_code == 422
+    finally:
+        simulacao._SERVICE_CACHE.clear()
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(bind=engine)

@@ -136,7 +136,7 @@ class INASADataProvider(ABC):
 
     @abstractmethod
     def extract_field_metrics(
-        self, polygon_coords: Any, dataset: Any = None
+        self, polygon_coords: Any, dataset: Any = None, profile: str | None = None
     ) -> dict[str, Any]:
         pass
 
@@ -191,6 +191,7 @@ class MockNASADataProvider(INASADataProvider):
         self,
         polygon_coords: Any,
         dataset: Any = None,
+        profile: str | None = None,
     ) -> dict[str, Any]:
         """
         Contrato `field_metrics`: avg_soil_moisture_smap, avg_surface_temp_ecostress,
@@ -208,12 +209,15 @@ class MockNASADataProvider(INASADataProvider):
             "precipitation": (GPM_FILE, "precipitation"),
         }
         paths = {k: os.path.join(self.data_path, v[0]) for k, v in sources.items()}
+        effective_profile = profile if profile is not None else self.profile
+        marker_path = os.path.join(self.data_path, ".climate_profile")
         if (
             not all(os.path.exists(p) for p in paths.values())
-            or self.profile is not None
+            or effective_profile is not None
             or os.getenv("NASA_MOCK_PROFILE")
+            or os.path.exists(marker_path)
         ):
-            generate_synthetic_netcdf(self.data_path, profile=self.profile)
+            generate_synthetic_netcdf(self.data_path, profile=effective_profile)
 
         series: dict[str, Any] = {}
         qualities: list[str] = []
@@ -462,8 +466,9 @@ class RealNASADataProvider(INASADataProvider):
         return {fallback_date: float(serie.mean().item())}
 
     def extract_field_metrics(
-        self, polygon_coords: Any, dataset: Any = None
+        self, polygon_coords: Any, dataset: Any = None, profile: str | None = None
     ) -> dict[str, Any]:
+        _ = profile
         norm_coords = _normalize_polygon_coords(polygon_coords)
         geom = _build_polygon_geometry(norm_coords)
         gdf = gpd.GeoDataFrame(index=[0], crs="EPSG:4326", geometry=[geom])
