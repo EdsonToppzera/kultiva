@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ArrowRight,
   Check,
@@ -116,14 +117,14 @@ export const SOIL_HAND_TEST_GUIDE: SoilHandTestItem[] = [
 const NETWORK_BADGE_CONFIG: Record<
   NetworkSyncStatus,
   {
-    label: string;
+    labelKey: string;
     variant: "saved" | "offline" | "outline";
     icon: React.ComponentType<{ className?: string }>;
   }
 > = {
-  salvo: { label: "Salvo", variant: "saved", icon: Wifi },
-  sincronizando: { label: "Salvando", variant: "outline", icon: RefreshCw },
-  offline: { label: "Sem internet", variant: "offline", icon: WifiOff },
+  salvo: { labelKey: "network.saved", variant: "saved", icon: Wifi },
+  sincronizando: { labelKey: "network.saving", variant: "outline", icon: RefreshCw },
+  offline: { labelKey: "network.offline", variant: "offline", icon: WifiOff },
 };
 
 interface SoilThumbnailProps {
@@ -187,6 +188,7 @@ export function SoilTypeStep({
   onBack,
   onContinue,
 }: SoilTypeStepProps) {
+  const { t } = useTranslation();
   const [isOnline, setIsOnline] = React.useState<boolean>(() =>
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
@@ -270,24 +272,26 @@ export function SoilTypeStep({
                   )}
                   aria-hidden="true"
                 />
-                <span>{badgeInfo.label}</span>
+                <span>{t(badgeInfo.labelKey)}</span>
               </Badge>
               <LanguageSelector />
             </div>
           </header>
 
           {/* Indicador de Progresso */}
-          <section aria-label="Progresso do cadastro" className="mt-6">
+          <section aria-label={t("onboarding.yourArea")} className="mt-6">
             <div className="flex items-center justify-between text-xs">
               <span className="font-semibold uppercase tracking-wider text-[#6D6960]">
-                SUA ÁREA
+                {t("onboarding.yourArea")}
               </span>
-              <span className="font-medium text-[#511D4E]">Passo 3 de 4</span>
+              <span className="font-medium text-[#511D4E]">
+                {t("common.stepOf", { current: 3, total: 4 })}
+              </span>
             </div>
 
             <div
               role="progressbar"
-              aria-label="Passo 3 de 4"
+              aria-label={t("common.stepOf", { current: 3, total: 4 })}
               aria-valuemin={1}
               aria-valuemax={4}
               aria-valuenow={3}
@@ -303,12 +307,11 @@ export function SoilTypeStep({
           {/* Conteúdo Principal */}
           <main className="mt-8">
             <h1 className="text-[26px] font-bold leading-tight tracking-tight text-[#511D4E] sm:text-[28px]">
-              Tipo de Solo
+              {t("onboarding.soil.title")}
             </h1>
 
             <p className="mt-1.5 text-sm text-[#6D6960] sm:text-base">
-              Escolha a foto mais parecida. Não precisa de análise de
-              laboratório.
+              {t("onboarding.soil.subtitle")}
             </p>
 
             <div className="mt-3">
@@ -319,19 +322,15 @@ export function SoilTypeStep({
                     className="inline-flex items-center gap-2 rounded-full border border-[#CAD17A] bg-[#CAD17A]/25 px-3.5 py-2 text-xs font-bold text-[#511D4E] transition-colors hover:bg-[#CAD17A]/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#511D4E] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F7F6F0] sm:text-sm"
                   >
                     <HelpCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    <span>Como identificar o seu tipo de solo?</span>
+                    <span>{t("onboarding.soil.helpTrigger")}</span>
                   </button>
                 </DrawerTrigger>
 
                 <DrawerContent className="max-h-[85dvh] overflow-y-auto">
                   <DrawerHeader>
-                    <DrawerTitle>Como identificar o seu tipo de solo</DrawerTitle>
+                    <DrawerTitle>{t("onboarding.soil.drawerTitle")}</DrawerTitle>
                     <DrawerDescription className="mt-2 rounded-2xl border border-[#E6E4DA] bg-white p-3.5 text-sm leading-relaxed text-[#3D3933]">
-                      Pegue um punhado de terra (de preferência cavando cerca de
-                      um palmo para baixo para evitar a poeira superficial),
-                      pingue um pouco de água até umedecer (sem virar lama) e
-                      amasse na mão tentando fazer uma bolinha ou uma
-                      &ldquo;minhoca&rdquo;.
+                      {t("onboarding.soil.drawerSubtitle")}
                     </DrawerDescription>
                   </DrawerHeader>
 
@@ -348,10 +347,15 @@ export function SoilTypeStep({
                         />
                         <div className="min-w-0 text-sm leading-snug text-[#1F1C18]">
                           <strong className="font-bold text-[#511D4E]">
-                            {item.name}:
+                            {t(`onboarding.soil.options.${item.id}.title`, {
+                              defaultValue: item.name,
+                            })}
+                            :
                           </strong>{" "}
                           <span className="text-[#4E4A43]">
-                            {item.description}
+                            {t(`onboarding.soil.options.${item.id}.handDesc`, {
+                              defaultValue: item.description,
+                            })}
                           </span>
                         </div>
                       </li>
@@ -364,24 +368,17 @@ export function SoilTypeStep({
                   >
                     <div className="flex items-center gap-2 text-xs font-bold tracking-wide text-[#511D4E] uppercase">
                       <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      <span>Orientação técnica</span>
+                      <span>{t("onboarding.soil.techNoteTitle")}</span>
                     </div>
                     <p className="mt-1.5 text-xs leading-relaxed text-[#4E4A43] sm:text-sm">
-                      O Kultiva auxilia no dia a dia, mas não substitui
-                      assistência técnica profissional ou análise de
-                      laboratório. Para recomendações precisas de adubação,
-                      procure um{" "}
-                      <strong className="font-semibold text-[#1F1C18]">
-                        Extensionista Rural
-                      </strong>{" "}
-                      (Emater, Senar ou Secretaria de Agricultura) na sua região.
+                      {t("onboarding.soil.techNoteBody")}
                     </p>
                   </div>
 
                   <DrawerFooter>
                     <DrawerClose asChild>
                       <Button type="button" variant="primary" className="w-full">
-                        Entendi
+                        {t("common.understood")}
                       </Button>
                     </DrawerClose>
                   </DrawerFooter>
@@ -390,7 +387,7 @@ export function SoilTypeStep({
             </div>
 
             <RadioGroup
-              aria-label="Tipo de Solo"
+              aria-label={t("onboarding.soil.title")}
               value={selectedId}
               onValueChange={(value) => setSelectedId(value as SoilTypeId)}
               className="mt-6 flex flex-col gap-3"
@@ -418,10 +415,14 @@ export function SoilTypeStep({
                               checked ? "text-[#511D4E]" : "text-[#1F1C18]"
                             )}
                           >
-                            {soil.title}
+                            {t(`onboarding.soil.options.${soil.id}.title`, {
+                              defaultValue: soil.title,
+                            })}
                           </p>
                           <p className="mt-0.5 text-xs leading-snug text-[#6D6960] sm:text-sm">
-                            {soil.subtitle}
+                            {t(`onboarding.soil.options.${soil.id}.subtitle`, {
+                              defaultValue: soil.subtitle,
+                            })}
                           </p>
                         </div>
                       </div>
@@ -454,7 +455,7 @@ export function SoilTypeStep({
             disabled={!selectedOption}
             className="w-full"
           >
-            <span>Continuar</span>
+            <span>{t("common.continue")}</span>
             <ArrowRight className="h-5 w-5" aria-hidden="true" />
           </Button>
 
@@ -465,7 +466,7 @@ export function SoilTypeStep({
             className="w-full max-w-[200px] text-sm font-semibold text-[#511D4E]"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-            <span>Voltar</span>
+            <span>{t("common.back")}</span>
           </Button>
         </footer>
       </form>

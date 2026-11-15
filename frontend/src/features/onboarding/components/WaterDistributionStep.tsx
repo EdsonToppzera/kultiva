@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ArrowRight,
   Check,
@@ -75,14 +76,14 @@ export const WATER_DISTRIBUTION_OPTIONS: WaterDistributionOption[] = [
 const NETWORK_BADGE_CONFIG: Record<
   NetworkSyncStatus,
   {
-    label: string;
+    labelKey: string;
     variant: "saved" | "offline" | "outline";
     icon: React.ComponentType<{ className?: string }>;
   }
 > = {
-  salvo: { label: "Salvo", variant: "saved", icon: Wifi },
-  sincronizando: { label: "Salvando", variant: "outline", icon: RefreshCw },
-  offline: { label: "Sem internet", variant: "offline", icon: WifiOff },
+  salvo: { labelKey: "network.saved", variant: "saved", icon: Wifi },
+  sincronizando: { labelKey: "network.saving", variant: "outline", icon: RefreshCw },
+  offline: { labelKey: "network.offline", variant: "offline", icon: WifiOff },
 };
 
 export interface WaterDistributionStepProps {
@@ -114,6 +115,7 @@ export function WaterDistributionStep({
   onBack,
   onContinue,
 }: WaterDistributionStepProps) {
+  const { t } = useTranslation();
   const [isOnline, setIsOnline] = React.useState<boolean>(() =>
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
@@ -203,24 +205,26 @@ export function WaterDistributionStep({
                   )}
                   aria-hidden="true"
                 />
-                <span>{badgeInfo.label}</span>
+                <span>{t(badgeInfo.labelKey)}</span>
               </Badge>
               <LanguageSelector />
             </div>
           </header>
 
           {/* Indicador de Progresso */}
-          <section aria-label="Progresso do cadastro" className="mt-6">
+          <section aria-label={t("onboarding.yourArea")} className="mt-6">
             <div className="flex items-center justify-between text-xs">
               <span className="font-semibold uppercase tracking-wider text-[#6D6960]">
-                SUA ÁREA
+                {t("onboarding.yourArea")}
               </span>
-              <span className="font-medium text-[#511D4E]">Passo 2 de 4</span>
+              <span className="font-medium text-[#511D4E]">
+                {t("common.stepOf", { current: 2, total: 4 })}
+              </span>
             </div>
 
             <div
               role="progressbar"
-              aria-label="Passo 2 de 4"
+              aria-label={t("common.stepOf", { current: 2, total: 4 })}
               aria-valuemin={1}
               aria-valuemax={4}
               aria-valuenow={2}
@@ -236,14 +240,14 @@ export function WaterDistributionStep({
           {/* Conteúdo Principal */}
           <main className="mt-8">
             <h1 className="text-[26px] font-bold leading-tight tracking-tight text-[#511D4E] sm:text-[28px]">
-              Distribuição Hídrica
+              {t("onboarding.water.title")}
             </h1>
             <p className="mt-1.5 text-sm text-[#6D6960] sm:text-base">
-              Indique como a água chega a sua plantação.
+              {t("onboarding.water.subtitle")}
             </p>
 
             <RadioGroup
-              aria-label="Distribuição Hídrica"
+              aria-label={t("onboarding.water.title")}
               value={selectedId}
               onValueChange={(value) =>
                 setSelectedId(value as WaterDistributionId)
@@ -286,10 +290,15 @@ export function WaterDistributionStep({
                                 checked ? "text-[#511D4E]" : "text-[#1F1C18]"
                               )}
                             >
-                              {option.title}
+                              {t(`onboarding.water.options.${option.id}.title`, {
+                                defaultValue: option.title,
+                              })}
                             </p>
                             <p className="mt-0.5 text-xs text-[#6D6960] sm:text-sm">
-                              {option.subtitle}
+                              {t(
+                                `onboarding.water.options.${option.id}.subtitle`,
+                                { defaultValue: option.subtitle }
+                              )}
                             </p>
                           </div>
                         </div>
@@ -323,7 +332,7 @@ export function WaterDistributionStep({
             disabled={!selectedOption || isBusy}
             className="w-full"
           >
-            <span>{isBusy ? "Processando..." : "Continuar"}</span>
+            <span>{isBusy ? t("common.saving") : t("common.continue")}</span>
             <ArrowRight className="h-5 w-5" aria-hidden="true" />
           </Button>
 
@@ -335,7 +344,7 @@ export function WaterDistributionStep({
             className="w-full max-w-[200px] text-sm font-semibold text-[#511D4E]"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-            <span>Voltar</span>
+            <span>{t("common.back")}</span>
           </Button>
         </footer>
       </form>

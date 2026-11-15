@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import {
   ArrowRight,
   ChevronLeft,
@@ -66,6 +67,7 @@ type OnboardingStep =
   | "recommendations";
 
 export function App() {
+  const { t } = useTranslation();
   const [step, setStep] = React.useState<OnboardingStep>("plantations");
   const [currentTerreno, setCurrentTerreno] =
     React.useState<TerrenoResponse | null>(null);
@@ -213,13 +215,13 @@ export function App() {
 
   if (step === "summary") {
     const cropHistoryLabel = cropHistory?.naoLembro
-      ? "Não lembrado"
+      ? t("review.dontRemember")
       : [
           cropHistory?.ultimoCultivo?.officialName,
           cropHistory?.cultivoAnterior?.officialName,
         ]
           .filter(Boolean)
-          .join(" → ") || "Não informado";
+          .join(" → ") || t("review.notInformed");
 
     const reviewItems: Array<{
       label: string;
@@ -227,26 +229,31 @@ export function App() {
       targetStep: 1 | 2 | 3 | 4;
     }> = [
       {
-        label: "Histórico de Cultivos",
+        label: t("review.lastCrops"),
         value: cropHistoryLabel,
         targetStep: 1,
       },
       {
-        label: "Distribuição Hídrica",
-        value:
-          waterDistribution?.metodoIrrigacao.title ?? "Não informado",
+        label: t("review.water"),
+        value: waterDistribution?.metodoIrrigacao
+          ? t(`onboarding.water.options.${waterDistribution.metodoIrrigacao.id}.title`)
+          : t("review.notInformed"),
         targetStep: 2,
       },
       {
-        label: "Tipo de Solo",
-        value: soilType?.tipoSolo.title ?? "Não informado",
+        label: t("review.soil"),
+        value: soilType?.tipoSolo
+          ? t(`onboarding.soil.options.${soilType.tipoSolo.id}.title`)
+          : t("review.notInformed"),
         targetStep: 3,
       },
       {
-        label: "Prioridade",
-        value: priority?.culturaDesejada
-          ? `${priority.prioridade.title} (${priority.culturaDesejada.officialName})`
-          : (priority?.prioridade.title ?? "Não informado"),
+        label: t("review.objective"),
+        value: priority?.prioridade
+          ? priority.culturaDesejada
+            ? `${t(`onboarding.priorities.options.${priority.prioridade.id}.title`)} (${priority.culturaDesejada.officialName})`
+            : t(`onboarding.priorities.options.${priority.prioridade.id}.title`)
+          : t("review.notInformed"),
         targetStep: 4,
       },
     ];
@@ -270,7 +277,7 @@ export function App() {
                   ) : (
                     <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
                   )}
-                  <span>{isOnline ? "Salvo" : "Sem internet"}</span>
+                  <span>{isOnline ? t("network.saved") : t("network.offline")}</span>
                 </Badge>
                 <LanguageSelector />
               </div>
@@ -278,11 +285,10 @@ export function App() {
 
             <main className="mt-8">
               <h1 className="text-[26px] font-bold leading-tight tracking-tight text-[#511D4E] sm:text-[28px]">
-                Confirme sua área
+                {t("review.title")}
               </h1>
               <p className="mt-1.5 text-sm text-[#6D6960] sm:text-base">
-                Revise tudo o que você marcou antes de comparar os caminhos de
-                plantio.
+                {t("review.subtitle")}
               </p>
 
               <ul className="mt-6 flex flex-col gap-3">
@@ -308,7 +314,7 @@ export function App() {
                       className="shrink-0 px-2.5 text-xs font-semibold text-[#511D4E]"
                     >
                       <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                      <span>Alterar</span>
+                      <span>{t("common.change")}</span>
                     </Button>
                   </li>
                 ))}
@@ -327,7 +333,7 @@ export function App() {
               }}
               className="w-full"
             >
-              <span>Confirmar e comparar</span>
+              <span>{t("review.confirmAndCompare")}</span>
               <ArrowRight className="h-5 w-5" aria-hidden="true" />
             </Button>
 
@@ -339,7 +345,7 @@ export function App() {
                 className="text-sm font-semibold text-[#511D4E]"
               >
                 <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-                <span>Voltar</span>
+                <span>{t("common.back")}</span>
               </Button>
 
               <Button
@@ -355,7 +361,7 @@ export function App() {
                 className="text-sm font-semibold text-[#6D6960]"
               >
                 <RotateCcw className="h-4 w-4" aria-hidden="true" />
-                <span>Reiniciar</span>
+                <span>{t("common.restart")}</span>
               </Button>
             </div>
           </footer>
@@ -382,8 +388,10 @@ export function App() {
             className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border border-[#91C494] bg-[#1E3B21] px-4 py-2.5 text-xs font-semibold text-white shadow-lg"
           >
             <span>
-              Plano selecionado: {selectedPlan.optionBadge} (
-              {selectedPlan.steps.map((s) => s.name).join(" → ")})
+              {t("simulation.selectedPlanToast", {
+                badge: selectedPlan.optionBadge,
+                steps: selectedPlan.steps.map((s) => s.name).join(" → "),
+              })}
             </span>
           </div>
         )}

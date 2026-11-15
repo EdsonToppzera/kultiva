@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import {
   CalendarCheck,
   ChevronLeft,
@@ -184,14 +185,14 @@ const MILESTONE_DOT_CLASS: Record<CalendarMilestoneType, string> = {
 const NETWORK_BADGE_CONFIG: Record<
   NetworkSyncStatus,
   {
-    label: string;
+    labelKey: string;
     variant: "saved" | "offline" | "outline";
     icon: React.ComponentType<{ className?: string }>;
   }
 > = {
-  salvo: { label: "Salvo", variant: "saved", icon: Wifi },
-  sincronizando: { label: "Salvando", variant: "outline", icon: RefreshCw },
-  offline: { label: "Sem internet", variant: "offline", icon: WifiOff },
+  salvo: { labelKey: "network.saved", variant: "saved", icon: Wifi },
+  sincronizando: { labelKey: "network.saving", variant: "outline", icon: RefreshCw },
+  offline: { labelKey: "network.offline", variant: "offline", icon: WifiOff },
 };
 
 function parseIsoDate(iso: string): Date {
@@ -212,15 +213,23 @@ function diffDaysInclusive(startIso: string, endIso: string): number {
   return Math.round((end - start) / 86_400_000) + 1;
 }
 
-function formatLongDatePt(iso: string): string {
+function formatLongDate(
+  iso: string,
+  months: string[],
+  isEnglish: boolean
+): string {
   const date = parseIsoDate(iso);
-  return `${date.getDate()} de ${MONTH_NAMES[date.getMonth()].toLowerCase()}`;
+  const monthName = months[date.getMonth()] ?? MONTH_NAMES[date.getMonth()];
+  return isEnglish
+    ? `${monthName} ${date.getDate()}`
+    : `${date.getDate()} de ${monthName.toLowerCase()}`;
 }
 
-function formatShortDatePt(iso: string): string {
+function formatShortDate(iso: string, shortMonths: string[]): string {
   const date = parseIsoDate(iso);
   const day = String(date.getDate()).padStart(2, "0");
-  const month = SHORT_MONTH_NAMES[date.getMonth()];
+  const month =
+    shortMonths[date.getMonth()] ?? SHORT_MONTH_NAMES[date.getMonth()];
   return `${day} ${month} ${date.getFullYear()}`;
 }
 
@@ -235,10 +244,10 @@ function getPhaseForDate(
   );
 }
 
-function getCycleStatusLabel(percent: number): string {
-  if (percent <= 10) return "Fase inicial";
-  if (percent >= 85) return "Próximo da colheita";
-  return "Em desenvolvimento";
+function getCycleStatusKey(percent: number): string {
+  if (percent <= 10) return "calendar.cycleInitial";
+  if (percent >= 85) return "calendar.cycleNearHarvest";
+  return "calendar.cycleInProgress";
 }
 
 export function AreaCalendarPage({
@@ -248,6 +257,24 @@ export function AreaCalendarPage({
   networkStatus,
   onBack,
 }: AreaCalendarPageProps) {
+  const { t, i18n } = useTranslation();
+  const isEnglish = i18n.language.startsWith("en");
+  const weekdayInitials = t("calendar.weekdayInitials", {
+    returnObjects: true,
+    defaultValue: WEEKDAY_INITIALS,
+  }) as string[];
+  const monthNames = t("calendar.months", {
+    returnObjects: true,
+    defaultValue: MONTH_NAMES,
+  }) as string[];
+  const shortMonthNames = t("calendar.shortMonths", {
+    returnObjects: true,
+    defaultValue: SHORT_MONTH_NAMES,
+  }) as string[];
+  const weekdaysUpper = t("calendar.weekdaysUpper", {
+    returnObjects: true,
+    defaultValue: WEEKDAY_NAMES_UPPER,
+  }) as string[];
   const [liveCalendarData, setLiveCalendarData] =
     React.useState<AreaCalendarData | null>(null);
   const [isOnline, setIsOnline] = React.useState<boolean>(() =>
@@ -331,7 +358,7 @@ export function AreaCalendarPage({
   const StatusIcon = badgeConfig.icon;
 
   const selectedDateObj = parseIsoDate(selectedDate);
-  const selectedWeekday = WEEKDAY_NAMES_UPPER[selectedDateObj.getDay()];
+  const selectedWeekday = weekdaysUpper[selectedDateObj.getDay()];
   const isSelectedToday = selectedDate === calendarData.todayDate;
 
   const activePhase = React.useMemo(
@@ -345,14 +372,14 @@ export function AreaCalendarPage({
 
     return {
       date: selectedDate,
-      weatherHeadline: "Tempo estável previsto",
-      weatherDetails: "24°–30° · Sem alertas climáticos relevantes",
+      weatherHeadline: t("calendar.stableWeatherHeadline"),
+      weatherDetails: t("calendar.stableWeatherDetails"),
       weatherKind: "sun",
       importantNotice: activePhase
-        ? `Acompanhamento normal de ${activePhase.cropName}.`
-        : "Sem atividades críticas previstas para esta data.",
+        ? t("calendar.normalFollowUp", { crop: activePhase.cropName })
+        : t("calendar.noCriticalTasks"),
     };
-  }, [calendarData.highlights, selectedDate, activePhase]);
+  }, [calendarData.highlights, selectedDate, activePhase, t]);
 
   const calendarCells = React.useMemo(() => {
     const firstDayOfMonth = new Date(viewYear, viewMonth, 1);
@@ -430,7 +457,7 @@ export function AreaCalendarPage({
             <div className="flex items-center gap-2">
               <Badge variant={badgeConfig.variant} aria-live="polite">
                 <StatusIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span>{badgeConfig.label}</span>
+                <span>{t(badgeConfig.labelKey)}</span>
               </Badge>
               <LanguageSelector />
             </div>
@@ -443,27 +470,27 @@ export function AreaCalendarPage({
           </div>
 
           <p className="mt-4 text-[11px] font-bold tracking-[0.08em] text-[#6D6960] uppercase">
-            PANORAMA DO CULTIVO
+            {t("calendar.panorama")}
           </p>
 
           {/* Card Roxo: Resumo do Dia Selecionado */}
           <section
-            aria-label="Resumo do dia selecionado"
+            aria-label={t("calendar.selectedDay")}
             className="mt-2.5 rounded-3xl bg-[#511D4E] p-5 text-white shadow-sm"
           >
             <div className="flex items-start justify-between gap-2">
               <div>
                 <p className="text-[10px] font-semibold tracking-[0.08em] text-white/75 uppercase">
-                  {selectedWeekday} · DIA SELECIONADO
+                  {selectedWeekday} · {t("calendar.selectedDay")}
                 </p>
                 <h1 className="mt-1 text-[22px] font-bold leading-tight text-white">
-                  {formatLongDatePt(selectedDate)}
+                  {formatLongDate(selectedDate, monthNames, isEnglish)}
                 </h1>
               </div>
 
               {isSelectedToday && (
                 <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold text-white">
-                  Hoje
+                  {t("calendar.today")}
                 </span>
               )}
             </div>
@@ -511,20 +538,20 @@ export function AreaCalendarPage({
               <button
                 type="button"
                 onClick={handlePrevMonth}
-                aria-label="Mês anterior"
+                aria-label={t("calendar.prevMonth")}
                 className="flex h-8 w-8 items-center justify-center rounded-full text-[#511D4E] transition-colors hover:bg-[#F7F6F0]"
               >
                 <ChevronLeft className="h-4 w-4" aria-hidden="true" />
               </button>
 
               <h2 className="text-base font-bold text-[#511D4E]">
-                {MONTH_NAMES[viewMonth]} {viewYear}
+                {monthNames[viewMonth]} {viewYear}
               </h2>
 
               <button
                 type="button"
                 onClick={handleNextMonth}
-                aria-label="Próximo mês"
+                aria-label={t("calendar.nextMonth")}
                 className="flex h-8 w-8 items-center justify-center rounded-full text-[#511D4E] transition-colors hover:bg-[#F7F6F0]"
               >
                 <ChevronRight className="h-4 w-4" aria-hidden="true" />
@@ -533,7 +560,7 @@ export function AreaCalendarPage({
 
             {/* Cabeçalho Dias da Semana */}
             <div className="mt-3 grid grid-cols-7 gap-1 text-center">
-              {WEEKDAY_INITIALS.map((letter, idx) => (
+              {weekdayInitials.map((letter, idx) => (
                 <span
                   key={`${letter}-${idx}`}
                   className="py-1 text-[11px] font-semibold text-[#6D6960]"
@@ -560,7 +587,7 @@ export function AreaCalendarPage({
                     key={cell.iso}
                     type="button"
                     onClick={() => setSelectedDate(cell.iso)}
-                    aria-label={`${cell.day} de ${MONTH_NAMES[viewMonth]}${phase ? `, ${phase.cropName}` : ""}`}
+                    aria-label={`${cell.day} ${monthNames[viewMonth]}${phase ? `, ${phase.cropName}` : ""}`}
                     aria-pressed={isSelected}
                     className={cn(
                       "relative flex h-10 flex-col items-center justify-center rounded-xl text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#511D4E]",
@@ -595,19 +622,19 @@ export function AreaCalendarPage({
             <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#E6E4DA] pt-3 text-[11px] text-[#6D6960]">
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-[#9AA832]" />
-                Plantio
+                {t("calendar.planting")}
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-[#511D4E]" />
-                Manejo
+                {t("calendar.management")}
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-[#D97706]" />
-                Colheita
+                {t("calendar.harvest")}
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-xs bg-[#511D4E]" />
-                Selecionado
+                {t("calendar.selected")}
               </span>
             </div>
 
@@ -651,17 +678,17 @@ export function AreaCalendarPage({
                 </div>
 
                 <span className="shrink-0 rounded-full bg-[#511D4E] px-3 py-1 text-xs font-bold text-white">
-                  Dia {phaseStats.currentDay}
+                  {t("calendar.dayNumber", { day: phaseStats.currentDay })}
                 </span>
               </div>
 
               <div className="mt-4 flex items-center justify-between text-xs font-medium text-[#5A594E]">
                 <span>
-                  {formatShortDatePt(activePhase.startDate)} →{" "}
-                  {formatShortDatePt(activePhase.endDate)}
+                  {formatShortDate(activePhase.startDate, shortMonthNames)} →{" "}
+                  {formatShortDate(activePhase.endDate, shortMonthNames)}
                 </span>
                 <span className="font-bold text-[#511D4E]">
-                  ~{phaseStats.totalDays} dias
+                  {t("calendar.approxDays", { days: phaseStats.totalDays })}
                 </span>
               </div>
 
@@ -683,18 +710,19 @@ export function AreaCalendarPage({
               </div>
 
               <p className="mt-2.5 text-xs font-semibold text-[#511D4E]">
-                {getCycleStatusLabel(phaseStats.percent)} · {phaseStats.percent}%
-                do ciclo
+                {t("calendar.cyclePercent", {
+                  status: t(getCycleStatusKey(phaseStats.percent)),
+                  percent: phaseStats.percent,
+                })}
               </p>
             </section>
           ) : (
             <section className="mt-4 rounded-3xl border border-[#E6E4DA] bg-white p-5 text-center">
               <p className="text-sm font-bold text-[#1F1C18]">
-                Sem cultivo programado nesta data
+                {t("calendar.noCropOnDateTitle")}
               </p>
               <p className="mt-1 text-xs text-[#6D6960]">
-                Selecione um dia destacado no calendário para acompanhar o
-                ciclo da cultura.
+                {t("calendar.noCropOnDateDesc")}
               </p>
             </section>
           )}
@@ -710,7 +738,7 @@ export function AreaCalendarPage({
               className="w-full max-w-[200px] text-sm font-semibold text-[#511D4E]"
             >
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-              <span>Voltar</span>
+              <span>{t("common.back")}</span>
             </Button>
           </footer>
         )}

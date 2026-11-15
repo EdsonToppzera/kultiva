@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Database, Plus, RefreshCw, Trash2, WifiOff } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -156,6 +157,7 @@ export function PlantationsPage({
     onAreaDeleted?.(removedArea);
   };
 
+  const { t } = useTranslation();
   const formattedCount = String(areas.length).padStart(2, "0");
 
   return (
@@ -164,7 +166,7 @@ export function PlantationsPage({
         <div>
           <header className="flex items-center justify-between gap-2">
             <span className="font-['Nunito',ui-rounded,system-ui,sans-serif] text-[24px] font-black tracking-tight text-[#511D4E]">
-              Kultiva
+              {t("common.appName")}
             </span>
 
             <div className="flex items-center gap-2">
@@ -172,7 +174,7 @@ export function PlantationsPage({
                 type="button"
                 onClick={() => void fetchAreas()}
                 disabled={isLoading}
-                aria-label="Atualizar lista de terrenos"
+                aria-label={t("plantations.refreshAria")}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#E6E4DA] bg-white text-[#511D4E] transition-colors hover:bg-[#EFECE3] disabled:opacity-50"
               >
                 <RefreshCw
@@ -184,7 +186,7 @@ export function PlantationsPage({
               {isOfflineFallback ? (
                 <Badge variant="offline">
                   <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span>Offline</span>
+                  <span>{t("network.offlineShort")}</span>
                 </Badge>
               ) : (
                 <Button
@@ -196,7 +198,9 @@ export function PlantationsPage({
                   className="border-[#E6E4DA] bg-white text-xs text-[#511D4E]"
                 >
                   <Database className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span>{isSeedingDemo ? "Carregando..." : "Demo"}</span>
+                  <span>
+                    {isSeedingDemo ? t("plantations.loadingDemo") : t("plantations.demo")}
+                  </span>
                 </Button>
               )}
 
@@ -206,9 +210,11 @@ export function PlantationsPage({
 
           <section className="mt-7">
             <h1 className="text-[32px] font-bold tracking-tight text-[#511D4E] leading-tight">
-              Plantações
+              {t("plantations.title")}
             </h1>
-            <p className="mt-1.5 text-[15px] text-[#6D6960]">Seus terrenos.</p>
+            <p className="mt-1.5 text-[15px] text-[#6D6960]">
+              {t("plantations.subtitle")}
+            </p>
           </section>
 
           {apiError && (
@@ -222,7 +228,7 @@ export function PlantationsPage({
 
           {isOfflineFallback && (
             <div className="mt-4 rounded-2xl border border-[#CAD17A] bg-[#FCF59B]/40 px-4 py-3 text-xs text-[#4A3B12]">
-              API indisponível no momento. Exibindo áreas de exemplo locais.
+              {t("plantations.offlineBanner")}
             </div>
           )}
 
@@ -231,7 +237,7 @@ export function PlantationsPage({
           <section className="mt-8">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold tracking-[0.08em] text-[#6D6960] uppercase">
-                ÁREAS CADASTRADAS
+                {t("plantations.registeredAreas")}
               </span>
               <span className="text-[14px] font-bold text-[#511D4E]">
                 {formattedCount}
@@ -240,7 +246,7 @@ export function PlantationsPage({
 
             {isLoading && areas.length === 0 ? (
               <div className="mt-4 rounded-2xl border border-[#E6E4DA] bg-white/70 px-4 py-8 text-center text-sm text-[#6D6960]">
-                Carregando terrenos cadastrados...
+                {t("plantations.loadingAreas")}
               </div>
             ) : areas.length > 0 ? (
               <ul className="mt-3 space-y-3">
@@ -265,7 +271,7 @@ export function PlantationsPage({
                     <button
                       type="button"
                       onClick={() => handleOpenDeleteModal(area)}
-                      aria-label={`Excluir ${area.name}`}
+                      aria-label={t("plantations.deleteAria", { name: area.name })}
                       className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 transition-colors hover:bg-red-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                     >
                       <Trash2 className="h-[18px] w-[18px]" aria-hidden="true" />
@@ -276,11 +282,10 @@ export function PlantationsPage({
             ) : (
               <div className="mt-4 rounded-2xl border border-dashed border-[#E6E4DA] bg-white/70 px-4 py-8 text-center">
                 <p className="text-[15px] font-semibold text-[#1F1C18]">
-                  Nenhuma área cadastrada
+                  {t("plantations.emptyTitle")}
                 </p>
                 <p className="mt-1 text-[13px] text-[#6D6960]">
-                  Crie uma nova área abaixo ou carregue áreas de demonstração
-                  para começar seu planejamento.
+                  {t("plantations.emptySubtitle")}
                 </p>
               </div>
             )}
@@ -296,7 +301,7 @@ export function PlantationsPage({
             className="w-full"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
-            Criar Nova Área
+            {t("plantations.createNewArea")}
           </Button>
         </footer>
       </div>
@@ -320,11 +325,10 @@ export function PlantationsPage({
               !
             </div>
             <AlertDialogTitle className="mt-4 text-[22px] font-bold text-[#1F1C18]">
-              Excluir Área?
+              {t("plantations.deleteTitle")}
             </AlertDialogTitle>
             <AlertDialogDescription className="mt-2 text-[14px] leading-relaxed text-[#6D6960]">
-              Tem certeza? Esta ação apagará todo o histórico e não pode ser
-              desfeita.
+              {t("plantations.deleteDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -333,14 +337,14 @@ export function PlantationsPage({
               onClick={handleCancelDelete}
               disabled={isDeleting}
             >
-              Cancelar
+              {t("common.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => void handleConfirmDelete()}
               disabled={isDeleting}
               className="bg-red-600 text-white hover:bg-red-700"
             >
-              {isDeleting ? "Excluindo..." : "Sim, Excluir"}
+              {isDeleting ? t("plantations.deleting") : t("plantations.confirmDelete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
