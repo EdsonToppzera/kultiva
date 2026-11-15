@@ -4,6 +4,8 @@ import unicodedata
 import numpy as np
 from sklearn.ensemble import IsolationForest, RandomForestRegressor
 
+from backend.services.agrofit_service import assess_phytosanitary_risk
+
 # ---------------------------------------------------------------------------
 # Utilitários
 # ---------------------------------------------------------------------------
@@ -558,6 +560,41 @@ class CropSimulator:
         return None
 
     @staticmethod
+    def _extract_ecocrop_crops(
+        field_metrics: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
+        if not isinstance(field_metrics, dict):
+            return None
+        eco = field_metrics.get("ecocrop")
+        if not isinstance(eco, dict):
+            return None
+        if "crops" in eco and isinstance(eco.get("crops"), dict):
+            if eco.get("data_quality") == "no_data":
+                return None
+            return eco["crops"]
+        return eco
+
+    @staticmethod
+    def _extract_agrofit_crops(
+        field_metrics: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
+        if not isinstance(field_metrics, dict):
+            return None
+        agro = field_metrics.get("agrofit")
+        if not isinstance(agro, dict):
+            return None
+        if "crops" in agro and isinstance(agro.get("crops"), dict):
+            if agro.get("data_quality") == "no_data":
+                return None
+            return agro["crops"]
+        return agro
+
+    @staticmethod
+    def _split_strategy_crops(strategy_name: str) -> list[str]:
+        cleaned = str(strategy_name or "").replace("(Atual)", "").replace("→", "->")
+        return [part.strip() for part in cleaned.split("->") if part.strip()]
+
+    @staticmethod
     def _build_gaez_features_for_strategy(
         strategy_name: str,
         gaez_data: dict[str, Any] | None,
@@ -716,6 +753,7 @@ class CropSimulator:
         temporal_features: dict[str, Any] | None = None,
         is_bare_field: bool = False,
         gaez_features: dict[str, Any] | None = None,
+        phytosanitary: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         supply = self._water_supply(metrics)
         gap = water_demand - supply
@@ -807,7 +845,44 @@ class CropSimulator:
                 + bare_soil_bonus
             )
 
-        viability = _clamp(raw_viability + history_adjustment)
+        phyto_penalty = 0.0
+        if isinstance(phytosanitary, dict):
+            phyto_penalty = float(phytosanitary.get("phytosanitary_penalty", 0.0))
+            score_breakdown["phytosanitary_risk"] = phytosanitary.get(
+                "phytosanitary_risk", "low"
+            )
+            score_breakdown["phytosanitary_risk_score"] = float(
+                phytosanitary.get("phytosanitary_risk_score", 0.0)
+            )
+            score_breakdown["phytosanitary_penalty"] = round(phyto_penalty, 4)
+            score_breakdown["botanical_families"] = list(
+                phytosanitary.get("botanical_families") or []
+            )
+            score_breakdown["scientific_names"] = list(
+                phytosanitary.get("scientific_names") or []
+            )
+            score_breakdown["same_family_as_history"] = bool(
+                phytosanitary.get("same_family_as_history", False)
+            )
+            score_breakdown["phytosanitary_triggers"] = list(
+                phytosanitary.get("climate_triggers") or []
+            )
+            score_breakdown["phytosanitary_warnings"] = list(
+                phytosanitary.get("warnings") or []
+            )
+            if phytosanitary.get("ecocrop_comfort") is not None:
+                score_breakdown["ecocrop_comfort"] = phytosanitary.get(
+                    "ecocrop_comfort"
+                )
+            if phytosanitary.get("agrofit_pests_count") is not None:
+                score_breakdown["agrofit_pests_count"] = int(
+                    phytosanitary["agrofit_pests_count"]
+                )
+                score_breakdown["agrofit_pests_sample"] = list(
+                    phytosanitary.get("agrofit_pests_sample") or []
+                )
+
+        viability = _clamp(raw_viability + history_adjustment + phyto_penalty)
         return {
             "viability": round(viability, 2),
             "water_risk": self._risk_from_gap(gap),
@@ -856,6 +931,8 @@ class CropSimulator:
         ).strip()
 
         gaez_data = self._extract_gaez_context(field_metrics)
+        ecocrop_crops = self._extract_ecocrop_crops(field_metrics)
+        agrofit_crops = self._extract_agrofit_crops(field_metrics)
 
         def normalize(name: str) -> str:
             return name.lower().replace("(atual)", "").replace("→", "->").replace(" ", "")
@@ -975,6 +1052,15 @@ class CropSimulator:
                 item["market"],
                 priorities_dict,
             )
+            phytosanitary = assess_phytosanitary_risk(
+                strategy_crops=self._split_strategy_crops(item["strategy"]),
+                metrics=metrics,
+                temporal_features=temporal_features,
+                parsed_history=parsed_history,
+                farmer_priorities=priorities_dict,
+                ecocrop_crops=ecocrop_crops,
+                agrofit_crops=agrofit_crops,
+            )
             scored = self._score(
                 metrics,
                 item["water_demand"],
@@ -986,6 +1072,7 @@ class CropSimulator:
                 temporal_features=temporal_features,
                 is_bare_field=is_bare_field,
                 gaez_features=item.get("gaez_features"),
+                phytosanitary=phytosanitary,
             )
             results.append(
                 {
@@ -1006,6 +1093,15 @@ class CropSimulator:
             # Prática atual fora do catálogo: avalia com atributos médios + GAEZ se disponível.
             history_adj = _compute_history_adjustment(current_name, parsed_history)
             current_gaez = self._build_gaez_features_for_strategy(current_name, gaez_data)
+            current_phyto = assess_phytosanitary_risk(
+                strategy_crops=self._split_strategy_crops(current_name),
+                metrics=metrics,
+                temporal_features=temporal_features,
+                parsed_history=parsed_history,
+                farmer_priorities=priorities_dict,
+                ecocrop_crops=ecocrop_crops,
+                agrofit_crops=agrofit_crops,
+            )
             scored = self._score(
                 metrics,
                 0.65,
@@ -1017,6 +1113,7 @@ class CropSimulator:
                 temporal_features=temporal_features,
                 is_bare_field=is_bare_field,
                 gaez_features=current_gaez,
+                phytosanitary=current_phyto,
             )
             current = {
                 "strategy": current_name,
@@ -1128,6 +1225,21 @@ class CropSimulator:
             if crop_label and gaez_data is not None
             else None
         )
+        ecocrop_crops = self._extract_ecocrop_crops(climate_data) or self._extract_ecocrop_crops(
+            soil_data
+        )
+        agrofit_crops = self._extract_agrofit_crops(climate_data) or self._extract_agrofit_crops(
+            soil_data
+        )
+        phytosanitary = assess_phytosanitary_risk(
+            strategy_crops=self._split_strategy_crops(crop_label) if crop_label else [],
+            metrics=metrics,
+            temporal_features=temporal_features,
+            parsed_history=parsed_history,
+            farmer_priorities=priorities if isinstance(priorities, dict) else None,
+            ecocrop_crops=ecocrop_crops,
+            agrofit_crops=agrofit_crops,
+        )
         scored = self._score(
             metrics,
             water_demand=_clamp(consumo / 700.0),
@@ -1139,6 +1251,7 @@ class CropSimulator:
             temporal_features=temporal_features,
             is_bare_field=is_bare_field,
             gaez_features=gaez_features,
+            phytosanitary=phytosanitary,
         )
         res_dict: dict[str, Any] = {
             "viability_score": scored["viability"],

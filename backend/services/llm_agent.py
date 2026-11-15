@@ -133,6 +133,14 @@ def _format_breakdown_highlights(breakdown: dict[str, Any] | None) -> str:
     if yield_kg is not None and yield_kg > 0:
         items.append(f"produtividade atingível estimada: {round(yield_kg)} kg/ha")
 
+    phyto_risk = str(breakdown.get("phytosanitary_risk") or "").strip().lower()
+    if phyto_risk in {"medium", "high"}:
+        items.append(f"risco fitossanitário: {_translate_risk(phyto_risk)}")
+
+    pests_count = breakdown.get("agrofit_pests_count")
+    if isinstance(pests_count, int) and pests_count > 0:
+        items.append(f"pragas mapeadas AGROFIT: {pests_count}")
+
     return ", ".join(items)
 
 

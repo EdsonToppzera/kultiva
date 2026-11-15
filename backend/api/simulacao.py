@@ -225,6 +225,24 @@ def get_gaez_provider() -> Optional[Any]:
     )
 
 
+def get_ecocrop_provider() -> Optional[Any]:
+    """Provedor de dependência para EcoCropDataProvider (FAO ECOCROP)."""
+    return _get_cached_service(
+        "ecocrop",
+        "backend.services.ecocrop_service",
+        lambda mod: mod.EcoCropDataProvider(data_path="data"),
+    )
+
+
+def get_agrofit_provider() -> Optional[Any]:
+    """Provedor de dependência para AgrofitDataProvider (Embrapa AgroAPI)."""
+    return _get_cached_service(
+        "agrofit",
+        "backend.services.agrofit_service",
+        lambda mod: mod.AgrofitDataProvider(data_path="data"),
+    )
+
+
 def _deve_consultar_gaez(
     gaez_provider: Optional[Any],
     perfil_climatico: Optional[str],
@@ -263,6 +281,160 @@ def _extrair_metricas_gaez(
             return res
     except Exception:
         logger.exception("Falha ao consultar FAO GAEZ v5 na simulação; seguindo sem GAEZ.")
+    return None
+
+
+def _coletar_culturas_simulacao(
+    payload: SimulacaoRequest,
+    prioridades: Dict[str, Any],
+    gaez_metrics: Optional[Dict[str, Any]],
+) -> List[str]:
+    nomes: List[str] = [
+        "Milho",
+        "Soja",
+        "Sorgo",
+        "Feijão-caupi",
+        "Milheto",
+        "Amendoim",
+        "Mandioca",
+        "Crotalária",
+        "Feijão",
+    ]
+    if payload.nome_cultura:
+        nomes.append(payload.nome_cultura)
+    for c in payload.culturas_rotacao or []:
+        if isinstance(c, str) and c.strip():
+            nomes.append(c.strip())
+
+    hist = payload.historico_cultivos or prioridades.get("historico_cultivos")
+    if isinstance(hist, list):
+        nomes.extend(str(x) for x in hist if isinstance(x, str))
+    elif isinstance(hist, dict):
+        for key in ("ultimoCultivo", "ultimo_cultivo", "cultivoAnterior", "cultivo_anterior"):
+            val = hist.get(key)
+            if isinstance(val, str):
+                nomes.append(val)
+            elif isinstance(val, dict):
+                n = val.get("officialName") or val.get("nome") or val.get("name")
+                if isinstance(n, str):
+                    nomes.append(n)
+
+    for rot in prioridades.get("rotacoes_preferenciais") or []:
+        if isinstance(rot, str):
+            nomes.extend(p.strip() for p in rot.replace("→", "->").split("->") if p.strip())
+        elif isinstance(rot, dict):
+            for c in rot.get("culturas") or []:
+                if isinstance(c, str):
+                    nomes.append(c)
+
+    if isinstance(gaez_metrics, dict) and isinstance(gaez_metrics.get("crops"), dict):
+        for c in gaez_metrics["crops"].values():
+            if isinstance(c, dict):
+                if c.get("scientific_name"):
+                    nomes.append(str(c["scientific_name"]))
+                if c.get("nome"):
+                    nomes.append(str(c["nome"]))
+
+    return list(dict.fromkeys(n.strip() for n in nomes if isinstance(n, str) and n.strip()))
+
+
+def _deve_consultar_ecocrop(
+    ecocrop_provider: Optional[Any],
+    perfil_climatico: Optional[str],
+) -> bool:
+    if ecocrop_provider is None:
+        return False
+    raw = os.getenv("ECOCROP_ENABLED", "").strip().lower()
+    if raw in {"0", "false", "no", "nao", "não", "off"}:
+        return False
+    if raw in {"1", "true", "yes", "sim", "on"}:
+        return True
+    try:
+        eco_mod = importlib.import_module("backend.services.ecocrop_service")
+        real_cls = getattr(eco_mod, "EcoCropDataProvider", None)
+        is_custom = real_cls is not None and not isinstance(ecocrop_provider, real_cls)
+        if is_custom or str(getattr(ecocrop_provider, "data_path", "data")) != "data":
+            return True
+        cache_csv = os.path.join(
+            str(getattr(ecocrop_provider, "data_path", "data")),
+            "ecocrop_cache",
+            "EcoCrop_DB.csv",
+        )
+        if os.path.exists(cache_csv):
+            return True
+    except Exception:
+        pass
+    nasa_real = os.getenv("NASA_PROVIDER", "").strip().lower() == "real"
+    return bool(nasa_real or perfil_climatico == "real")
+
+
+def _extrair_metricas_ecocrop(
+    culturas: List[str],
+    ecocrop_provider: Optional[Any],
+    perfil_climatico: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    if not _deve_consultar_ecocrop(ecocrop_provider, perfil_climatico):
+        return None
+    try:
+        res = ecocrop_provider.extract_crops_map(culturas)
+        if isinstance(res, dict) and res.get("data_quality") == "ecocrop_csv":
+            return res
+    except Exception:
+        logger.exception("Falha ao consultar ECOCROP na simulação; seguindo sem ECOCROP.")
+    return None
+
+
+def _deve_consultar_agrofit(
+    agrofit_provider: Optional[Any],
+    perfil_climatico: Optional[str],
+) -> bool:
+    if agrofit_provider is None:
+        return False
+    raw = os.getenv("AGROFIT_ENABLED", "").strip().lower()
+    if raw in {"0", "false", "no", "nao", "não", "off"}:
+        return False
+    try:
+        agro_mod = importlib.import_module("backend.services.agrofit_service")
+        real_cls = getattr(agro_mod, "AgrofitDataProvider", None)
+        is_custom = real_cls is not None and not isinstance(agrofit_provider, real_cls)
+        if is_custom or str(getattr(agrofit_provider, "data_path", "data")) != "data":
+            return True
+        has_creds = callable(getattr(agrofit_provider, "has_credentials", None)) and agrofit_provider.has_credentials()
+        cache_dir = os.path.join(
+            str(getattr(agrofit_provider, "data_path", "data")),
+            "agrofit_cache",
+        )
+        has_cache = os.path.isdir(cache_dir) and any(
+            name.endswith(".json") for name in os.listdir(cache_dir)
+        )
+        if raw in {"1", "true", "yes", "sim", "on"}:
+            return bool(has_creds or has_cache)
+        nasa_real = os.getenv("NASA_PROVIDER", "").strip().lower() == "real"
+        return bool((nasa_real or perfil_climatico == "real") and (has_creds or has_cache))
+    except Exception:
+        return False
+
+
+def _extrair_metricas_agrofit(
+    culturas: List[str],
+    ecocrop_metrics: Optional[Dict[str, Any]],
+    agrofit_provider: Optional[Any],
+    perfil_climatico: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    if not _deve_consultar_agrofit(agrofit_provider, perfil_climatico):
+        return None
+    try:
+        sci_names: List[str] = []
+        if isinstance(ecocrop_metrics, dict) and isinstance(ecocrop_metrics.get("crops"), dict):
+            for rec in ecocrop_metrics["crops"].values():
+                if isinstance(rec, dict) and rec.get("scientific_name"):
+                    sci_names.append(str(rec["scientific_name"]))
+        sci_names.extend(culturas)
+        res = agrofit_provider.fetch_crops_pests_map(sci_names)
+        if isinstance(res, dict) and res.get("data_quality") == "agrofit_v1":
+            return res
+    except Exception:
+        logger.exception("Falha ao consultar AGROFIT na simulação; seguindo sem AGROFIT.")
     return None
 
 
@@ -642,6 +814,8 @@ def _processar_simulacao(
     crop_simulator: Optional[Any],
     rotation_explainer: Optional[Any],
     gaez_provider: Optional[Any] = None,
+    ecocrop_provider: Optional[Any] = None,
+    agrofit_provider: Optional[Any] = None,
 ) -> SimulacaoResponse:
     terreno_id_resp: Optional[int] = None
     usuario_id_terreno: Optional[int] = None
@@ -730,6 +904,26 @@ def _processar_simulacao(
     if gaez_metrics is not None:
         metricas_geoespaciais["gaez"] = gaez_metrics
 
+    culturas_simulacao = _coletar_culturas_simulacao(
+        payload, prioridades_finais, gaez_metrics
+    )
+    ecocrop_metrics = _extrair_metricas_ecocrop(
+        culturas_simulacao,
+        ecocrop_provider=ecocrop_provider,
+        perfil_climatico=perfil_climatico,
+    )
+    if ecocrop_metrics is not None:
+        metricas_geoespaciais["ecocrop"] = ecocrop_metrics
+
+    agrofit_metrics = _extrair_metricas_agrofit(
+        culturas_simulacao,
+        ecocrop_metrics=ecocrop_metrics,
+        agrofit_provider=agrofit_provider,
+        perfil_climatico=perfil_climatico,
+    )
+    if agrofit_metrics is not None:
+        metricas_geoespaciais["agrofit"] = agrofit_metrics
+
     tipo_solo = (payload.dados_solo or {}).get("tipo_solo") or prioridades_finais.get("tipo_solo")
     if tipo_solo:
         metricas_geoespaciais["tipo_solo"] = tipo_solo
@@ -773,6 +967,11 @@ def _processar_simulacao(
         prioridades=prioridades_finais,
         culturas_rotacao=culturas_rotacao,
     )
+    if rotacoes_sugeridas:
+        top_bd = rotacoes_sugeridas[0].score_breakdown or {}
+        for aviso in (top_bd.get("phytosanitary_warnings") or [])[:2]:
+            if isinstance(aviso, str) and aviso not in riscos:
+                riscos.append(aviso)
     explicacao, ia_fallback = _gerar_explicacao_ia(
         nome_cultura=nome_cultura,
         beneficios=beneficios,
@@ -874,6 +1073,8 @@ def executar_simulacao(
     crop_simulator: Optional[Any] = Depends(get_crop_simulator),
     rotation_explainer: Optional[Any] = Depends(get_rotation_explainer),
     gaez_provider: Optional[Any] = Depends(get_gaez_provider),
+    ecocrop_provider: Optional[Any] = Depends(get_ecocrop_provider),
+    agrofit_provider: Optional[Any] = Depends(get_agrofit_provider),
 ) -> SimulacaoResponse:
     """Recebe parâmetros do frontend, integra serviços geoespaciais/ML/LLM e retorna a simulação."""
     return _processar_simulacao(
@@ -883,6 +1084,8 @@ def executar_simulacao(
         crop_simulator=crop_simulator,
         rotation_explainer=rotation_explainer,
         gaez_provider=gaez_provider,
+        ecocrop_provider=ecocrop_provider,
+        agrofit_provider=agrofit_provider,
     )
 
 
@@ -894,6 +1097,8 @@ def simular_rotacao(
     crop_simulator: Optional[Any] = Depends(get_crop_simulator),
     rotation_explainer: Optional[Any] = Depends(get_rotation_explainer),
     gaez_provider: Optional[Any] = Depends(get_gaez_provider),
+    ecocrop_provider: Optional[Any] = Depends(get_ecocrop_provider),
+    agrofit_provider: Optional[Any] = Depends(get_agrofit_provider),
 ) -> SimulacaoResponse:
     """Endpoint direto /api/v1/simular-rotacao para orquestração de simulação e explicação IA."""
     return _processar_simulacao(
@@ -903,4 +1108,6 @@ def simular_rotacao(
         crop_simulator=crop_simulator,
         rotation_explainer=rotation_explainer,
         gaez_provider=gaez_provider,
+        ecocrop_provider=ecocrop_provider,
+        agrofit_provider=agrofit_provider,
     )
