@@ -115,19 +115,34 @@ function translateCropStepName(name: string, isEnglish: boolean): string {
     return i18n.t("simulation.restStep");
   }
   if (!isEnglish) return name;
-  const normalized = name.trim().toLowerCase();
+
+  const trimmed = name.trim();
+  if (trimmed.includes("/")) {
+    return trimmed
+      .split("/")
+      .map((part) => translateCropStepName(part.trim(), true))
+      .join(" / ");
+  }
+
+  const hasCurrentSuffix = /\(atual\)\s*$/i.test(trimmed);
+  const baseName = trimmed.replace(/\s*\(atual\)\s*$/i, "").trim();
+  const normalized = baseName.toLowerCase();
+
+  let translated = baseName;
   if (EN_CROP_NAMES_BY_KEY[normalized]) {
-    return EN_CROP_NAMES_BY_KEY[normalized];
+    translated = EN_CROP_NAMES_BY_KEY[normalized];
+  } else {
+    const match = CROPS_DICTIONARY.find(
+      (crop) =>
+        crop.officialName.toLowerCase() === normalized ||
+        crop.popularNames.some((alias) => alias.toLowerCase() === normalized)
+    );
+    if (match && EN_CROP_NAMES_BY_KEY[match.id]) {
+      translated = EN_CROP_NAMES_BY_KEY[match.id];
+    }
   }
-  const match = CROPS_DICTIONARY.find(
-    (crop) =>
-      crop.officialName.toLowerCase() === normalized ||
-      crop.popularNames.some((alias) => alias.toLowerCase() === normalized)
-  );
-  if (match && EN_CROP_NAMES_BY_KEY[match.id]) {
-    return EN_CROP_NAMES_BY_KEY[match.id];
-  }
-  return name;
+
+  return hasCurrentSuffix ? `${translated} (Current)` : translated;
 }
 
 function localizeCropNamesInText(text: string, isEnglish: boolean): string {
@@ -253,7 +268,7 @@ const EN_BENEFIT_PHRASES: Array<[string, string]> = [
 ];
 
 function translateKnownBenefit(benefit: string, isEnglish: boolean): string {
-  if (!isEnglish) return benefit;
+  if (!isEnglish || !benefit) return benefit;
   let translated = benefit;
   for (const [pt, en] of EN_BENEFIT_PHRASES) {
     if (translated.includes(pt)) {
@@ -261,9 +276,15 @@ function translateKnownBenefit(benefit: string, isEnglish: boolean): string {
     }
   }
   return translated
-    .replace(/Aptidão FAO GAEZ v5/g, "FAO GAEZ v5 suitability")
-    .replace(/produtividade atingível média/g, "avg attainable yield")
-    .replace(/GAEZ v5: aptidão/g, "GAEZ v5: suitability");
+    .replace(
+      /Aptidão FAO GAEZ v5(\s*\([^)]+\))?\s+de\s+/gi,
+      "FAO GAEZ v5 suitability$1 of "
+    )
+    .replace(/Aptidão FAO GAEZ v5/gi, "FAO GAEZ v5 suitability")
+    .replace(/produtividade atingível média/gi, "avg attainable yield")
+    .replace(/com fixação biológica de nitrogênio/gi, "with biological nitrogen fixation")
+    .replace(/fixação biológica de nitrogênio/gi, "biological nitrogen fixation")
+    .replace(/GAEZ v5:\s*aptidão/gi, "GAEZ v5: suitability");
 }
 
 function buildProsAndCons(
@@ -279,8 +300,9 @@ function buildProsAndCons(
     pros.push(translateKnownBenefit(item.benefits, isEnglish));
   }
   for (const beneficio of response.beneficios_esperados.slice(0, 2)) {
-    if (!pros.includes(beneficio)) {
-      pros.push(beneficio);
+    const localized = localizeCropNamesInText(beneficio, isEnglish);
+    if (!pros.includes(localized)) {
+      pros.push(localized);
     }
   }
   if (pros.length === 0) {
@@ -479,13 +501,16 @@ export function adaptSimulacaoToScenarios(
       focusTag: mapFocusTag(onboarding.priority, idx),
       variant,
       steps,
-      aiJustification: localizeCropNamesInText(
-        item.explicacao ||
-          response.explicacao_ia ||
-          response.explicacao_textual ||
-          (isEnglish
-            ? "Rotation calculated from your plot history and climate conditions."
-            : "Rotação calculada com base no histórico da área e condições climáticas."),
+      aiJustification: translateKnownBenefit(
+        localizeCropNamesInText(
+          item.explicacao ||
+            response.explicacao_ia ||
+            response.explicacao_textual ||
+            (isEnglish
+              ? "Rotation calculated from your plot history and climate conditions."
+              : "Rotação calculada com base no histórico da área e condições climáticas."),
+          isEnglish
+        ),
         isEnglish
       ),
       pros,
@@ -800,15 +825,6 @@ function localizeCalendarActivityText(text: string, isEnglish: boolean): string 
   let out = text
     .replace(/\[Etapa\s+(\d+)\s*-\s*([^\]]+)\]/gi, "[Stage $1 - $2]")
     .replace(/\[Etapa\s+(\d+)\]/gi, "[Stage $1]")
-    .replace(/\bPlantio de\s+/gi, "Planting of ")
-    .replace(/\bIrrigação inicial\s*—\s*/gi, "Initial irrigation — ")
-    .replace(/\bInspeção fitossanitária\s*—\s*/gi, "Phytosanitary inspection — ")
-    .replace(/\bAdubação de cobertura\s*—\s*/gi, "Top-dressing fertilization — ")
-    .replace(/\bColheita de\s+/gi, "Harvest of ")
-    .replace(/\bVistoria inicial de\s+/gi, "Initial inspection of ")
-    .replace(/\bManejo e rega de\s+/gi, "Management and watering of ");
-
-  out = out
     .replace(
       /Preparo do canteiro e semeadura\/plantio de\s+([^.]+)\.?/gi,
       "Seedbed preparation and sowing/planting of $1."
@@ -845,9 +861,65 @@ function localizeCalendarActivityText(text: string, isEnglish: boolean): string 
     .replace(
       /Atenção ao risco hídrico simulado: priorize cobertura do solo\.?/gi,
       "Attention to simulated water risk: prioritize soil cover."
-    );
+    )
+    .replace(
+      /Inspeção de drenagem e escoamento pós-chuva/gi,
+      "Post-rain drainage and runoff inspection"
+    )
+    .replace(
+      /Verificar acúmulo de água, erosão em canteiros e condição das raízes após evento de\s+([^.]+)\.?/gi,
+      "Check for water pooling, bed erosion, and root condition after $1."
+    )
+    .replace(
+      /Irrigação suplementar e proteção térmica do solo/gi,
+      "Supplemental irrigation and soil thermal protection"
+    )
+    .replace(
+      /Reforçar cobertura morta e realizar irrigação nos horários mais frescos para mitigar\s+([^.]+)\.?/gi,
+      "Reinforce mulch and irrigate during cooler hours to mitigate $1."
+    )
+    .replace(
+      /Inspeção fitossanitária e manejo de praga/gi,
+      "Phytosanitary inspection and pest management"
+    )
+    .replace(
+      /Avaliar nível de infestação nas folhas e caules, isolar reboleiras e definir manejo integrado\.?/gi,
+      "Assess infestation level on leaves and stems, isolate hotspots, and define integrated management."
+    )
+    .replace(
+      /Proteção emergencial da lavoura contra\s+/gi,
+      "Emergency crop protection against "
+    )
+    .replace(
+      /Adotar barreiras de proteção ou cobertura temporária antes do pico do evento extremo\.?/gi,
+      "Set up protective barriers or temporary cover before the extreme event peaks."
+    )
+    .replace(
+      /Preparo conservacionista do solo/gi,
+      "Conservation soil preparation"
+    )
+    .replace(
+      /Irrigação suplementar prioritária/gi,
+      "Priority supplemental irrigation"
+    )
+    .replace(
+      /Inspeção de umidade radicular/gi,
+      "Root-zone moisture inspection"
+    )
+    .replace(/Plantio em contorno de\s+/gi, "Contour planting of ")
+    .replace(
+      /Vistoria de drenagem superficial/gi,
+      "Surface drainage inspection"
+    )
+    .replace(/\bPlantio de\s+/gi, "Planting of ")
+    .replace(/\bIrrigação inicial\s*—\s*/gi, "Initial irrigation — ")
+    .replace(/\bInspeção fitossanitária\s*—\s*/gi, "Phytosanitary inspection — ")
+    .replace(/\bAdubação de cobertura\s*—\s*/gi, "Top-dressing fertilization — ")
+    .replace(/\bColheita de\s+/gi, "Harvest of ")
+    .replace(/\bVistoria inicial de\s+/gi, "Initial inspection of ")
+    .replace(/\bManejo e rega de\s+/gi, "Management and watering of ");
 
-  return out;
+  return localizeCropNamesInText(out, true);
 }
 
 function mapMilestoneType(

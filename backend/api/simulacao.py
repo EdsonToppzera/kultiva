@@ -689,13 +689,17 @@ def _montar_beneficios_e_riscos(
     """Contextualiza benefícios e riscos agronômicos da simulação."""
     lang = _normalizar_idioma(idioma)
     if lang == "en":
+        from backend.services.llm_agent import _translate_strategy_name_en
+
+        nome_cultura_en = _translate_strategy_name_en(nome_cultura)
+        culturas_rotacao_en = [_translate_strategy_name_en(c) for c in culturas_rotacao]
         beneficios = [
-            f"Alignment of {nome_cultura}'s cycle with your plot planning",
+            f"Alignment of {nome_cultura_en}'s cycle with your plot planning",
             "Use of environmental data for preventive resource management",
         ]
-        if culturas_rotacao:
+        if culturas_rotacao_en:
             beneficios.append(
-                f"Productive diversification with rotation involving {', '.join(culturas_rotacao)}"
+                f"Productive diversification with rotation involving {', '.join(culturas_rotacao_en)}"
             )
 
         riscos: List[str] = []
