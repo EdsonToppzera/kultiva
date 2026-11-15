@@ -13,6 +13,7 @@ import {
 } from "../components/ui/alert-dialog";
 import { KultivaLogo } from "../components/KultivaLogo";
 import { LanguageSelector } from "../components/LanguageSelector";
+import { NetworkStatusBadge } from "../components/NetworkStatusBadge";
 import { Button } from "../components/ui/button";
 import {
   type CoordenadaApi,
@@ -138,6 +139,7 @@ export function PlantationsPage({
             <KultivaLogo />
 
             <div className="flex items-center gap-2">
+              <NetworkStatusBadge />
               <button
                 type="button"
                 onClick={() => void fetchAreas()}

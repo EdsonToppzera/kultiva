@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { KultivaLogo } from "../components/KultivaLogo";
+import { NetworkStatusBadge } from "../components/NetworkStatusBadge";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import kinks from "@turf/kinks";
@@ -271,8 +272,9 @@ export function MapTerrainPage({
     <div className="min-h-screen bg-[#F7F6F0] md:bg-[#EFECE3] md:py-6">
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-between bg-[#F7F6F0] px-5 pt-7 pb-8 text-[#1F1C18] md:min-h-[820px] md:rounded-[32px] md:border md:border-[#E6E4DA] md:shadow-sm">
         <div>
-          <header className="flex items-center justify-between">
+          <header className="flex items-center justify-between gap-2">
             <KultivaLogo />
+            <NetworkStatusBadge />
           </header>
 
           <section className="mt-6">

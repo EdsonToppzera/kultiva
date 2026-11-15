@@ -9,16 +9,13 @@ import {
   Home,
   Leaf,
   PiggyBank,
-  RefreshCw,
   Search,
   Sprout,
   Target,
   TrendingUp,
-  Wifi,
-  WifiOff,
 } from "lucide-react";
 import { KultivaLogo } from "../../../components/KultivaLogo";
-import { Badge } from "../../../components/ui/badge";
+import { NetworkStatusBadge } from "../../../components/NetworkStatusBadge";
 import { Button } from "../../../components/ui/button";
 import {
   Command,
@@ -98,19 +95,6 @@ export const PRIORITY_OPTIONS: PriorityOption[] = [
     requiresPestSelection: true,
   },
 ];
-
-const NETWORK_BADGE_CONFIG: Record<
-  NetworkSyncStatus,
-  {
-    labelKey: string;
-    variant: "saved" | "offline" | "outline";
-    icon: React.ComponentType<{ className?: string }>;
-  }
-> = {
-  salvo: { labelKey: "network.saved", variant: "saved", icon: Wifi },
-  sincronizando: { labelKey: "network.saving", variant: "outline", icon: RefreshCw },
-  offline: { labelKey: "network.offline", variant: "offline", icon: WifiOff },
-};
 
 interface CropThumbnailProps {
   crop: CropOption;
@@ -560,28 +544,7 @@ export function PrioritiesStep({
   onContinue,
 }: PrioritiesStepProps) {
   const { t } = useTranslation();
-  const [isOnline, setIsOnline] = React.useState<boolean>(() =>
-    typeof navigator !== "undefined" ? navigator.onLine : true
-  );
-  const [syncState, setSyncState] = React.useState<NetworkSyncStatus | null>(
-    null
-  );
   const [isSaving, setIsSaving] = React.useState(false);
-
-  React.useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
-  const resolvedNetworkStatus: NetworkSyncStatus =
-    syncState ?? networkStatus ?? (isOnline ? "salvo" : "offline");
 
   const [selectedId, setSelectedId] = React.useState<PriorityId | null>(
     initialValue
@@ -594,9 +557,6 @@ export function PrioritiesStep({
     initialTargetPest
   );
   const [pestPickerOpen, setPestPickerOpen] = React.useState(false);
-
-  const badgeInfo = NETWORK_BADGE_CONFIG[resolvedNetworkStatus];
-  const NetworkIcon = badgeInfo.icon;
 
   const selectedOption = React.useMemo(
     () => options.find((item) => item.id === selectedId) ?? null,
@@ -633,7 +593,6 @@ export function PrioritiesStep({
 
     if (terrenoId != null) {
       setIsSaving(true);
-      setSyncState("sincronizando");
       try {
         const updated = await atualizarTerreno(terrenoId, {
           prioridades: {
@@ -644,10 +603,9 @@ export function PrioritiesStep({
             praga_alvo: targetPest?.officialName ?? null,
           },
         });
-        setSyncState("salvo");
         onTerrenoUpdated?.(updated);
       } catch {
-        setSyncState("offline");
+        // Mantém fluxo offline-first se a API falhar
       } finally {
         setIsSaving(false);
       }
@@ -672,16 +630,7 @@ export function PrioritiesStep({
             <KultivaLogo />
 
             <div className="flex items-center gap-2">
-              <Badge variant={badgeInfo.variant} aria-live="polite">
-                <NetworkIcon
-                  className={cn(
-                    "h-3.5 w-3.5",
-                    resolvedNetworkStatus === "sincronizando" && "animate-spin"
-                  )}
-                  aria-hidden="true"
-                />
-                <span>{t(badgeInfo.labelKey)}</span>
-              </Badge>
+              <NetworkStatusBadge status={networkStatus} isSyncing={isSaving} />
             </div>
           </header>
 

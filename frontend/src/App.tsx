@@ -5,13 +5,12 @@ import {
   ChevronLeft,
   Pencil,
   RotateCcw,
-  Wifi,
-  WifiOff,
 } from "lucide-react";
 import { KultivaLoader } from "./components/KultivaLoader";
 import { KultivaLogo } from "./components/KultivaLogo";
-import { Badge } from "./components/ui/badge";
+import { NetworkStatusBadge } from "./components/NetworkStatusBadge";
 import { Button } from "./components/ui/button";
+import { useNetworkStatus } from "./hooks/useNetworkStatus";
 import type {
   CropHistoryData,
   NetworkSyncStatus,
@@ -195,21 +194,7 @@ export function App() {
     const params = new URLSearchParams(window.location.search);
     return params.get("loading") === "1" || params.get("loader") === "1";
   });
-  const [isOnline, setIsOnline] = React.useState<boolean>(() =>
-    typeof navigator !== "undefined" ? navigator.onLine : true
-  );
-
-  React.useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
+  const isOnline = useNetworkStatus();
 
   const networkStatus: NetworkSyncStatus = isOnline ? "salvo" : "offline";
 
@@ -536,17 +521,7 @@ export function App() {
               <KultivaLogo />
 
               <div className="flex items-center gap-2">
-                <Badge
-                  variant={isOnline ? "saved" : "offline"}
-                  aria-live="polite"
-                >
-                  {isOnline ? (
-                    <Wifi className="h-3.5 w-3.5" aria-hidden="true" />
-                  ) : (
-                    <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
-                  )}
-                  <span>{isOnline ? t("network.saved") : t("network.offline")}</span>
-                </Badge>
+                <NetworkStatusBadge />
               </div>
             </header>
 
