@@ -168,6 +168,19 @@ export function PlantationsPage({
             </span>
 
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void fetchAreas()}
+                disabled={isLoading}
+                aria-label="Atualizar lista de terrenos"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#E6E4DA] bg-white text-[#511D4E] transition-colors hover:bg-[#EFECE3] disabled:opacity-50"
+              >
+                <RefreshCw
+                  className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
+                  aria-hidden="true"
+                />
+              </button>
+
               {isOfflineFallback ? (
                 <Badge variant="offline">
                   <WifiOff className="h-3.5 w-3.5" aria-hidden="true" />
@@ -188,19 +201,6 @@ export function PlantationsPage({
               )}
 
               <LanguageSelector />
-
-              <button
-                type="button"
-                onClick={() => void fetchAreas()}
-                disabled={isLoading}
-                aria-label="Atualizar lista de terrenos"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E6E4DA] bg-white text-[#511D4E] transition-colors hover:bg-[#EFECE3] disabled:opacity-50"
-              >
-                <RefreshCw
-                  className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"}
-                  aria-hidden="true"
-                />
-              </button>
             </div>
           </header>
 
