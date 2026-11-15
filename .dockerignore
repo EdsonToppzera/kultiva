@@ -1,0 +1,44 @@
+# Git / Docs / IDE
+.git/
+.github/
+.gitignore
+.vscode/
+.idea/
+docs/
+site/
+mkdocs.yml
+README.md
+*.md
+*.log
+
+# Python virtualenvs & caches
+.venv/
+venv/
+env/
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Frontend (deploy separado na Vercel)
+frontend/
+
+# Testes e scripts de coleta offline
+backend/tests/
+backend/scripts/
+
+# Segredos / bancos locais / netcdf gerados em runtime
+.env
+.env.*
+postgres_data/
+*.db
+*.sqlite*
+*.nc
+data/.climate_profile
+data/ecocrop_cache/
+data/raw/
+data/processed/agrofit_cultura_pragas.csv

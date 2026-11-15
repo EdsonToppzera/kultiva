@@ -9,7 +9,7 @@ import type { CropHistoryData } from "../features/onboarding/types/cropHistory.t
 import type { PriorityData } from "../features/onboarding/types/priority.types";
 import type { SoilTypeData } from "../features/onboarding/types/soilType.types";
 import type { WaterDistributionData } from "../features/onboarding/types/waterDistribution.types";
-import { COVER_CROP_ALTERNATIVES } from "../features/simulation/components/RecommendationsStep";
+import { COVER_CROP_ALTERNATIVES } from "../features/simulation/utils/recommendationHelpers";
 import type {
   RecommendationCardVariant,
   RotationScenario,

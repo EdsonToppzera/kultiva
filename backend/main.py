@@ -29,6 +29,15 @@ def _resolver_origens_cors() -> list[str]:
     return list(dict.fromkeys([*extras, *_DEFAULT_CORS_ORIGINS]))
 
 
+def _resolver_regex_cors() -> str:
+    """Permite estender CORS via regex (ex.: preview deploys da Vercel)."""
+    custom_regex = os.getenv("CORS_ORIGIN_REGEX", "").strip()
+    local_regex = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
+    if custom_regex:
+        return f"(?:{local_regex})|(?:{custom_regex})"
+    return local_regex
+
+
 def seed_usuario_padrao(db: Optional[Session] = None) -> models.Usuario:
     """Garante a existência de um usuário padrão no banco para uso inicial/demo."""
     own_session = db is None
@@ -157,7 +166,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_resolver_origens_cors(),
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_origin_regex=_resolver_regex_cors(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

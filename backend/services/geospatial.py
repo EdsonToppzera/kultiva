@@ -7,13 +7,12 @@ import os
 from abc import ABC, abstractmethod
 from typing import Any
 
-import geopandas as gpd
 import httpx
 import numpy as np
 import pandas as pd
 import rioxarray  # noqa: F401 - registra o accessor .rio no xarray
 import xarray as xr
-from shapely.geometry import LineString, Point, Polygon
+from shapely.geometry import LineString, Point, Polygon, mapping
 
 from backend.services.mock_nasa_data import (
     ECOSTRESS_FILE,
@@ -176,7 +175,13 @@ class MockNASADataProvider(INASADataProvider):
     def _reduce_spatial(ds: xr.Dataset, var: str, gdf: Any, geom: Any):
         """Média espacial por passo de tempo. Retorna (série, qualidade) ou (None, 'no_data')."""
         try:
-            clipped = ds.rio.clip(gdf.geometry, gdf.crs, drop=True, all_touched=True)
+            clip_geoms = (
+                gdf.geometry
+                if gdf is not None and hasattr(gdf, "geometry")
+                else [mapping(geom)]
+            )
+            clip_crs = getattr(gdf, "crs", "EPSG:4326") if gdf is not None else "EPSG:4326"
+            clipped = ds.rio.clip(clip_geoms, clip_crs, drop=True, all_touched=True)
             series = clipped[var].mean(dim=["lat", "lon"], skipna=True)
             if bool(series.isnull().all()):
                 raise ValueError("clip sem células válidas")
@@ -207,7 +212,7 @@ class MockNASADataProvider(INASADataProvider):
         _ = dataset
         norm_coords = _normalize_polygon_coords(polygon_coords)
         geom = _build_polygon_geometry(norm_coords)
-        gdf = gpd.GeoDataFrame(index=[0], crs="EPSG:4326", geometry=[geom])
+        gdf = None
 
         sources = {
             "soil_moisture": (SMAP_FILE, "soil_moisture"),
@@ -859,7 +864,7 @@ class RealNASADataProvider(INASADataProvider):
 
     def _extract_srtm_elevation(
         self,
-        gdf: gpd.GeoDataFrame,
+        gdf: Any,
         geom: Any,
         ea: Any = None,
         authenticated: bool = False,
@@ -950,7 +955,7 @@ class RealNASADataProvider(INASADataProvider):
 
     def _extract_hls_coverage(
         self,
-        gdf: gpd.GeoDataFrame,
+        gdf: Any,
         geom: Any,
         temporal: tuple[str, str],
         ea: Any = None,
@@ -1056,7 +1061,7 @@ class RealNASADataProvider(INASADataProvider):
         _ = profile
         norm_coords = _normalize_polygon_coords(polygon_coords)
         geom = _build_polygon_geometry(norm_coords)
-        gdf = gpd.GeoDataFrame(index=[0], crs="EPSG:4326", geometry=[geom])
+        gdf = None
         minx, miny, maxx, maxy = geom.bounds
         bbox = (float(minx), float(miny), float(maxx), float(maxy))
 

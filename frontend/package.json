@@ -19,7 +19,6 @@
     "vite": "^6.1.0"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.66.0",
     "@turf/helpers": "^7.4.0",
     "@turf/kinks": "^7.4.0",
     "i18next": "^27.1.2",
@@ -28,7 +27,6 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-i18next": "^18.0.1",
-    "react-leaflet": "^5.0.0",
-    "react-router-dom": "^7.1.5"
+    "react-leaflet": "^5.0.0"
   }
 }
