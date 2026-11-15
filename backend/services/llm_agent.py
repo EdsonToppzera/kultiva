@@ -724,7 +724,8 @@ def _build_simple_fallback_explanation(
             f"Estimated {viab_txt} chance of doing well, with {risk_txt} risk of dry spells hurting the crop."
         ]
         if clean_benefit:
-            details.append(f"Why it helps: {clean_benefit}.")
+            en_benefit = _translate_benefit_en(clean_benefit)
+            details.append(f"Why it helps: {en_benefit}.")
         if yield_kg is not None and yield_kg > 0 and "kg/ha" not in " ".join(details).lower():
             details.append(f"Expected harvest around {round(yield_kg)} kg/ha.")
 
@@ -1190,6 +1191,60 @@ def _translate_strategy_name_en(name: str) -> str:
     )
 
 
+_EN_BENEFIT_MAP: tuple[tuple[str, str], ...] = (
+    ("Tem boa saída e venda fácil na região", "Easy to sell with steady demand in the region"),
+    ("Mercado estabelecido e cadeia de comercialização consolidada", "Easy to sell with steady demand in the region"),
+    ("Aguenta bem a seca e ajuda a adubar a terra", "Handles drought well and naturally enriches the soil"),
+    ("Alta tolerância à seca, fixa nitrogênio", "Handles drought well and naturally enriches the soil"),
+    ("Deixa a terra mais fofa e fértil", "Makes the soil looser and healthier"),
+    ("Melhora a estrutura do solo", "Makes the soil looser and healthier"),
+    ("Planta forte, cobre bem o chão e protege as raízes", "Hardy crop that covers the ground and protects roots"),
+    ("Rústica, cobre o solo e controla nematoides", "Hardy crop that covers the ground and protects roots"),
+    ("O feijão aduba a terra para o milho que vem depois", "Beans enrich the soil for the corn planted next"),
+    ("Feijão fixa nitrogênio para o milho seguinte", "Beans enrich the soil for the corn planted next"),
+    ("Prática atual do produtor", "Your current farm practice"),
+    ("Rotação preferencial cadastrada pelo produtor", "Preferred rotation saved by you"),
+    ("Combina bem com a terra da região", "Fits your local soil and weather well"),
+)
+
+
+def _translate_benefit_en(benefit: str) -> str:
+    if not benefit:
+        return benefit
+    out = _clean_farmer_text(benefit)
+    for pt, en in _EN_BENEFIT_MAP:
+        if pt in out:
+            out = out.replace(pt, en)
+    out = re.sub(
+        r"pode render perto de\s*(~?\d+\s*kg/ha)",
+        r"expected harvest around \1",
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
+        r"rende perto de\s*(~?\d+\s*kg/ha)",
+        r"expected harvest around \1",
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(r"na região", "in your region", out, flags=re.IGNORECASE)
+    out = re.sub(
+        r"e ajuda a adubar o solo naturalmente",
+        "and naturally enriches the soil",
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(
+        r"e ajuda a adubar a terra naturalmente",
+        "and naturally enriches the soil",
+        out,
+        flags=re.IGNORECASE,
+    )
+    out = re.sub(r"e ajuda a adubar o solo", "and helps enrich the soil", out, flags=re.IGNORECASE)
+    out = re.sub(r"ajuda a adubar a terra", "helps enrich the soil", out, flags=re.IGNORECASE)
+    return out
+
+
 class RotationExplainerAgent:
     """Agente responsável por traduzir simulações agronômicas para linguagem simples."""
 
@@ -1242,7 +1297,10 @@ class RotationExplainerAgent:
                 "diga com o nome das plantas por que ela ajuda (ou pede cuidado com água) no objetivo do produtor "
                 "e dê 1 dica prática de campo. Traduza números e siglas em palavras simples "
                 "(nunca cite GAEZ, ECOCROP, CMIP6, AGROFIT, LRLM, z-score ou 'fixação biológica').\n"
-                "5. Termine CADA bloco exatamente com uma frase curta: 'A decisão final é sempre sua.'"
+                "5. Termine CADA bloco lembrando que a decisão final é do produtor ('A decisão final é sempre sua.' "
+                "em português, ou 'The final decision is always yours.' se o contexto pedir resposta em inglês).\n"
+                "6. RESPEITE O IDIOMA: se o contexto indicar 'Respond strictly in English', escreva toda a resposta "
+                "em inglês bem simples e cotidiano."
             ),
         )
         self.structured_strategies_prompt = PromptTemplate(
@@ -1255,7 +1313,8 @@ class RotationExplainerAgent:
                 "Para cada opção, escreva em palavras bem simples da roça (sem saudações, sem Markdown ** ou *, "
                 "e sem siglas técnicas como GAEZ, ECOCROP, CMIP6, AGROFIT ou LRLM):\n"
                 "- `resumo`: 1 ou 2 frases curtas dizendo o que esperar dela e do risco de faltar água.\n"
-                "- `acao_pratica`: 1 dica curta e direta do que fazer no campo."
+                "- `acao_pratica`: 1 dica curta e direta do que fazer no campo.\n"
+                "Se o contexto indicar 'Respond strictly in English', escreva tudo em inglês simples e cotidiano."
             ),
         )
         self.alert_prompt = PromptTemplate(

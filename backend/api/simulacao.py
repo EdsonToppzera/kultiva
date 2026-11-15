@@ -879,10 +879,17 @@ def _gerar_explicacoes_estrategias(
     risco_en = {"baixo": "low", "medio": "medium", "médio": "medium", "alto": "high"}
     for estrategia in rotacoes_sugeridas:
         if lang == "en":
+            from backend.services.llm_agent import _translate_benefit_en, _translate_strategy_name_en
+
             risco = risco_en.get(estrategia.water_risk.lower(), estrategia.water_risk)
-            beneficio = estrategia.benefits or "helps protect and balance the land"
+            beneficio = (
+                _translate_benefit_en(estrategia.benefits)
+                if estrategia.benefits
+                else "helps protect and balance the land"
+            )
+            nome_en = _translate_strategy_name_en(estrategia.strategy)
             texto = (
-                f"{estrategia.strategy} has about {round(estrategia.viability * 100)}% chance of doing well "
+                f"{nome_en} has about {round(estrategia.viability * 100)}% chance of doing well "
                 f"and {risco} risk of dry-spell loss. "
                 f"In practice: {beneficio}."
             )

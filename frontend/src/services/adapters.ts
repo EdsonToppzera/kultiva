@@ -327,6 +327,14 @@ const EN_BENEFIT_PHRASES: Array<[string, string]> = [
     "Combina bem com a terra da região",
     "Fits your local soil and weather well",
   ],
+  [
+    "Usa os dados de chuva e solo da sua área para evitar perdas na safra",
+    "Uses your area's rain and soil conditions to protect your harvest",
+  ],
+  [
+    "Usa os dados de chuva e solo da terra para ajudar a não perder a safra",
+    "Uses your area's rain and soil conditions to protect your harvest",
+  ],
 ];
 
 function stripRawMarkdownAndFluff(text: string, strategyName = ""): string {
@@ -399,7 +407,16 @@ function translateKnownBenefit(benefit: string, isEnglish: boolean): string {
     .replace(/na região/gi, "in your region")
     .replace(/e ajuda a adubar o solo naturalmente/gi, "and naturally enriches the soil")
     .replace(/e ajuda a adubar a terra naturalmente/gi, "and naturally enriches the soil")
+    .replace(/e ajuda a adubar o solo/gi, "and helps enrich the soil")
     .replace(/ajuda a adubar a terra/gi, "helps enrich the soil")
+    .replace(
+      /Sua área tem pouca água e essa opção pede mais rega\s*\((?:cerca de\s*)?([^)]+)\)/gi,
+      "Your land is short on water and this option needs more watering ($1)"
+    )
+    .replace(
+      /Sua terra tem pouca água e essa planta pede mais rega\s*\(([^)]+)\)/gi,
+      "Your land is short on water and this crop needs more watering ($1)"
+    )
     .replace(/—/g, "-");
 }
 
