@@ -9,3 +9,19 @@
       sans-serif;
   }
 }
+
+.k-loader {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.k-loader--fullscreen {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+}
