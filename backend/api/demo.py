@@ -405,10 +405,11 @@ def popular_cenario_demo(
 ):
     """Popula usuário, terrenos, métricas históricas, atividades e alertas para demonstração."""
     from backend.main import seed_culturas
-    from backend.services.ecocrop_seed import seed_ecocrop
+    from backend.services.ecocrop_seed import seed_agrofit, seed_ecocrop
 
     seed_culturas(db=db)
     seed_ecocrop(db=db, reset=reset)
+    seed_agrofit(db=db, reset=reset)
     usuario = _garantir_usuario_demo(db)
     culturas = db.query(models.Cultura).all()
     culturas_por_nome = {c.nome: c for c in culturas}

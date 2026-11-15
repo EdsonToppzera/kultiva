@@ -139,6 +139,11 @@ class CulturaLimite(Base):
         back_populates="cultura",
         cascade="all, delete-orphan",
     )
+    pragas = relationship(
+        "CulturaPraga",
+        back_populates="cultura",
+        cascade="all, delete-orphan",
+    )
 
 
 class CulturaSinonimo(Base):
@@ -156,3 +161,22 @@ class CulturaSinonimo(Base):
     synonym = Column(String, nullable=False, index=True)
 
     cultura = relationship("CulturaLimite", back_populates="sinonimos")
+
+
+class CulturaPraga(Base):
+    """Relação fitossanitária cultura-praga extraída do AGROFIT e cruzada com EcoCrop."""
+
+    __tablename__ = "cultura_pragas"
+
+    id = Column(Integer, primary_key=True, index=True)
+    scientific_name = Column(
+        String,
+        ForeignKey("culturas_limites.scientific_name", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    cultura_agrofit = Column(String, nullable=False, index=True)
+    praga_nome_cientifico = Column(String, nullable=True, index=True)
+    praga_nome_comum = Column(Text, nullable=True)
+
+    cultura = relationship("CulturaLimite", back_populates="pragas")

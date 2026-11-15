@@ -116,3 +116,53 @@ def seed_ecocrop(
     db.commit()
     return len(limites_rows), len(sinonimos_rows)
 
+
+def seed_agrofit(
+    db: Session,
+    *,
+    processed_dir: Optional[Path] = None,
+    reset: bool = False,
+) -> int:
+    """Populate ``cultura_pragas`` from ``cultura_pragas_ecocrop_join.csv``.
+
+    Returns:
+        Number of inserted ``CulturaPraga`` rows.
+    """
+    target_dir = processed_dir or DEFAULT_PROCESSED_DIR
+    join_csv = target_dir / "cultura_pragas_ecocrop_join.csv"
+
+    if not join_csv.exists():
+        logger.warning(
+            "Arquivo AGROFIT x EcoCrop não encontrado em %s; pulando ingestão.",
+            join_csv,
+        )
+        return 0
+
+    existing = db.query(models.CulturaPraga).count()
+    if existing > 0 and not reset:
+        return 0
+
+    if reset and existing > 0:
+        db.query(models.CulturaPraga).delete(synchronize_session=False)
+        db.flush()
+
+    rows: List[Dict[str, Any]] = []
+    with join_csv.open("r", encoding="utf-8", newline="") as f:
+        for row in csv.DictReader(f):
+            sci = _to_str(row.get("scientific_name"))
+            cultura_agrofit = _to_str(row.get("cultura_agrofit"))
+            if not sci or not cultura_agrofit:
+                continue
+            rows.append(
+                {
+                    "scientific_name": sci,
+                    "cultura_agrofit": cultura_agrofit,
+                    "praga_nome_cientifico": _to_str(row.get("praga_nome_cientifico")),
+                    "praga_nome_comum": _to_str(row.get("praga_nome_comum")),
+                }
+            )
+
+    _insert_in_batches(db, models.CulturaPraga, rows)
+    db.commit()
+    return len(rows)
+
