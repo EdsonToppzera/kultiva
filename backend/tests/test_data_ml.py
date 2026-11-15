@@ -546,6 +546,7 @@ def test_real_nasa_provider_earthaccess_e_open_mfdataset_com_kelvin_e_ndvi(
 def test_real_nasa_provider_sem_earthaccess_retorna_no_data(
     monkeypatch, geospatial_mod
 ):
+    monkeypatch.setenv("GAEZ_ENABLED", "false")
     monkeypatch.setitem(sys.modules, "earthaccess", None)
     real_provider = geospatial_mod.RealNASADataProvider()
     metricas = real_provider.extract_field_metrics(POLIGONO_SP)
@@ -993,6 +994,7 @@ def test_a10_simulacao_endpoint_com_perfil_climatico_e_area_hectares(
 def test_a11_real_nasa_provider_descobre_local_transpoe_e_limpa_fillvalues(
     monkeypatch, tmp_path, geospatial_mod
 ):
+    monkeypatch.setenv("GAEZ_ENABLED", "false")
     monkeypatch.setitem(sys.modules, "earthaccess", None)
     real_dir = tmp_path / "real"
     real_dir.mkdir(parents=True, exist_ok=True)
@@ -1051,6 +1053,7 @@ def test_a11_real_nasa_provider_descobre_local_transpoe_e_limpa_fillvalues(
 def test_a11_real_nasa_provider_nasa_power_fallback_e_cache(
     monkeypatch, tmp_path, geospatial_mod
 ):
+    monkeypatch.setenv("GAEZ_ENABLED", "false")
     monkeypatch.setitem(sys.modules, "earthaccess", None)
 
     power_payload = {
@@ -1200,6 +1203,7 @@ def test_a12_simulacao_endpoint_com_perfil_real_e_nasa_power(
         db.add(models.Cultura(nome="Milho", consumo_agua_mm=500.0, tempo_colheita_dias=90))
         db.commit()
 
+    monkeypatch.setenv("GAEZ_ENABLED", "false")
     monkeypatch.setitem(sys.modules, "earthaccess", None)
     power_payload = {
         "properties": {
@@ -1252,6 +1256,445 @@ def test_a12_simulacao_endpoint_com_perfil_real_e_nasa_power(
                 assert body["metricas_geoespaciais"]["avg_precipitation_gpm"] == pytest.approx(1.75)
                 assert body["metricas_geoespaciais"]["area_hectares"] > 0
                 assert "ml_model_score" in body["rotacoes_sugeridas"][0]["score_breakdown"]
+    finally:
+        simulacao._SERVICE_CACHE.clear()
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(bind=engine)
+
+
+# ---- A13 / A14: FAO GAEZ v5 (Suitability & Attainable Yield, HWSD, CMIP6) --
+
+
+def _write_single_pixel_geotiff(path, value: float, nodata: float | None = -9.0) -> None:
+    import rasterio
+    from rasterio.transform import from_origin
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    transform = from_origin(-50.0, -10.0, 5.0, 5.0)
+    dtype = "uint16" if nodata == 65535.0 else "float32"
+    with rasterio.open(
+        str(path),
+        "w",
+        driver="GTiff",
+        height=2,
+        width=2,
+        count=1,
+        dtype=dtype,
+        crs="EPSG:4326",
+        transform=transform,
+        nodata=nodata,
+    ) as dst:
+        dst.write(np.full((2, 2), value, dtype=dtype), 1)
+
+
+def _build_local_gaez_cog_tree(root_dir) -> None:
+    # Camadas de solo e relevo
+    _write_single_pixel_geotiff(
+        root_dir / "MAP" / "GAEZ-V5.HWSDV201.tif", 11, nodata=65535.0
+    )
+    _write_single_pixel_geotiff(
+        root_dir / "MAPSET" / "SQ-IDX" / "GAEZ-V5.SQ-IDX.LIM.tif", 2, nodata=0.0
+    )
+    _write_single_pixel_geotiff(
+        root_dir / "MAPSET" / "SQX" / "GAEZ-V5.SQX.SQ0.LIM.tif", 6, nodata=0.0
+    )
+    _write_single_pixel_geotiff(
+        root_dir / "MAP" / "GAEZ-V5.SLOPE-MED.tif", 3, nodata=0.0
+    )
+
+    # Culturas RES05 ("Suitability and Attainable Yield" - HIST LRLM/HRLM + FP2140 SSP370 HRLM)
+    crops_values = {
+        "MZE": (7778.0, 971.0, 7200.0, 880.0),
+        "COW": (8100.0, 410.0, 8600.0, 460.0),
+        "CSV": (9500.0, 1850.0, 9600.0, 1900.0),
+        "SRG": (7000.0, 540.0, 7500.0, 610.0),
+    }
+    for code, (sux_lrlm, ylx_lrlm, sux_fut, ylx_fut) in crops_values.items():
+        _write_single_pixel_geotiff(
+            root_dir
+            / "MAPSET"
+            / "RES05-SUX"
+            / f"GAEZ-V5.RES05-SUX.HP0120.AGERA5.HIST.{code}.LRLM.tif",
+            sux_lrlm,
+        )
+        _write_single_pixel_geotiff(
+            root_dir
+            / "MAPSET"
+            / "RES05-YLX"
+            / f"GAEZ-V5.RES05-YLX.HP0120.AGERA5.HIST.{code}.LRLM.tif",
+            ylx_lrlm,
+        )
+        _write_single_pixel_geotiff(
+            root_dir
+            / "MAPSET"
+            / "RES05-SUX"
+            / f"GAEZ-V5.RES05-SUX.HP0120.AGERA5.HIST.{code}.HRLM.tif",
+            sux_lrlm,
+        )
+        _write_single_pixel_geotiff(
+            root_dir
+            / "MAPSET"
+            / "RES05-SUX"
+            / f"GAEZ-V5.RES05-SUX.FP2140.ENSEMBLE.SSP370.{code}.HRLM.tif",
+            sux_fut,
+        )
+        _write_single_pixel_geotiff(
+            root_dir
+            / "MAPSET"
+            / "RES05-YLX"
+            / f"GAEZ-V5.RES05-YLX.FP2140.ENSEMBLE.SSP370.{code}.HRLM.tif",
+            ylx_fut,
+        )
+
+
+def test_a13_gaez_provider_suitability_attainable_yield_hwsd_e_cache(
+    monkeypatch, tmp_path, geospatial_mod
+):
+    from backend.services import gaez_service
+
+    assert gaez_service.resolve_gaez_input_level(
+        {"agua": "chuva", "equipamento": "manual"}
+    )["input_level"] == "LRLM"
+    assert gaez_service.resolve_gaez_input_level(
+        {"metodo_irrigacao": "gotejamento", "equipamento": "manual"}
+    )["input_level"] == "LILM"
+    assert gaez_service.resolve_gaez_input_level(
+        {"agua": "chuva", "nivel_insumo": "alto"}
+    )["input_level"] == "HRLM"
+    assert gaez_service.resolve_gaez_input_level(
+        {"metodo_irrigacao": "aspersao", "nivel_insumo": "alto"}
+    )["input_level"] == "HILM"
+
+    assert gaez_service.resolve_crop_code("Milho") == "MZE"
+    assert gaez_service.resolve_crop_code("Macaxeira") == "CSV"
+    assert gaez_service.resolve_crop_code("Feijão-de-corda") == "COW"
+    assert gaez_service.resolve_crop_code("Feijão carioquinha") == "PHB"
+    assert gaez_service.resolve_crop_code("Cultura Desconhecida") is None
+
+    cog_root = tmp_path / "fao_cogs"
+    _build_local_gaez_cog_tree(cog_root)
+    monkeypatch.setattr(gaez_service, "GAEZ_BASE_URL", str(cog_root))
+    monkeypatch.setenv("GAEZ_ENABLED", "true")
+
+    cache_root = tmp_path / "data_cache"
+    prov = gaez_service.GAEZDataProvider(data_path=str(cache_root), max_workers=4)
+    poligono_df = [
+        {"lat": -12.0, "lng": -48.0},
+        {"lat": -12.1, "lng": -48.0},
+        {"lat": -12.1, "lng": -47.9},
+    ]
+
+    metrics = prov.extract_gaez_metrics(
+        poligono_df,
+        prioridades={"agua": "chuva", "equipamento": "manual"},
+        crop_codes=["MZE", "COW", "CSV", "SRG"],
+    )
+    assert metrics["data_quality"] == "gaez_v5_cog"
+    assert metrics["origem"] == "fao_gaez_v5"
+    assert metrics["input_level"] == "LRLM"
+    assert metrics["soil"]["hwsd_code"] == 11
+    assert "Latossolos" in metrics["soil"]["soil_group"]
+    assert metrics["soil"]["limiting_factor_code"] == 2
+    assert metrics["soil"]["soil_quality_index"] == pytest.approx(0.55)
+    assert metrics["soil"]["slope_range_pct"] == "2 - 5%"
+    assert metrics["soil"]["erosion_risk"] == "baixo"
+
+    assert metrics["crops"]["MZE"]["suitability_score_100"] == pytest.approx(77.78)
+    assert metrics["crops"]["MZE"]["attainable_yield_kg_ha"] == pytest.approx(971.0)
+    assert metrics["crops"]["MZE"]["cmip6_suitability_delta"] < 0
+    assert metrics["crops"]["MZE"]["climate_resilience"] == "perda_moderada"
+    assert metrics["crops"]["COW"]["cmip6_suitability_delta"] > 0
+    assert metrics["crops"]["COW"]["climate_resilience"] == "ganho"
+
+    # Segunda chamada na mesma célula usa o cache em disco mesmo sem os COGs originais
+    for tif in cog_root.rglob("*.tif"):
+        tif.unlink()
+    cached_metrics = prov.extract_gaez_metrics(
+        poligono_df,
+        prioridades={"agua": "chuva", "equipamento": "manual"},
+        crop_codes=["MZE", "COW", "CSV", "SRG"],
+    )
+    assert cached_metrics == metrics
+
+    # Em um ponto fora do cache e sem COGs disponíveis, retorna no_data (sem fallback inventado)
+    no_data_metrics = prov.extract_gaez_metrics(
+        {"lat": -3.5, "lng": -39.0},
+        prioridades={"agua": "chuva"},
+        crop_codes=["MZE"],
+    )
+    assert no_data_metrics["data_quality"] == "no_data"
+    assert no_data_metrics["crops"] == {}
+    assert no_data_metrics["soil"] == {}
+
+
+def test_a14_crop_simulator_e_explainer_com_gaez_suitability_e_yield(
+    monkeypatch, geospatial_mod
+):
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    gaez_payload = {
+        "data_quality": "gaez_v5_cog",
+        "origem": "fao_gaez_v5",
+        "input_level": "LRLM",
+        "ssp_scenario": "SSP370",
+        "centroid": {"lat": -12.06, "lng": -47.96},
+        "soil": {
+            "hwsd_code": 11,
+            "soil_group": "Ferralsols - FR (Latossolos)",
+            "limiting_factor_code": 2,
+            "limiting_factor": "Disponibilidade/retenção natural de nutrientes (SQ2)",
+            "soil_quality_class": 6,
+            "soil_quality_index": 0.55,
+            "slope_class": 3,
+            "slope_range_pct": "2 - 5%",
+            "erosion_risk": "baixo",
+        },
+        "crops": {
+            "MZE": {
+                "crop_code": "MZE",
+                "gaez_caption": "Maize",
+                "nome": "Milho",
+                "group": "graminea",
+                "fixes_nitrogen": False,
+                "suitability_index": 0.65,
+                "suitability_score_100": 65.0,
+                "suitability_class": "good",
+                "attainable_yield_kg_ha": 971.0,
+                "cmip6_suitability_delta": -0.05,
+                "consumo_agua_mm": 500.0,
+                "tempo_colheita_dias": 95,
+                "water_demand": 0.72,
+                "heat_tolerance": 0.55,
+                "soil_benefit": 0.45,
+                "market": 0.95,
+            },
+            "SOY": {
+                "crop_code": "SOY",
+                "gaez_caption": "Soybean",
+                "nome": "Soja",
+                "group": "leguminosa",
+                "fixes_nitrogen": True,
+                "suitability_index": 0.60,
+                "suitability_score_100": 60.0,
+                "suitability_class": "good",
+                "attainable_yield_kg_ha": 310.0,
+                "cmip6_suitability_delta": -0.04,
+                "consumo_agua_mm": 550.0,
+                "tempo_colheita_dias": 115,
+                "water_demand": 0.82,
+                "heat_tolerance": 0.60,
+                "soil_benefit": 0.75,
+                "market": 0.96,
+            },
+            "CSV": {
+                "crop_code": "CSV",
+                "gaez_caption": "Cassava",
+                "nome": "Mandioca",
+                "group": "tuberculo",
+                "fixes_nitrogen": False,
+                "suitability_index": 0.98,
+                "suitability_score_100": 98.0,
+                "suitability_class": "very_high",
+                "attainable_yield_kg_ha": 1850.0,
+                "cmip6_suitability_delta": 0.02,
+                "consumo_agua_mm": 400.0,
+                "tempo_colheita_dias": 270,
+                "water_demand": 0.45,
+                "heat_tolerance": 0.85,
+                "soil_benefit": 0.55,
+                "market": 0.75,
+            },
+            "COW": {
+                "crop_code": "COW",
+                "gaez_caption": "Cowpea",
+                "nome": "Feijão-caupi",
+                "group": "leguminosa",
+                "fixes_nitrogen": True,
+                "suitability_index": 0.90,
+                "suitability_score_100": 90.0,
+                "suitability_class": "very_high",
+                "attainable_yield_kg_ha": 430.0,
+                "cmip6_suitability_delta": 0.05,
+                "consumo_agua_mm": 300.0,
+                "tempo_colheita_dias": 70,
+                "water_demand": 0.35,
+                "heat_tolerance": 0.90,
+                "soil_benefit": 0.88,
+                "market": 0.75,
+            },
+        },
+    }
+    metricas_com_gaez = {**SECO, "gaez": gaez_payload}
+
+    sim = CropSimulator()
+    estrategias = sim.simulate_rotation_strategies(metricas_com_gaez, {"agua": "escassa"})
+    assert len(estrategias) == 3
+    assert any("(Atual)" in e["strategy"] for e in estrategias)
+    assert any("Mandioca" in e["strategy"] and "Feijão-caupi" in e["strategy"] for e in estrategias)
+
+    top_bd = estrategias[0]["score_breakdown"]
+    assert "gaez_suitability" in top_bd
+    assert top_bd["attainable_yield_kg_ha"] > 0
+    assert top_bd["soil_quality_index"] == pytest.approx(0.55)
+    assert top_bd["gaez_input_level"] == "LRLM"
+
+    pred = sim.predict_rotation_viability(
+        {}, metricas_com_gaez, {"cultura": "Mandioca", "consumo_agua_mm": 400.0, "tempo_colheita_dias": 270}
+    )
+    assert pred["gaez_suitability"] == pytest.approx(0.98)
+    assert pred["attainable_yield_kg_ha"] == pytest.approx(1850.0)
+
+    captured_prompts: list[str] = []
+    agent = RotationExplainerAgent()
+    orig_chain = agent.strategies_chain
+
+    class _SpyChain:
+        def invoke(self, inputs):
+            captured_prompts.append(inputs["context"] + "\n" + inputs["strategies"])
+            return orig_chain.invoke(inputs)
+
+    agent.strategies_chain = _SpyChain()
+    explicacoes = agent.explain_strategies(
+        estrategias,
+        field_metrics=metricas_com_gaez,
+        farmer_priorities={"agua": "escassa"},
+    )
+
+    assert len(explicacoes) == 3
+    assert "Latossolos" in captured_prompts[0]
+    assert "aptidão FAO GAEZ" in captured_prompts[0]
+    assert "kg/ha" in explicacoes[0]
+    assert explicacoes[0].endswith(DISCLAIMER)
+
+
+def test_a14_endpoints_aptidao_gaez_e_simular_rotacao_integrados(
+    monkeypatch, tmp_path, geospatial_mod
+):
+    from fastapi.testclient import TestClient
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    from backend.api import cultura as cultura_api
+    from backend.api import simulacao
+    from backend.db import models
+    from backend.db.database import Base, get_db
+    from backend.main import app
+    from backend.services import gaez_service
+
+    cog_root = tmp_path / "fao_cogs"
+    _build_local_gaez_cog_tree(cog_root)
+    monkeypatch.setattr(gaez_service, "GAEZ_BASE_URL", str(cog_root))
+    monkeypatch.setenv("GAEZ_ENABLED", "true")
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    def override_get_db():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    with TestingSessionLocal() as db:
+        u = models.Usuario(nome="Produtor A14", email="a14@kultiva.local")
+        db.add(u)
+        db.flush()
+        db.add(
+            models.Terreno(
+                nome_propriedade="Sítio GAEZ",
+                usuario_id=u.id,
+                coordenadas_poligono=[
+                    {"lat": -12.0, "lng": -48.0},
+                    {"lat": -12.1, "lng": -48.0},
+                    {"lat": -12.1, "lng": -47.9},
+                ],
+                prioridades={"agua": "chuva", "equipamento": "manual"},
+            )
+        )
+        db.add(
+            models.Cultura(
+                nome="Milho",
+                consumo_agua_mm=500.0,
+                tempo_colheita_dias=90,
+                is_seed=True,
+                customizada=False,
+            )
+        )
+        db.commit()
+
+    local_gaez = gaez_service.GAEZDataProvider(data_path=str(tmp_path / "cache"))
+    mock_nasa = geospatial_mod.MockNASADataProvider(data_path=str(tmp_path / "nasa"))
+    simulacao._SERVICE_CACHE.clear()
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[cultura_api.get_gaez_provider] = lambda: local_gaez
+    app.dependency_overrides[simulacao.get_gaez_provider] = lambda: local_gaez
+    app.dependency_overrides[simulacao.get_nasa_processor] = lambda: mock_nasa
+    app.dependency_overrides[simulacao.get_crop_simulator] = lambda: CropSimulator()
+    app.dependency_overrides[simulacao.get_rotation_explainer] = (
+        lambda: RotationExplainerAgent()
+    )
+
+    try:
+        with patch.object(
+            local_gaez,
+            "extract_gaez_metrics",
+            wraps=lambda coords, prioridades=None, crop_codes=None: gaez_service.GAEZDataProvider.extract_gaez_metrics(
+                local_gaez,
+                coords,
+                prioridades=prioridades,
+                crop_codes=crop_codes or ["MZE", "COW", "CSV", "SRG"],
+            ),
+        ):
+            with TestClient(app) as client:
+                # Rota /culturas/{id} continua funcionando sem conflito com /aptidao-gaez
+                assert client.get("/api/v1/culturas/1").status_code == 200
+
+                resp_gaez = client.get(
+                    "/api/v1/culturas/aptidao-gaez",
+                    params={"terreno_id": 1, "sincronizar_catalogo": True},
+                )
+                assert resp_gaez.status_code == 200
+                body_gaez = resp_gaez.json()
+                assert body_gaez["origem"] == "fao_gaez_v5"
+                assert body_gaez["input_level"] == "LRLM"
+                assert "Latossolos" in body_gaez["soil"]["soil_group"]
+                assert body_gaez["culturas_avaliadas"][0]["crop_code"] == "CSV"
+                assert body_gaez["culturas_avaliadas"][0]["attainable_yield_kg_ha"] == pytest.approx(1850.0)
+                sincronizadas = {c["nome"] for c in body_gaez["culturas_sincronizadas"]}
+                assert {"Mandioca", "Feijão-caupi", "Sorgo"} <= sincronizadas
+                assert "Milho" not in sincronizadas  # seed protegido contra sobrescrita
+
+                resp_list = client.get("/api/v1/culturas/")
+                assert resp_list.status_code == 200
+                assert any(c["nome"] == "Feijão-caupi" and c["customizada"] for c in resp_list.json())
+
+                resp_sim = client.post(
+                    "/api/v1/simular-rotacao",
+                    json={"terreno_id": 1, "nome_cultura": "Milho"},
+                )
+                assert resp_sim.status_code == 200
+                body_sim = resp_sim.json()
+                assert body_sim["metricas_geoespaciais"]["gaez"]["data_quality"] == "gaez_v5_cog"
+                assert "attainable_yield_kg_ha" in body_sim["rotacoes_sugeridas"][0]["score_breakdown"]
+                assert "kg/ha" in body_sim["rotacoes_sugeridas"][0]["explicacao"]
+
+                # Quando GAEZ não responde dados (sem rede), /aptidao-gaez retorna 503 sem fallback falso
+                with patch.object(
+                    local_gaez,
+                    "extract_gaez_metrics",
+                    return_value={"data_quality": "no_data", "crops": {}, "soil": {}},
+                ):
+                    resp_503 = client.get(
+                        "/api/v1/culturas/aptidao-gaez",
+                        params={"lat": -12.0, "lng": -48.0},
+                    )
+                    assert resp_503.status_code == 503
     finally:
         simulacao._SERVICE_CACHE.clear()
         app.dependency_overrides.clear()

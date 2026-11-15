@@ -99,7 +99,17 @@ erDiagram
 
 > **Nota de modelagem:** A tabela `atividades_calendario` é mapeada pela classe `Activity` (`backend/db/models.py`, com alias `AtividadeCalendario`) permitindo vínculo direto a um `Terreno` ou `Usuario`, além do campo textual `status` (`pendente` / `concluida`) sincronizado com `concluida` e `data_conclusao`.
 
-## 2. Orquestração do Simulador de Culturas e Rotações (M3)
+## 2. Arquitetura Geoespacial em 2 Camadas (Estratégica FAO GAEZ v5 + Operacional NASA)
+
+Para unir adequação estrutural de longo prazo ao território brasileiro com monitoramento climático contínuo em tempo real, o backend separa a coleta de dados em duas camadas complementares:
+
+1. **Camada Estratégica (`backend/services/gaez_service.py` — ~10 km / 5 arc-min):**
+   - `GAEZDataProvider` acessa **diretamente** via HTTP Range Requests os rasters Cloud-Optimized GeoTIFF (COG) públicos do **FAO GAEZ v5** (`RES05-SUX` / `RES05-YLX` *Suitability and Attainable Yield*, projeção `CMIP6 FP2140 SSP370`, solo `HWSDV201`, qualidade `SQX.SQ0`, fator limitante `SQ-IDX` e declividade `SLOPE-MED`), escolhendo entre os 4 regimes de manejo (`LRLM`, `HRLM`, `LILM`, `HILM`) pelas prioridades do produtor e mantendo cache local em `data/gaez_cache/`.
+   - **Política sem fallbacks inventados:** quando o serviço GAEZ não responde, retorna explicitamente `data_quality="no_data"` (HTTP `503` em `GET /api/v1/culturas/aptidao-gaez`).
+2. **Camada Operacional (`backend/services/geospatial.py`):**
+   - `INASADataProvider` (`MockNASADataProvider` com perfis simuláveis ou `RealNASADataProvider` via `data/real/`, Earthdata `SPL3SMP_E`, `ECO2LSTE`, `GPM_3IMERGDF`, `MOD13Q1` e fallback público **NASA POWER**) fornece séries recentes de umidade, temperatura superficial, precipitação e solo descoberto.
+
+## 3. Orquestração do Simulador de Culturas e Rotações (M3)
 
 O controlador `backend/api/simulacao.py` atua como camada de orquestração síncrona via injeção de dependências (`Depends`) para o endpoint `POST /api/v1/simular-rotacao` (também exposto em `/api/v1/simulacoes/`):
 
@@ -107,15 +117,17 @@ O controlador `backend/api/simulacao.py` atua como camada de orquestração sín
 flowchart LR
     FE["Frontend (PWA)"] -->|"POST /api/v1/simular-rotacao"| M3["Controlador M3 (backend/api/simulacao.py)"]
     M3 -->|"Consulta Terreno e Cultura"| DB[("PostgreSQL (SQLAlchemy)")]
-    M3 -->|"extract_field_metrics()"| GEO["NasaDataProcessor (services/geospatial.py)"]
-    M3 -->|"simulate_rotation_strategies() e predict_rotation_viability()"| ML["CropSimulator (services/ml_models.py)"]
-    M3 -->|"generate_explanation() (Gemini / FakeListLLM)"| LLM["RotationExplainerAgent (services/llm_agent.py)"]
+    M3 -->|"Camada Operacional: extract_field_metrics()"| GEO["INASADataProvider (services/geospatial.py)"]
+    M3 -->|"Camada Estratégica: extract_gaez_metrics()"| GAEZ["GAEZDataProvider (services/gaez_service.py -> FAO COG)"]
+    GEO -->|"Série temporal + clima atual"| ML
+    GAEZ -->|"Suitability, Yield kg/ha, HWSD, CMIP6"| ML["CropSimulator (RandomForest + GAEZ em ml_models.py)"]
+    ML -->|"3 estratégias + score_breakdown"| LLM["RotationExplainerAgent (Gemini / FakeListLLM em llm_agent.py)"]
     M3 -->|"JSON SimulacaoResponse"| FE
 ```
 
-- **Resiliência (Graceful Fallback) e Flexibilidade de Entrada:** O controlador aceita tanto `terreno_id` (buscando no banco) quanto `coordenadas_poligono` e `prioridades` enviados diretamente no JSON sem exigir cadastro prévio. Caso dados geoespaciais NetCDF ou pacotes científicos opcionais não estejam presentes no ambiente de execução, o controlador aplica fallbacks determinísticos para manter o contrato JSON estável para o frontend.
+- **Resiliência e Flexibilidade de Entrada:** O controlador aceita tanto `terreno_id` (buscando no banco) quanto `coordenadas_poligono` e `prioridades` enviados diretamente no JSON sem exigir cadastro prévio. Na camada operacional NASA, caso dados NetCDF ou pacotes opcionais não estejam disponíveis, aplica fallback seguro para manter o contrato JSON estável; já a camada FAO GAEZ v5 só enriquece a simulação quando os dados reais do COG/cache estão disponíveis (`GAEZ_ENABLED=true` ou `perfil_climatico="real"`).
 
-## 3. Fluxo Assíncrono de Alertas Climáticos e Calendário Maleável (M4 e M5)
+## 4. Fluxo Assíncrono de Alertas Climáticos e Calendário Maleável (M4 e M5)
 
 Para manter o ambiente containerizado enxuto (sem necessidade de broker externo no `docker-compose.yml` atual), os alertas `[M5]` utilizam `FastAPI BackgroundTasks` e o ciclo de vida (`lifespan`) nativo do FastAPI em `backend/services/alert_tasks.py` (`lifespan_monitoramento_alertas`), que inicia automaticamente o agendador periódico em segundo plano no startup da aplicação (configurável via variável de ambiente `ALERT_MONITOR_INTERVAL_HOURS`, padrão `6` horas):
 

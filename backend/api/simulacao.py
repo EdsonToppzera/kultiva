@@ -216,6 +216,56 @@ def get_rotation_explainer() -> Optional[Any]:
     )
 
 
+def get_gaez_provider() -> Optional[Any]:
+    """Provedor de dependência para GAEZDataProvider (FAO GAEZ v5 COG)."""
+    return _get_cached_service(
+        "gaez",
+        "backend.services.gaez_service",
+        lambda mod: mod.GAEZDataProvider(data_path="data"),
+    )
+
+
+def _deve_consultar_gaez(
+    gaez_provider: Optional[Any],
+    perfil_climatico: Optional[str],
+    geo_input: Any,
+) -> bool:
+    if gaez_provider is None or not geo_input:
+        return False
+    gaez_raw = os.getenv("GAEZ_ENABLED", "").strip().lower()
+    if gaez_raw in {"0", "false", "no", "nao", "não", "off"}:
+        return False
+    if gaez_raw in {"1", "true", "yes", "sim", "on"}:
+        return True
+    try:
+        gaez_mod = importlib.import_module("backend.services.gaez_service")
+        real_cls = getattr(gaez_mod, "GAEZDataProvider", None)
+        is_custom_cls = real_cls is not None and not isinstance(gaez_provider, real_cls)
+        if is_custom_cls or str(getattr(gaez_provider, "data_path", "data")) != "data":
+            return True
+    except Exception:
+        pass
+    nasa_real = os.getenv("NASA_PROVIDER", "").strip().lower() == "real"
+    return bool(nasa_real or perfil_climatico == "real")
+
+
+def _extrair_metricas_gaez(
+    geo_input: Any,
+    prioridades: Dict[str, Any],
+    gaez_provider: Optional[Any],
+    perfil_climatico: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    if not _deve_consultar_gaez(gaez_provider, perfil_climatico, geo_input):
+        return None
+    try:
+        res = gaez_provider.extract_gaez_metrics(geo_input, prioridades=prioridades)
+        if isinstance(res, dict) and res.get("data_quality") == "gaez_v5_cog":
+            return res
+    except Exception:
+        logger.exception("Falha ao consultar FAO GAEZ v5 na simulação; seguindo sem GAEZ.")
+    return None
+
+
 def _calcular_metricas_fallback(
     coordenadas_poligono: Any, dados_climaticos: Dict[str, Any]
 ) -> Dict[str, Any]:
@@ -591,11 +641,13 @@ def _processar_simulacao(
     nasa_processor: Optional[Any],
     crop_simulator: Optional[Any],
     rotation_explainer: Optional[Any],
+    gaez_provider: Optional[Any] = None,
 ) -> SimulacaoResponse:
     terreno_id_resp: Optional[int] = None
     usuario_id_terreno: Optional[int] = None
     nome_propriedade = payload.nome_propriedade or "Terreno Simulado"
     coordenadas_poligono: Any = payload.coordenadas_poligono or []
+    localizacao_terreno: Any = None
     prioridades_terreno: Dict[str, Any] = {}
 
     if payload.terreno_id is not None:
@@ -612,6 +664,7 @@ def _processar_simulacao(
         terreno_id_resp = terreno.id
         usuario_id_terreno = terreno.usuario_id
         nome_propriedade = payload.nome_propriedade or terreno.nome_propriedade
+        localizacao_terreno = terreno.localizacao_central
         if payload.coordenadas_poligono is None:
             coordenadas_poligono = terreno.coordenadas_poligono
         if isinstance(terreno.prioridades, dict):
@@ -660,6 +713,20 @@ def _processar_simulacao(
         active_nasa_processor,
         perfil_climatico=perfil_climatico,
     )
+    geo_input_gaez = (
+        coordenadas_poligono
+        or metricas_geoespaciais.get("centroide")
+        or localizacao_terreno
+    )
+    gaez_metrics = _extrair_metricas_gaez(
+        geo_input_gaez,
+        prioridades=prioridades_finais,
+        gaez_provider=gaez_provider,
+        perfil_climatico=perfil_climatico,
+    )
+    if gaez_metrics is not None:
+        metricas_geoespaciais["gaez"] = gaez_metrics
+
     if terreno_id_resp is not None:
         persistir_metricas_terreno(
             db=db,
@@ -799,6 +866,7 @@ def executar_simulacao(
     nasa_processor: Optional[Any] = Depends(get_nasa_processor),
     crop_simulator: Optional[Any] = Depends(get_crop_simulator),
     rotation_explainer: Optional[Any] = Depends(get_rotation_explainer),
+    gaez_provider: Optional[Any] = Depends(get_gaez_provider),
 ) -> SimulacaoResponse:
     """Recebe parâmetros do frontend, integra serviços geoespaciais/ML/LLM e retorna a simulação."""
     return _processar_simulacao(
@@ -807,6 +875,7 @@ def executar_simulacao(
         nasa_processor=nasa_processor,
         crop_simulator=crop_simulator,
         rotation_explainer=rotation_explainer,
+        gaez_provider=gaez_provider,
     )
 
 
@@ -817,6 +886,7 @@ def simular_rotacao(
     nasa_processor: Optional[Any] = Depends(get_nasa_processor),
     crop_simulator: Optional[Any] = Depends(get_crop_simulator),
     rotation_explainer: Optional[Any] = Depends(get_rotation_explainer),
+    gaez_provider: Optional[Any] = Depends(get_gaez_provider),
 ) -> SimulacaoResponse:
     """Endpoint direto /api/v1/simular-rotacao para orquestração de simulação e explicação IA."""
     return _processar_simulacao(
@@ -825,4 +895,5 @@ def simular_rotacao(
         nasa_processor=nasa_processor,
         crop_simulator=crop_simulator,
         rotation_explainer=rotation_explainer,
+        gaez_provider=gaez_provider,
     )

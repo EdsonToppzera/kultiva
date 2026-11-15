@@ -6,20 +6,22 @@
 
 ## Estado atual (Rodadas 1 e 2 concluídas · Rodada 3/Dados Reais em andamento)
 
-- Suíte `backend/tests`: **verde** (cobrindo Rodadas 1, 2, 3 e extensão de Dados Reais/ML: `A1–A12`, `B1–B8`, `C1–C9`).
+- Suíte `backend/tests`: **verde** (cobrindo Rodadas 1, 2, 3, Dados Reais NASA e FAO GAEZ v5: `A1–A14`, `B1–B8`, `C1–C9`).
 - **Feito (Rodada 1):** `A1–A6` (Dev A) · `B1–B4` (Dev B) · `C1–C5` (Dev C) · base de infra (`.env.example`, deps, healthcheck do Postgres, Alembic inicial, monitor de alertas ligado ao lifespan, disclaimer garantido no LLM, CI no GitHub Actions).
 - **Feito (Rodada 2):** `A7–A9` (Dev A) · `B5–B7` (Dev B) · `C6–C8` (Dev C).
-- **Rodada 3 & Dados Reais (Fechamento da Demo e Integração Frontend):** `A10–A12` ✅ · `B8` ✅ · `C9` ✅ · `F1–F2` ✅ · pendente: `F3` (telas finais no `frontend/`).
+- **Rodada 3 & Dados Reais (Fechamento da Demo e Integração Frontend):** `A10–A14` ✅ · `B8` ✅ · `C9` ✅ · `F1–F2` ✅ · pendente: `F3` (telas finais no `frontend/`).
 
 ### Resumo do que foi entregue
 
-- **Dev A (`A1–A12`)**
+- **Dev A (`A1–A14`)**
   - **A1–A6 (Rodada 1):** NetCDFs sintéticos determinísticos (`mock_nasa_data.py`), `MockNASADataProvider` + `RealNASADataProvider` (`geospatial.py`, `NASA_PROVIDER=mock|real`), `CropSimulator` dinâmico e `ClimateAnomalyDetector` (`ml_models.py`), `RotationExplainerAgent.explain_strategies` com `DISCLAIMER` (`llm_agent.py`) e suíte unitária (`backend/tests/test_data_ml.py`).
   - **A7 — Geometria, histórico de cultivos e fallback dinâmico** (`geospatial.py`, `ml_models.py`): `calcular_geometria_terreno` (área em hectares e centroide do polígono); `CropSimulator` considerando `historico_cultivos` (penaliza monocultura e bonifica quebra de ciclo com leguminosas) e método `fallback_strategies`.
   - **A8 — Explicações de alertas `[M5]` e relatórios `[M6]`** (`llm_agent.py`): `explain_alert` com orientações práticas de manejo e `explain_report` em linguagem simples, mantendo `DISCLAIMER` e fallback determinístico offline.
   - **A9 — Perfis climáticos simuláveis** (`mock_nasa_data.py`, `geospatial.py`, `backend/tests/test_data_ml.py`): perfis `normal`, `seca`, `chuva_extrema` e `onda_de_calor` (via parâmetro `profile` ou `NASA_MOCK_PROFILE`) gerando cenários distintos que acionam `ClimateAnomalyDetector` e alteram o ranking do `CropSimulator`.
   - **A10 — Perfil climático em runtime e área na simulação** (`geospatial.py`, `api/simulacao.py`): aceita `perfil_climatico` sob demanda e calcula `area_hectares` em `metricas_geoespaciais`.
   - **A11–A12 — Datasets reais multi-fonte + NASA POWER + ML avançado (`RandomForestRegressor` + features temporais)** (`geospatial.py`, `ml_models.py`, `mock_nasa_data.py`, `api/simulacao.py`, `docker-compose.yml`, `.env.example`, `backend/requirements.txt`): descoberta local em `data/real/`, harmonização de grades transpostas e `_FillValue`, integração/cache da API pública NASA POWER sem login, regressor `RandomForestRegressor` + estabilidade temporal no `CropSimulator`, métricas diagnósticas no `ClimateAnomalyDetector` e suporte a `perfil_climatico="real"`.
+  - **A13 — Provedor direto FAO GAEZ v5 (`Suitability and Attainable Yield`, `HWSD v2.01`, `SQ-IDX`, `SLOPE-MED` e `CMIP6`)** (`backend/services/gaez_service.py`): leitura paralela direta via HTTP Range Requests nos COGs oficiais do bucket público da FAO (`RES05-SUX`, `RES05-YLX` para `HP0120` e `FP2140` SSP370, `HWSDV201`, `SQX.SQ0`, `SQ-IDX`, `SLOPE-MED`), mapeamento dos 4 regimes de manejo (`LRLM`, `HRLM`, `LILM`, `HILM`), cache por célula de 5 arc-min e retorno `no_data` sem fallbacks determinísticos inventados.
+  - **A14 — Catálogo `[M2]`, Simulador `[M3]` e Agente IA calibrados pelo FAO GAEZ v5** (`api/cultura.py`, `schemas/rotacao.py`, `ml_models.py`, `llm_agent.py`, `api/simulacao.py`): endpoint `GET /api/v1/culturas/aptidao-gaez` com sincronização opcional de culturas/sementes viáveis no banco, geração e pontuação de rotações no `CropSimulator` usando `gaez_suitability`, `attainable_yield_kg_ha` (kg/ha), `soil_quality_index` e `cmip6_suitability_delta`, e contextualização de solo HWSD/produtividade no `RotationExplainerAgent`.
 - **Dev B (`B1–B7`)**
   - **B1–B4 (Rodada 1):** CRUD completo do catálogo `[M2]` (`api/cultura.py`), proteção de registros seed, serviço/endpoints de relatório `[M6]` (`services/relatorio_service.py`, `api/relatorios.py`), persistência histórica em Postgres/Alembic (`services/metrics_service.py`) e testes/CI (`backend/tests/test_b1_b2_b3.py`, `.github/workflows/ci.yml`).
   - **B5 — CORS, seed inicial e CRUD completo de terrenos `[M1]`** (`main.py`, `api/terreno.py`, `schemas/terreno.py`): `CORSMiddleware` habilitado para `localhost:5173`, seed automático de `Usuario` padrão e `PUT`/`DELETE /api/v1/terrenos/{terreno_id}` com cálculo automático de área/centroide (A7).
@@ -31,21 +33,36 @@
   - **C7 — Histórico no simulador e cronograma direto da estratégia** (`schemas/simulacao.py`, `api/simulacao.py`, `api/calendario.py`, `backend/tests/test_c7_c8.py`): `SimulacaoRequest` integra `historico_cultivos` e o calendário `[M4]` gera/atualiza cronograma direto pela estratégia escolhida.
   - **C8 — Explicações práticas nos alertas `[M5]` e resumo de não lidos** (`api/alertas.py`, `services/alert_tasks.py`, `schemas/alerta.py`, `backend/tests/test_c7_c8.py`): integração de `explain_alert` (A8) e resumo de alertas não lidos por terreno.
 
-### Pontos de atenção para a Rodada 3 (Demo e Integração Frontend)
+### Pontos de atenção para o fechamento da Rodada 3 (Frontend `F3` e Evolução)
 
-- `docker-compose.yml` e `.env.example` ainda não expõem `NASA_MOCK_PROFILE`, `backend/api/demo.py` ainda monta série demo própria em vez de aproveitar os perfis da `A9`, e `docs/index.md` ainda mantém o roadmap das Fases 1–3 como futuro → **B8**.
-- O `frontend/` (`React 19 + Vite + Tailwind v4`) já iniciou componentes e fluxo de onboarding (`MapTerrainPage.tsx`, `PlantationsPage.tsx`, `CropHistoryStep.tsx`, passo 2 de água), faltando conectar `/api/v1` e implementar as telas integradas de `[M3]`, `[M4]`, `[M5]` e `[M6]`.
+- Todo o backend (`A1–A14`, `B1–B8`, `C1–C9`) e os fluxos iniciais de frontend (`F1–F2`: roteamento, cliente HTTP, `PlantationsPage.tsx`, `MapTerrainPage.tsx`, `CropHistoryStep.tsx` e `WaterDistributionStep.tsx`) já estão implementados e testados (70 testes verdes em `backend/tests`).
+- **Pendência ativa principal (`F3`):** construir/conectar as telas finais no `frontend/src/pages/` para Simulação `[M3]` (incluindo `score_breakdown`, `attainable_yield_kg_ha`, solo HWSD e explicação IA), catálogo `[M2]` conectado a `GET /api/v1/culturas/aptidao-gaez`, Calendário `[M4]`, Alertas `[M5]` e Relatórios `[M6]`, seguidos do ensaio ponta a ponta da demo.
+
+## Arquitetura de Dados em 2 Camadas, Estado do ML e Sugestões de Evolução
+
+1. **Adaptação Brasil — Arquitetura em 2 Camadas (sem fallbacks inventados no GAEZ):**
+   - **Camada Estratégica (~10 km / 5 arc-min — `backend/services/gaez_service.py`):** FAO GAEZ v5 (*Suitability and Attainable Yield* `RES05-SUX`/`RES05-YLX` nos 4 regimes `LRLM`, `HRLM`, `LILM`, `HILM`) + **HWSD v2.01** + `SQ-IDX` / `SQX.SQ0` + `SLOPE-MED` + **CMIP6** (`FP2140` `SSP370`). Consulta direta via HTTP Range nos COGs públicos do GCS com cache por célula (`data/gaez_cache/`); se indisponível, retorna `data_quality="no_data"` (HTTP `503` em `/aptidao-gaez`) sem inventar fallback regional.
+   - **Camada Operacional (`backend/services/geospatial.py`):** NASA **SMAP** (`SPL3SMP_E`), **ECOSTRESS** (`ECO2LSTE`), **GPM/IMERG** (`GPM_3IMERGDF`), **MODIS NDVI** (`MOD13Q1`) via `earthaccess`/NetCDF local e API pública **NASA POWER** (`GWETTOP`, `TS`, `PRECTOTCORR`) com cache em disco e perfis simuláveis (`mock`) em desenvolvimento/demo.
+2. **O que foi vs. não foi implementado de Machine Learning e IA:**
+   - **Implementado:** `CropSimulator` (`RandomForestRegressor` de 9 features + features temporais da série + `gaez_suitability`, `attainable_yield_kg_ha`, `soil_quality_index`, `cmip6_suitability_delta` + ajuste por `historico_cultivos`), `ClimateAnomalyDetector` (limiares agronômicos + `IsolationForest` + z-score robusto MAD + métricas diagnósticas) e `RotationExplainerAgent` (Gemini `gemini-2.5-flash` / `FakeListLLM` com solo HWSD, `kg/ha` e `DISCLAIMER` obrigatório).
+   - **Ainda não implementado em ML/Dados (evoluções futuras):** retreino offline do `RandomForestRegressor` sobre bases históricas reais de produtividade brasileira (CONAB/IBGE/Embrapa) persistido em arquivo versionado; ingestão automática da base **ECOCROP** (para ir além das 13 culturas mapeadas e cobrir todas as 72+ culturas GAEZ); biblioteca **PyAEZ** para zoneamento local fino; processamento 10–30 m de **Copernicus Sentinel-2 / Landsat (HLS)** e **SRTM 30 m** no `[M1]`; ingestão direta de **ERA5**, **VIIRS** e **NASA FIRMS**.
+3. **Sugestões de Produto & UX (inspiradas no portal FAO GAEZ v5):**
+   - **Overlay WMS no Leaflet (`MapTerrainPage.tsx`):** exibir camadas visuais de aptidão/solo via GeoServer WMS público da FAO (`https://data.apps.fao.org/geoserver/wms`).
+   - **Split View (comparação lado a lado):** comparar histórico vs. CMIP6 futuro ou sequeiro (`LRLM`) vs. irrigado (`HILM`).
+   - **Feature Information pontual:** ao clicar no terreno, exibir `attainable_yield_kg_ha` (kg/ha), classe HWSD v2.01 e fator limitante dominante (`SQ-IDX`).
 
 ## Contratos (não quebrar sem avisar os outros)
 
 1. **`field_metrics`** (saída de `INASADataProvider.extract_field_metrics`):
-   `avg_soil_moisture_smap`, `avg_surface_temp_ecostress`, `avg_precipitation_gpm` (mm/dia), `is_bare_field_period`, `data_quality` (`clip` | `nearest_cell` | `no_data`), `time_series` (lista por dia com `data`, `soil_moisture`, `surface_temp_c`, `precipitation_mm`), `coordinates`.
-2. **`ClimateAnomalyDetector.detect_extremes(dict | list[dict])`** retorna
+   `avg_soil_moisture_smap`, `avg_surface_temp_ecostress`, `avg_precipitation_gpm` (mm/dia), `is_bare_field_period`, `data_quality` (`clip` | `nearest_cell` | `no_data`), `time_series` (lista por dia com `data`, `soil_moisture`, `surface_temp_c`, `precipitation_mm`), `coordinates`. Quando GAEZ ativo na simulação, `metricas_geoespaciais["gaez"]` traz a saída da camada estratégica.
+2. **`GAEZDataProvider.extract_gaez_metrics`** (e `GET /api/v1/culturas/aptidao-gaez`):
+   Retorna `{origem: "fao_gaez_v5", data_quality: "gaez_v5_cog" | "no_data", input_level, ssp_scenario, centroid, soil, crops}` (e no endpoint REST `culturas_avaliadas` / `culturas_sincronizadas`, ou HTTP `503` em `no_data`).
+3. **`ClimateAnomalyDetector.detect_extremes(dict | list[dict])`** retorna
    `{anomaly_detected: bool, tipo_evento: onda_de_calor|seca|chuva_intensa|nenhum, severidade, detalhes}`; `detalhes` inclui `metodo` (`limiar` | `isolation_forest`) e `indices_outliers`.
-3. **`CropSimulator.simulate_rotation_strategies`** retorna 3 itens (incluindo a prática atual, marcada com `(Atual)`) de
+4. **`CropSimulator.simulate_rotation_strategies`** retorna 3 itens (incluindo a prática atual, marcada com `(Atual)`) de
    `{strategy, viability (0–1), water_risk (low|medium|high), benefits, score_breakdown}`.
-4. **`SimulacaoResponse`** inclui `origem` e `fallback_usado`.
-5. **Aviso do LLM:** toda explicação termina com o disclaimer (garantido em `llm_agent.py`).
+5. **`SimulacaoResponse`** inclui `origem` e `fallback_usado`.
+6. **Aviso do LLM:** toda explicação termina com o disclaimer (garantido em `llm_agent.py`).
 
 ## Dev A — Dados, ML e IA
 
@@ -63,6 +80,8 @@
 | A10 | ✅ | Expor `perfil_climatico` em runtime na extração/simulação (`get_nasa_processor` / `extract_field_metrics`) e usar `calcular_geometria_terreno` dentro de `_calcular_metricas_fallback` para incluir `area_hectares` em `metricas_geoespaciais` | `geospatial.py`, `api/simulacao.py`, `schemas/simulacao.py`, `backend/tests/test_data_ml.py` | Simulação aceita perfil climático sob demanda e sempre retorna `area_hectares` calculada do polígono |
 | A11 | ✅ | Ingestão real multi-fonte no `RealNASADataProvider` (`data/real/`, harmonização/transposição GPM, filtro `_FillValue`, tolerância parcial e API NASA POWER com cache) + `RandomForestRegressor` e features temporais no `CropSimulator` / diagnósticos no `ClimateAnomalyDetector` | `geospatial.py`, `ml_models.py` | Dados reais/POWER e séries temporais alimentam o ML com `ml_model_score` e `temporal_stability` |
 | A12 | ✅ | Infraestrutura Earthdata (`earthaccess`, `h5netcdf`, `EARTHDATA_TOKEN`, `NASA_POWER_FALLBACK`, `NASA_REAL_DAYS_BACK`), suporte a `perfil_climatico="real"` na simulação e testes de `A11–A12` | `requirements.txt`, `docker-compose.yml`, `.env.example`, `mock_nasa_data.py`, `api/simulacao.py`, `backend/tests/test_data_ml.py` | `POST /api/v1/simular-rotacao` suporta dados reais e suíte `pytest` verde |
+| A13 | ✅ | Provedor direto FAO GAEZ v5 COG (`RES05-SUX`/`YLX` Suitability and Attainable Yield, `HWSDV201`, `SQ-IDX`, `SQX.SQ0`, `SLOPE-MED` e `CMIP6` 2021–2040) com cache por célula e sem fallbacks inventados | `backend/services/gaez_service.py` | Extração direta dos COGs oficiais nos 4 perfis (`LRLM`, `HRLM`, `LILM`, `HILM`) |
+| A14 | ✅ | Integração "Suitability and Attainable Yield" no catálogo `[M2]` (`/culturas/aptidao-gaez`), `CropSimulator` `[M3]` e `RotationExplainerAgent` + testes de `A13–A14` | `api/cultura.py`, `schemas/rotacao.py`, `ml_models.py`, `llm_agent.py`, `api/simulacao.py`, `backend/tests/test_data_ml.py` | Culturas/rotações e IA usam aptidão GAEZ, produtividade `kg/ha`, solo HWSD e `CMIP6` |
 
 ## Dev B — Catálogo, relatórios, terrenos e infra/demo
 
@@ -103,7 +122,7 @@
 
 1. ✅ **Rodada 1 concluída:** `A1–A6` · `B1–B4` · `C1–C5`.
 2. ✅ **Rodada 2 concluída:** `A7–A9` · `B5–B7` · `C6–C8`.
-3. **Rodada 3 — Em andamento:** `A10–A12` ✅ · `B8` ✅ · `C9` ✅ · `F1` ✅ · `F2` ✅ · pendente: `F3` (telas completas de Simulação/Calendário/Alertas/Relatório + ensaio final da demo).
+3. **Rodada 3 — Em andamento:** `A10–A14` ✅ · `B8` ✅ · `C9` ✅ · `F1` ✅ · `F2` ✅ · pendente: `F3` (telas completas de Simulação/Calendário/Alertas/Relatório + ensaio final da demo).
 
 ## Regras de trabalho
 
