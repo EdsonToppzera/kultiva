@@ -91,18 +91,30 @@ def obter_cooldown_alerta_horas(default: int = 24) -> int:
         return default
 
 
-def get_nasa_provider(data_path: str = "data") -> Optional[Any]:
+def get_nasa_provider(
+    data_path: str = "data", profile: Optional[str] = None
+) -> Optional[Any]:
     """Instancia o provedor NASA (INASADataProvider) via geospatial.py."""
     try:
         geo_module = importlib.import_module("backend.services.geospatial")
         factory = getattr(geo_module, "get_nasa_data_provider", None)
         if callable(factory):
+            if profile is not None:
+                try:
+                    return factory(data_path=data_path, profile=profile)
+                except TypeError:
+                    return factory(data_path=data_path)
             return factory(data_path=data_path)
         provider_cls = getattr(geo_module, "MockNASADataProvider", None) or getattr(
             geo_module, "NasaDataProcessor", None
         )
         if provider_cls is None:
             return None
+        if profile is not None:
+            try:
+                return provider_cls(data_path=data_path, profile=profile)
+            except TypeError:
+                return provider_cls(data_path=data_path)
         return provider_cls(data_path=data_path)
     except Exception:
         return None
@@ -525,6 +537,7 @@ def executar_ciclo_monitoramento_alertas(
     output_dir: str = "data",
     session_factory=None,
     cooldown_horas: Optional[int] = None,
+    perfil_climatico: Optional[str] = None,
 ) -> List[int]:
     """
     Executa um ciclo de monitoramento climático em segundo plano por terreno:
@@ -546,7 +559,9 @@ def executar_ciclo_monitoramento_alertas(
             if not terrenos:
                 return []
 
-            nasa_provider = get_nasa_provider(data_path=output_dir)
+            nasa_provider = get_nasa_provider(
+                data_path=output_dir, profile=perfil_climatico
+            )
             data_prevista = date.today() + timedelta(days=1)
 
             for terreno in terrenos:
@@ -555,6 +570,8 @@ def executar_ciclo_monitoramento_alertas(
                     output_dir=output_dir,
                     nasa_provider=nasa_provider,
                 )
+                if perfil_climatico:
+                    dados_terreno["perfil_climatico"] = perfil_climatico
                 persistir_metricas_terreno(
                     db=db,
                     terreno_id=terreno.id,

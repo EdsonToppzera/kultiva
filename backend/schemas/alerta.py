@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -63,6 +63,12 @@ class MonitoramentoClimaRequest(BaseModel):
         le=24,
         description="Intervalo periódico em horas (se omitido, usa ALERT_MONITOR_INTERVAL_HOURS)",
     )
+    perfil_climatico: Optional[
+        Literal["normal", "seca", "chuva_extrema", "onda_de_calor"]
+    ] = Field(
+        default=None,
+        description="Perfil climático simulável para disparo sob demanda na demo",
+    )
 
 
 class MonitoramentoClimaResponse(BaseModel):
@@ -70,6 +76,7 @@ class MonitoramentoClimaResponse(BaseModel):
     mensagem: str
     intervalo_horas: int
     terreno_id: Optional[int] = None
+    perfil_climatico: Optional[str] = None
 
 
 class ResumoAlertasTerrenoItem(BaseModel):

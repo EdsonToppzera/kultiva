@@ -163,6 +163,11 @@ def disparar_alerta_climatico(
     response_model=MonitoramentoClimaResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
+@router.post(
+    "/monitorar-clima",
+    response_model=MonitoramentoClimaResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
 def iniciar_monitoramento_clima(
     payload: MonitoramentoClimaRequest,
     background_tasks: BackgroundTasks,
@@ -194,16 +199,23 @@ def iniciar_monitoramento_clima(
         executar_ciclo_monitoramento_alertas,
         payload.terreno_id,
         intervalo_efetivo,
+        "data",
+        None,
+        None,
+        payload.perfil_climatico,
     )
 
     return MonitoramentoClimaResponse(
         status="accepted",
         mensagem=(
             "Monitoramento climático em segundo plano agendado "
-            f"(janela configurada de {intervalo_efetivo}h)."
+            f"(janela configurada de {intervalo_efetivo}h"
+            + (f", perfil '{payload.perfil_climatico}'" if payload.perfil_climatico else "")
+            + ")."
         ),
         intervalo_horas=intervalo_efetivo,
         terreno_id=payload.terreno_id,
+        perfil_climatico=payload.perfil_climatico,
     )
 
 
