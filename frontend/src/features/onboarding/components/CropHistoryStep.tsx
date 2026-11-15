@@ -28,7 +28,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "../../../components/ui/popover";
-import { formatPopularNames } from "../../../data/cropsDictionary";
+import {
+  CROPS_DICTIONARY,
+  formatPopularNames,
+} from "../../../data/cropsDictionary";
 import { useCatalogSearch } from "../../../hooks/useCatalogSearch";
 import { cn } from "../../../lib/utils";
 import {
@@ -297,10 +300,8 @@ const NETWORK_BADGE_CONFIG: Record<
  * Tela de Onboarding — Passo 1: Histórico de Cultivos.
  * Permite selecionar os dois últimos cultivos via busca fuzzy com sinônimos regionais ou pular caso não lembre.
  */
-const EMPTY_CROPS: CropOption[] = [];
-
 export function CropHistoryStep({
-  crops = EMPTY_CROPS,
+  crops = CROPS_DICTIONARY,
   initialData,
   networkStatus,
   terrenoId,
