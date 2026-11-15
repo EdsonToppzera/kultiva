@@ -25,6 +25,10 @@ class AlertaGatilhoRequest(BaseModel):
         description="Série temporal opcional para análise pelo ClimateAnomalyDetector",
     )
     dias_adiamento: int = Field(default=2, ge=1, le=14)
+    idioma: Optional[str] = Field(
+        default="pt",
+        description="Idioma desejado para título, mensagem e orientação prática ('pt' ou 'en')",
+    )
 
 
 class AlertaClimaticoResponse(BaseModel):

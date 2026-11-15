@@ -25,6 +25,10 @@ _DISCLAIMER_ALERTA = (
     "Lembre-se: esta ferramenta serve para apoiar a decisão e identificar possibilidades, "
     "mas não substitui a sua experiência local. A decisão final é sempre sua."
 )
+_DISCLAIMER_ALERTA_EN = (
+    "Remember: this tool is designed to support your decision and highlight possibilities, "
+    "but it does not replace your local experience. The final decision is always yours."
+)
 
 
 def gerar_orientacao_alerta(
@@ -32,8 +36,11 @@ def gerar_orientacao_alerta(
     severidade: str = "alta",
     resumo_adaptacao: Optional[str] = None,
     detalhes_clima: Optional[Dict[str, Any]] = None,
+    idioma: str = "pt",
 ) -> str:
     """Gera orientação prática acessível para alertas [M5] via explain_alert (A8) com fallback."""
+    lang = "en" if str(idioma or "pt").strip().lower().startswith("en") else "pt"
+    disclaimer = _DISCLAIMER_ALERTA_EN if lang == "en" else _DISCLAIMER_ALERTA
     try:
         llm_mod = importlib.import_module("backend.services.llm_agent")
         agent_cls = getattr(llm_mod, "RotationExplainerAgent", None)
@@ -45,16 +52,39 @@ def gerar_orientacao_alerta(
                     severidade=severidade,
                     resumo_adaptacao=resumo_adaptacao,
                     detalhes_clima=detalhes_clima,
+                    idioma=lang,
                 )
                 if isinstance(texto, str) and texto.strip():
-                    if "decisão final" not in texto.lower():
-                        return f"{texto.strip()}\n\n{_DISCLAIMER_ALERTA}"
+                    marker = "final decision" if lang == "en" else "decisão final"
+                    if marker not in texto.lower():
+                        return f"{texto.strip()}\n\n{disclaimer}"
                     return texto.strip()
     except Exception as exc:
         logger.warning("Falha em explain_alert; usando orientação determinística: %s", exc)
 
     ev = str(tipo_evento or "").strip().lower()
-    if ev in TIPOS_CHUVA:
+    if lang == "en":
+        if ev in TIPOS_CHUVA:
+            base = (
+                "Heavy rain is expected. Avoid fertilizing or applying inputs before the rain, "
+                "check drainage channels, and protect areas with exposed soil."
+            )
+        elif ev in TIPOS_CALOR_SECA:
+            base = (
+                "Strong heat or dry weather detected. Prioritize irrigation during cooler hours "
+                "(early morning or late afternoon) and reinforce mulch to retain soil moisture."
+            )
+        elif ev in TIPOS_PRAGA:
+            base = (
+                "Pest occurrence recorded in the area. Inspect young leaves and plant bases, "
+                "remove initial outbreaks manually when possible, and prioritize biological or integrated pest management."
+            )
+        else:
+            base = (
+                f"Attention to the {tipo_evento.replace('_', ' ')} alert (severity {severidade}). "
+                "Monitor the field closely and adjust preventive management to plot conditions."
+            )
+    elif ev in TIPOS_CHUVA:
         base = (
             "Há previsão de chuva forte. Evite adubar ou aplicar insumos antes da chuva, "
             "verifique valas de drenagem e proteja áreas com solo exposto."
@@ -77,7 +107,7 @@ def gerar_orientacao_alerta(
         )
     if resumo_adaptacao:
         base = f"{base} {resumo_adaptacao}"
-    return f"{base}\n\n{_DISCLAIMER_ALERTA}"
+    return f"{base}\n\n{disclaimer}"
 
 
 def obter_intervalo_monitoramento_horas(default: int = 6) -> int:
@@ -407,12 +437,27 @@ def processar_alerta_e_adaptar_calendario(
             )
 
             alerta.processado_background = True
-            alerta.resumo_adaptacao = (
-                f"Calendário adaptado automaticamente na janela de {janela_inicio.isoformat()} "
-                f"a {janela_fim.isoformat()}: {ajustadas} atividade(s) ajustada(s)/adiada(s) "
-                f"e {criadas} nova(s) atividade(s) criada(s)."
-            )
             dados_atualizados = dict(alerta.dados_gatilho or {})
+            idioma = (
+                "en"
+                if str(dados_atualizados.get("idioma") or "pt")
+                .strip()
+                .lower()
+                .startswith("en")
+                else "pt"
+            )
+            if idioma == "en":
+                alerta.resumo_adaptacao = (
+                    f"Calendar automatically adapted for {janela_inicio.isoformat()} "
+                    f"to {janela_fim.isoformat()}: {ajustadas} activity(ies) adjusted/postponed "
+                    f"and {criadas} new activity(ies) created."
+                )
+            else:
+                alerta.resumo_adaptacao = (
+                    f"Calendário adaptado automaticamente na janela de {janela_inicio.isoformat()} "
+                    f"a {janela_fim.isoformat()}: {ajustadas} atividade(s) ajustada(s)/adiada(s) "
+                    f"e {criadas} nova(s) atividade(s) criada(s)."
+                )
             dados_atualizados["orientacao_pratica"] = gerar_orientacao_alerta(
                 tipo_evento=alerta.tipo_evento,
                 severidade=alerta.severidade,
@@ -420,6 +465,7 @@ def processar_alerta_e_adaptar_calendario(
                 detalhes_clima=dados_atualizados.get("dados_climaticos")
                 if isinstance(dados_atualizados.get("dados_climaticos"), dict)
                 else None,
+                idioma=idioma,
             )
             alerta.dados_gatilho = dados_atualizados
             db.commit()

@@ -115,19 +115,67 @@ function translateCropStepName(name: string, isEnglish: boolean): string {
     return i18n.t("simulation.restStep");
   }
   if (!isEnglish) return name;
-  const normalized = name.trim().toLowerCase();
+
+  const trimmed = name.trim();
+  if (trimmed.includes("/")) {
+    return trimmed
+      .split("/")
+      .map((part) => translateCropStepName(part.trim(), true))
+      .join(" / ");
+  }
+
+  const hasCurrentSuffix = /\(atual\)\s*$/i.test(trimmed);
+  const baseName = trimmed.replace(/\s*\(atual\)\s*$/i, "").trim();
+  const normalized = baseName.toLowerCase();
+
+  let translated = baseName;
   if (EN_CROP_NAMES_BY_KEY[normalized]) {
-    return EN_CROP_NAMES_BY_KEY[normalized];
+    translated = EN_CROP_NAMES_BY_KEY[normalized];
+  } else {
+    const match = CROPS_DICTIONARY.find(
+      (crop) =>
+        crop.officialName.toLowerCase() === normalized ||
+        crop.popularNames.some((alias) => alias.toLowerCase() === normalized)
+    );
+    if (match && EN_CROP_NAMES_BY_KEY[match.id]) {
+      translated = EN_CROP_NAMES_BY_KEY[match.id];
+    }
   }
-  const match = CROPS_DICTIONARY.find(
-    (crop) =>
-      crop.officialName.toLowerCase() === normalized ||
-      crop.popularNames.some((alias) => alias.toLowerCase() === normalized)
-  );
-  if (match && EN_CROP_NAMES_BY_KEY[match.id]) {
-    return EN_CROP_NAMES_BY_KEY[match.id];
+
+  return hasCurrentSuffix ? `${translated} (Current)` : translated;
+}
+
+function localizeCropNamesInText(text: string, isEnglish: boolean): string {
+  if (!isEnglish || !text) return text;
+  const entries: Array<[string, string]> = [
+    ["feijão-caupi", "Cowpea"],
+    ["feijao-caupi", "Cowpea"],
+    ["feijão-carioca", "Pinto bean"],
+    ["feijão-de-porco", "Jack bean"],
+    ["feijão-guandu", "Pigeon pea"],
+    ["batata-doce", "Sweet potato"],
+    ["sorgo", "Sorghum"],
+    ["milheto", "Pearl millet"],
+    ["amendoim", "Peanut"],
+    ["mandioca", "Cassava"],
+    ["crotalária", "Sunn hemp"],
+    ["milho", "Corn"],
+    ["soja", "Soybean"],
+    ["braquiária", "Brachiaria"],
+    ["gergelim", "Sesame"],
+    ["girassol", "Sunflower"],
+    ["algodão", "Cotton"],
+    ["arroz", "Rice"],
+    ["mucuna", "Velvet bean"],
+    ["guandu", "Pigeon pea"],
+    ["(atual)", "(Current)"],
+  ];
+  let out = text;
+  for (const [pt, en] of entries) {
+    const escaped = pt.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    out = out.replace(new RegExp(escaped, "gi"), en);
   }
-  return name;
+  return out;
 }
 
 function translateWaterRisk(risk: string, isEnglish: boolean): string {
@@ -220,7 +268,7 @@ const EN_BENEFIT_PHRASES: Array<[string, string]> = [
 ];
 
 function translateKnownBenefit(benefit: string, isEnglish: boolean): string {
-  if (!isEnglish) return benefit;
+  if (!isEnglish || !benefit) return benefit;
   let translated = benefit;
   for (const [pt, en] of EN_BENEFIT_PHRASES) {
     if (translated.includes(pt)) {
@@ -228,9 +276,15 @@ function translateKnownBenefit(benefit: string, isEnglish: boolean): string {
     }
   }
   return translated
-    .replace(/Aptidão FAO GAEZ v5/g, "FAO GAEZ v5 suitability")
-    .replace(/produtividade atingível média/g, "avg attainable yield")
-    .replace(/GAEZ v5: aptidão/g, "GAEZ v5: suitability");
+    .replace(
+      /Aptidão FAO GAEZ v5(\s*\([^)]+\))?\s+de\s+/gi,
+      "FAO GAEZ v5 suitability$1 of "
+    )
+    .replace(/Aptidão FAO GAEZ v5/gi, "FAO GAEZ v5 suitability")
+    .replace(/produtividade atingível média/gi, "avg attainable yield")
+    .replace(/com fixação biológica de nitrogênio/gi, "with biological nitrogen fixation")
+    .replace(/fixação biológica de nitrogênio/gi, "biological nitrogen fixation")
+    .replace(/GAEZ v5:\s*aptidão/gi, "GAEZ v5: suitability");
 }
 
 function buildProsAndCons(
@@ -246,8 +300,9 @@ function buildProsAndCons(
     pros.push(translateKnownBenefit(item.benefits, isEnglish));
   }
   for (const beneficio of response.beneficios_esperados.slice(0, 2)) {
-    if (!pros.includes(beneficio)) {
-      pros.push(beneficio);
+    const localized = localizeCropNamesInText(beneficio, isEnglish);
+    if (!pros.includes(localized)) {
+      pros.push(localized);
     }
   }
   if (pros.length === 0) {
@@ -386,7 +441,8 @@ export function adaptSimulacaoToScenarios(
     const stepNames =
       lastCropName &&
       rawStepNames.length > 0 &&
-      rawStepNames[0].toLowerCase() !== lastCropName.toLowerCase()
+      translateCropStepName(rawStepNames[0], isEnglish).toLowerCase() !==
+        lastCropName.toLowerCase()
         ? [lastCropName, ...rawStepNames]
         : rawStepNames;
 
@@ -445,13 +501,18 @@ export function adaptSimulacaoToScenarios(
       focusTag: mapFocusTag(onboarding.priority, idx),
       variant,
       steps,
-      aiJustification:
-        item.explicacao ||
-        response.explicacao_ia ||
-        response.explicacao_textual ||
-        (isEnglish
-          ? "Rotation calculated from your plot history and climate conditions."
-          : "Rotação calculada com base no histórico da área e condições climáticas."),
+      aiJustification: translateKnownBenefit(
+        localizeCropNamesInText(
+          item.explicacao ||
+            response.explicacao_ia ||
+            response.explicacao_textual ||
+            (isEnglish
+              ? "Rotation calculated from your plot history and climate conditions."
+              : "Rotação calculada com base no histórico da área e condições climáticas."),
+          isEnglish
+        ),
+        isEnglish
+      ),
       pros,
       cons,
       ctaLabel:
@@ -533,23 +594,36 @@ export function buildGerarCronogramaPayload(
   };
 }
 
-function inferActivityPeriod(tipoAtividade: string): {
+function inferActivityPeriod(
+  tipoAtividade: string,
+  isEnglish = false
+): {
   period: ActivityPeriodId;
   periodLabel: string;
 } {
   const tipo = tipoAtividade.trim().toLowerCase();
   if (tipo === "inspecao" || tipo === "plantio" || tipo === "adubacao" || tipo === "colheita") {
-    return { period: "manha", periodLabel: "Manhã cedo" };
+    return {
+      period: "manha",
+      periodLabel: isEnglish ? "Early morning" : "Manhã cedo",
+    };
   }
   if (tipo === "irrigacao") {
-    return { period: "tarde", periodLabel: "Fim de tarde" };
+    return {
+      period: "tarde",
+      periodLabel: isEnglish ? "Late afternoon" : "Fim de tarde",
+    };
   }
-  return { period: "qualquer-momento", periodLabel: "Qualquer momento" };
+  return {
+    period: "qualquer-momento",
+    periodLabel: isEnglish ? "Anytime" : "Qualquer momento",
+  };
 }
 
 export function adaptAtividadesToDashboardItems(
   atividades: AtividadeCalendarioResponse[],
-  todayIso: string
+  todayIso: string,
+  isEnglish = false
 ): AreaActivityItem[] {
   if (atividades.length === 0) return [];
 
@@ -565,56 +639,116 @@ export function adaptAtividadesToDashboardItems(
 
   return finalItems.map((atividade) => {
     const { period, periodLabel } = inferActivityPeriod(
-      atividade.tipo_atividade
+      atividade.tipo_atividade,
+      isEnglish
     );
     return {
       id: String(atividade.id),
       backendId: atividade.id,
       period,
       periodLabel,
-      title: atividade.titulo,
-      description:
-        atividade.descricao ||
-        `Atividade de ${atividade.tipo_atividade} (${atividade.data_programada}).`,
+      title: localizeCalendarActivityText(atividade.titulo, isEnglish),
+      description: atividade.descricao
+        ? localizeCalendarActivityText(atividade.descricao, isEnglish)
+        : isEnglish
+          ? `${atividade.tipo_atividade} activity (${atividade.data_programada}).`
+          : `Atividade de ${atividade.tipo_atividade} (${atividade.data_programada}).`,
       completed: atividade.concluida,
       paused: atividade.ajustada_por_alerta && !atividade.concluida,
-      pausedReason: atividade.motivo_ajuste ?? undefined,
+      pausedReason: atividade.motivo_ajuste
+        ? localizeCalendarActivityText(atividade.motivo_ajuste, isEnglish)
+        : undefined,
     };
   });
 }
 
+const EN_ALERT_TEXT_MAP: Array<[RegExp, string]> = [
+  [/Relato de campo:\s*chuva não prevista/gi, "Field report: unexpected rain"],
+  [/Relato de campo:\s*falta de chuva/gi, "Field report: lack of rain"],
+  [/Relato de campo:\s*ocorrência de praga/gi, "Field report: pest occurrence"],
+  [
+    /O produtor informou chuva não prevista na área\.\s*Ajustar atividades sensíveis\.?/gi,
+    "Producer reported unexpected rain in the area. Adjust sensitive activities.",
+  ],
+  [
+    /O produtor informou que não choveu como esperado\.\s*Avaliar necessidade de irrigação e cobertura\.?/gi,
+    "Producer reported it did not rain as expected. Assess irrigation and soil cover needs.",
+  ],
+  [
+    /O produtor identificou sinais de praga na área\.\s*Priorizar inspeção e manejo fitossanitário\.?/gi,
+    "Producer identified signs of pests in the area. Prioritize inspection and phytosanitary management.",
+  ],
+  [
+    /Manter o planejamento de rotação atual com monitoramento semanal do calendário\.?/gi,
+    "Maintain the current rotation plan with weekly calendar monitoring.",
+  ],
+  [
+    /Priorizar cobertura morta e culturas rústicas resistentes à seca\/calor\.?/gi,
+    "Prioritize mulch and hardy crops resistant to drought/heat.",
+  ],
+  [
+    /Acompanhar alertas diários e reforçar irrigação suplementar em horários amenos\.?/gi,
+    "Follow daily alerts and reinforce supplemental irrigation during cooler hours.",
+  ],
+  [
+    /O calendário adaptou automaticamente (\d+) atividade\(s\) frente a eventos climáticos no período\.?/gi,
+    "The calendar automatically adapted $1 activity(ies) in response to weather events during this period.",
+  ],
+];
+
+function localizeAlertText(text: string, isEnglish: boolean): string {
+  if (!isEnglish || !text) return text;
+  let out = text;
+  for (const [pattern, replacement] of EN_ALERT_TEXT_MAP) {
+    out = out.replace(pattern, replacement);
+  }
+  return out;
+}
+
 export function adaptRelatorioAndAlertasToWeather(
   relatorio: RelatorioAdaptacaoResponse | null,
-  alertas: AlertaClimaticoResponse[]
+  alertas: AlertaClimaticoResponse[],
+  isEnglish = false
 ): AreaWeatherSummary {
   const latestAlert = alertas[0];
   const resumo = relatorio?.resumo_climatico;
 
   const tempStr = resumo
-    ? `${Math.round(resumo.temperatura_media_c)}°C (máx ${Math.round(resumo.temperatura_max_c)}°C)`
-    : "Clima monitorado";
+    ? isEnglish
+      ? `${Math.round(resumo.temperatura_media_c)}°C (max ${Math.round(resumo.temperatura_max_c)}°C)`
+      : `${Math.round(resumo.temperatura_media_c)}°C (máx ${Math.round(resumo.temperatura_max_c)}°C)`
+    : isEnglish
+      ? "Monitored weather"
+      : "Clima monitorado";
   const rainStr = resumo
-    ? `Chuva acumulada: ${Math.round(resumo.precipitacao_total_mm)} mm`
-    : "Sem chuva forte prevista";
+    ? isEnglish
+      ? `Accumulated rain: ${Math.round(resumo.precipitacao_total_mm)} mm`
+      : `Chuva acumulada: ${Math.round(resumo.precipitacao_total_mm)} mm`
+    : isEnglish
+      ? "No heavy rain expected"
+      : "Sem chuva forte prevista";
 
-  let headline = "Tempo estável na área";
+  let headline = isEnglish ? "Stable weather in the area" : "Tempo estável na área";
   if (latestAlert) {
-    headline = latestAlert.titulo;
+    headline = localizeAlertText(latestAlert.titulo, isEnglish);
   } else if (resumo && resumo.precipitacao_total_mm > 25) {
-    headline = "Chuva recente registrada";
+    headline = isEnglish ? "Recent rain recorded" : "Chuva recente registrada";
   } else if (resumo && resumo.umidade_media_solo < 0.22) {
-    headline = "Solo com umidade baixa";
+    headline = isEnglish ? "Low soil moisture" : "Solo com umidade baixa";
   }
 
   return {
     headline,
     details: `${tempStr} · ${rainStr}`,
-    weatherNotice:
+    weatherNotice: localizeAlertText(
       latestAlert?.orientacao_pratica ||
-      latestAlert?.resumo_adaptacao ||
-      relatorio?.recomendacoes_manejo[0],
+        latestAlert?.resumo_adaptacao ||
+        relatorio?.recomendacoes_manejo[0] ||
+        "",
+      isEnglish
+    ) || undefined,
     sourceLabel: relatorio?.origem_dados
-      ? `Fonte: ${relatorio.origem_dados}`
+      ? `${isEnglish ? "Source" : "Fonte"}: ${relatorio.origem_dados}`
       : undefined,
   };
 }
@@ -622,12 +756,15 @@ export function adaptRelatorioAndAlertasToWeather(
 export function adaptAtividadesToCropProgress(
   atividades: AtividadeCalendarioResponse[],
   todayIso: string,
-  fallbackCropName = "Cultivo em andamento"
+  fallbackCropName?: string,
+  isEnglish = false
 ): AreaCropProgress {
+  const resolvedFallback =
+    fallbackCropName || (isEnglish ? "Active crop" : "Cultivo em andamento");
   if (atividades.length === 0) {
     return {
-      cropName: fallbackCropName,
-      dayLabel: "Sem cronograma",
+      cropName: translateCropStepName(resolvedFallback, isEnglish),
+      dayLabel: isEnglish ? "No schedule" : "Sem cronograma",
     };
   }
 
@@ -639,12 +776,20 @@ export function adaptAtividadesToCropProgress(
   const todayMs = new Date(`${todayIso}T12:00:00`).getTime();
   const diffDays = Math.max(1, Math.round((todayMs - startMs) / 86400000) + 1);
 
-  const stageMatch = sorted[0].titulo.match(/\[Etapa\s+\d+\s*-\s*([^\]]+)\]/i);
-  const cropName = stageMatch?.[1]?.trim() || fallbackCropName;
+  const stageMatch = sorted[0].titulo.match(/\[(?:Etapa|Stage)\s+\d+\s*-\s*([^\]]+)\]/i);
+  const rawCropName = stageMatch?.[1]?.trim() || resolvedFallback;
+  const cropName = translateCropStepName(rawCropName, isEnglish);
 
   return {
     cropName,
-    dayLabel: todayIso < firstDate ? `Inicia em ${firstDate}` : `Dia ${diffDays}`,
+    dayLabel:
+      todayIso < firstDate
+        ? isEnglish
+          ? `Starts ${firstDate}`
+          : `Inicia em ${firstDate}`
+        : isEnglish
+          ? `Day ${diffDays}`
+          : `Dia ${diffDays}`,
   };
 }
 
@@ -680,15 +825,6 @@ function localizeCalendarActivityText(text: string, isEnglish: boolean): string 
   let out = text
     .replace(/\[Etapa\s+(\d+)\s*-\s*([^\]]+)\]/gi, "[Stage $1 - $2]")
     .replace(/\[Etapa\s+(\d+)\]/gi, "[Stage $1]")
-    .replace(/\bPlantio de\s+/gi, "Planting of ")
-    .replace(/\bIrrigação inicial\s*—\s*/gi, "Initial irrigation — ")
-    .replace(/\bInspeção fitossanitária\s*—\s*/gi, "Phytosanitary inspection — ")
-    .replace(/\bAdubação de cobertura\s*—\s*/gi, "Top-dressing fertilization — ")
-    .replace(/\bColheita de\s+/gi, "Harvest of ")
-    .replace(/\bVistoria inicial de\s+/gi, "Initial inspection of ")
-    .replace(/\bManejo e rega de\s+/gi, "Management and watering of ");
-
-  out = out
     .replace(
       /Preparo do canteiro e semeadura\/plantio de\s+([^.]+)\.?/gi,
       "Seedbed preparation and sowing/planting of $1."
@@ -725,9 +861,65 @@ function localizeCalendarActivityText(text: string, isEnglish: boolean): string 
     .replace(
       /Atenção ao risco hídrico simulado: priorize cobertura do solo\.?/gi,
       "Attention to simulated water risk: prioritize soil cover."
-    );
+    )
+    .replace(
+      /Inspeção de drenagem e escoamento pós-chuva/gi,
+      "Post-rain drainage and runoff inspection"
+    )
+    .replace(
+      /Verificar acúmulo de água, erosão em canteiros e condição das raízes após evento de\s+([^.]+)\.?/gi,
+      "Check for water pooling, bed erosion, and root condition after $1."
+    )
+    .replace(
+      /Irrigação suplementar e proteção térmica do solo/gi,
+      "Supplemental irrigation and soil thermal protection"
+    )
+    .replace(
+      /Reforçar cobertura morta e realizar irrigação nos horários mais frescos para mitigar\s+([^.]+)\.?/gi,
+      "Reinforce mulch and irrigate during cooler hours to mitigate $1."
+    )
+    .replace(
+      /Inspeção fitossanitária e manejo de praga/gi,
+      "Phytosanitary inspection and pest management"
+    )
+    .replace(
+      /Avaliar nível de infestação nas folhas e caules, isolar reboleiras e definir manejo integrado\.?/gi,
+      "Assess infestation level on leaves and stems, isolate hotspots, and define integrated management."
+    )
+    .replace(
+      /Proteção emergencial da lavoura contra\s+/gi,
+      "Emergency crop protection against "
+    )
+    .replace(
+      /Adotar barreiras de proteção ou cobertura temporária antes do pico do evento extremo\.?/gi,
+      "Set up protective barriers or temporary cover before the extreme event peaks."
+    )
+    .replace(
+      /Preparo conservacionista do solo/gi,
+      "Conservation soil preparation"
+    )
+    .replace(
+      /Irrigação suplementar prioritária/gi,
+      "Priority supplemental irrigation"
+    )
+    .replace(
+      /Inspeção de umidade radicular/gi,
+      "Root-zone moisture inspection"
+    )
+    .replace(/Plantio em contorno de\s+/gi, "Contour planting of ")
+    .replace(
+      /Vistoria de drenagem superficial/gi,
+      "Surface drainage inspection"
+    )
+    .replace(/\bPlantio de\s+/gi, "Planting of ")
+    .replace(/\bIrrigação inicial\s*—\s*/gi, "Initial irrigation — ")
+    .replace(/\bInspeção fitossanitária\s*—\s*/gi, "Phytosanitary inspection — ")
+    .replace(/\bAdubação de cobertura\s*—\s*/gi, "Top-dressing fertilization — ")
+    .replace(/\bColheita de\s+/gi, "Harvest of ")
+    .replace(/\bVistoria inicial de\s+/gi, "Initial inspection of ")
+    .replace(/\bManejo e rega de\s+/gi, "Management and watering of ");
 
-  return out;
+  return localizeCropNamesInText(out, true);
 }
 
 function mapMilestoneType(
@@ -817,17 +1009,19 @@ export function adaptAtividadesToCalendarData(
   for (const alerta of alertas) {
     const existing = highlights[alerta.data_evento];
     const isRain = alerta.tipo_evento.includes("chuva");
+    const localizedHeadline = localizeAlertText(alerta.titulo, isEnglish);
+    const localizedMessage = localizeAlertText(alerta.mensagem, isEnglish);
     highlights[alerta.data_evento] = {
       date: alerta.data_evento,
       milestoneType: existing?.milestoneType,
       milestoneLabel: existing?.milestoneLabel,
-      weatherHeadline: alerta.titulo,
-      weatherDetails: alerta.mensagem,
+      weatherHeadline: localizedHeadline,
+      weatherDetails: localizedMessage,
       weatherKind: isRain ? "rain" : "cloud",
       importantNotice:
         alerta.orientacao_pratica ||
         alerta.resumo_adaptacao ||
-        alerta.mensagem,
+        localizedMessage,
     };
   }
 
@@ -842,8 +1036,10 @@ export function adaptAtividadesToCalendarData(
 export function mapFieldReportToAlertaPayload(
   terrenoId: number,
   reportId: FieldReportOptionId,
-  todayIso: string
+  todayIso: string,
+  isEnglish = false
 ): AlertaGatilhoRequest {
+  const idioma = isEnglish ? "en" : "pt";
   if (reportId === "choveu_nao_previsto") {
     return {
       terreno_id: terrenoId,
@@ -851,10 +1047,14 @@ export function mapFieldReportToAlertaPayload(
       severidade: "alta",
       data_evento: todayIso,
       origem_gatilho: "manual",
-      titulo: "Relato de campo: chuva não prevista",
-      mensagem:
-        "O produtor informou chuva não prevista na área. Ajustar atividades sensíveis.",
+      titulo: isEnglish
+        ? "Field report: unexpected rain"
+        : "Relato de campo: chuva não prevista",
+      mensagem: isEnglish
+        ? "Producer reported unexpected rain in the area. Adjust sensitive activities."
+        : "O produtor informou chuva não prevista na área. Ajustar atividades sensíveis.",
       dias_adiamento: 2,
+      idioma,
     };
   }
 
@@ -865,10 +1065,14 @@ export function mapFieldReportToAlertaPayload(
       severidade: "alta",
       data_evento: todayIso,
       origem_gatilho: "manual",
-      titulo: "Relato de campo: falta de chuva",
-      mensagem:
-        "O produtor informou que não choveu como esperado. Avaliar necessidade de irrigação e cobertura.",
+      titulo: isEnglish
+        ? "Field report: lack of rain"
+        : "Relato de campo: falta de chuva",
+      mensagem: isEnglish
+        ? "Producer reported it did not rain as expected. Assess irrigation and soil cover needs."
+        : "O produtor informou que não choveu como esperado. Avaliar necessidade de irrigação e cobertura.",
       dias_adiamento: 1,
+      idioma,
     };
   }
 
@@ -878,10 +1082,14 @@ export function mapFieldReportToAlertaPayload(
     severidade: "alta",
     data_evento: todayIso,
     origem_gatilho: "manual",
-    titulo: "Relato de campo: ocorrência de praga",
-    mensagem:
-      "O produtor identificou sinais de praga na área. Priorizar inspeção e manejo fitossanitário.",
+    titulo: isEnglish
+      ? "Field report: pest occurrence"
+      : "Relato de campo: ocorrência de praga",
+    mensagem: isEnglish
+      ? "Producer identified signs of pests in the area. Prioritize inspection and phytosanitary management."
+      : "O produtor identificou sinais de praga na área. Priorizar inspeção e manejo fitossanitário.",
     dias_adiamento: 1,
+    idioma,
   };
 }
 
@@ -995,12 +1203,14 @@ export function buildSimulatedDashboardAndCalendar(
   const firstCropName = etapas[0]?.cultura ?? scenario.focusTag;
   const activities = adaptAtividadesToDashboardItems(
     syntheticAtividades,
-    todayIso
+    todayIso,
+    isEnglish
   );
   const cropProgress = adaptAtividadesToCropProgress(
     syntheticAtividades,
     todayIso,
-    firstCropName
+    firstCropName,
+    isEnglish
   );
   const calendarData = adaptAtividadesToCalendarData(
     areaName,
@@ -1013,11 +1223,11 @@ export function buildSimulatedDashboardAndCalendar(
 
   const headline =
     scenario.variant === "risk"
-      ? `Atenção hídrica · ${scenario.focusTag}`
+      ? `${isEnglish ? "Water attention" : "Atenção hídrica"} · ${scenario.focusTag}`
       : `${scenario.optionBadge} · ${scenario.focusTag}`;
   const detailsParts = [
-    `Ciclo: ${scenario.technicalDetails.cycleDurationDays}`,
-    `Água: ${scenario.technicalDetails.waterDemandMm}`,
+    `${isEnglish ? "Cycle" : "Ciclo"}: ${scenario.technicalDetails.cycleDurationDays}`,
+    `${isEnglish ? "Water" : "Água"}: ${scenario.technicalDetails.waterDemandMm}`,
   ];
   if (simulacao?.consumo_agua_mm) {
     detailsParts.push(`${Math.round(simulacao.consumo_agua_mm)} mm`);

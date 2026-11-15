@@ -180,6 +180,7 @@ export function AreaDashboardPage({
   onBack,
 }: AreaDashboardPageProps) {
   const { t, i18n } = useTranslation();
+  const isEnglish = i18n.language.startsWith("en");
   const todayIso = React.useMemo(() => new Date().toISOString().slice(0, 10), []);
   const resolvedDateLabel = React.useMemo(() => {
     if (dateLabel) return dateLabel;
@@ -233,26 +234,27 @@ export function AreaDashboardPage({
 
       if (atividadesRes.status === "fulfilled") {
         setLiveActivities(
-          adaptAtividadesToDashboardItems(atividadesData, todayIso)
+          adaptAtividadesToDashboardItems(atividadesData, todayIso, isEnglish)
         );
         setLiveCropProgress(
           adaptAtividadesToCropProgress(
             atividadesData,
             todayIso,
-            cropNameFallback
+            cropNameFallback,
+            isEnglish
           )
         );
       }
 
       if (relatorioData || alertasData.length > 0) {
         setLiveWeather(
-          adaptRelatorioAndAlertasToWeather(relatorioData, alertasData)
+          adaptRelatorioAndAlertasToWeather(relatorioData, alertasData, isEnglish)
         );
       }
     } finally {
       setIsLoadingDashboard(false);
     }
-  }, [terrenoId, isSimulationMode, todayIso, cropNameFallback]);
+  }, [terrenoId, isSimulationMode, todayIso, cropNameFallback, isEnglish]);
 
   React.useEffect(() => {
     void loadDashboardData();
@@ -333,7 +335,12 @@ export function AreaDashboardPage({
       setIsSubmittingReport(true);
       try {
         await dispararAlertaGatilho(
-          mapFieldReportToAlertaPayload(terrenoId, selectedReport, todayIso)
+          mapFieldReportToAlertaPayload(
+            terrenoId,
+            selectedReport,
+            todayIso,
+            isEnglish
+          )
         );
         await loadDashboardData();
       } catch {
@@ -409,7 +416,7 @@ export function AreaDashboardPage({
 
           {/* Card Roxo de Clima */}
           <section
-            aria-label="Previsão do tempo e ajustes do dia"
+            aria-label={t("dashboard.weatherSectionAria")}
             className="mt-3 rounded-3xl bg-[#511D4E] p-5 text-white shadow-sm"
           >
             <div className="flex items-start gap-3.5">
@@ -425,8 +432,8 @@ export function AreaDashboardPage({
                   {effectiveWeather
                     ? effectiveWeather.headline
                     : isLoadingDashboard
-                      ? "Carregando previsão..."
-                      : "Dados climáticos indisponíveis"}
+                      ? t("dashboard.loadingWeather")
+                      : t("dashboard.weatherUnavailable")}
                 </h2>
                 {effectiveWeather && (
                   <p className="mt-0.5 text-xs text-white/80">
@@ -462,7 +469,7 @@ export function AreaDashboardPage({
                 <p className="truncate text-sm font-bold text-[#1F1C18]">
                   {effectiveCropProgress
                     ? `${effectiveCropProgress.cropName} · ${effectiveCropProgress.dayLabel}`
-                    : cropNameFallback || "Sem cultivo ativo"}
+                    : cropNameFallback || t("dashboard.noActiveCrop")}
                 </p>
                 <p className="text-xs text-[#5A594E]">
                   {t("dashboard.viewFullCalendar")}

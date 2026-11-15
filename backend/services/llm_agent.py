@@ -2,6 +2,7 @@ from collections import OrderedDict
 import hashlib
 import json
 import os
+import re
 from typing import Any
 
 from dotenv import load_dotenv
@@ -836,9 +837,17 @@ def build_simulation_evidence(
     return payload
 
 
-def _format_alert_climate_details(detalhes_clima: dict[str, Any] | None) -> str:
+def _format_alert_climate_details(
+    detalhes_clima: dict[str, Any] | None,
+    idioma: str = "pt",
+) -> str:
+    lang = _normalize_lang(idioma)
     if not isinstance(detalhes_clima, dict) or not detalhes_clima:
-        return "Sem medições detalhadas informadas."
+        return (
+            "No detailed measurements provided."
+            if lang == "en"
+            else "Sem medições detalhadas informadas."
+        )
     parts: list[str] = []
     max_rain = _to_float(
         detalhes_clima.get("max_precipitation_mm")
@@ -853,22 +862,78 @@ def _format_alert_climate_details(detalhes_clima: dict[str, Any] | None) -> str:
         or detalhes_clima.get("umidade_solo")
     )
     if max_rain is not None and max_rain > 0:
-        parts.append(f"chuva máxima registrada de {max_rain:.1f} mm")
+        parts.append(
+            f"peak rainfall of {max_rain:.1f} mm"
+            if lang == "en"
+            else f"chuva máxima registrada de {max_rain:.1f} mm"
+        )
     if max_temp is not None and max_temp > 0:
-        parts.append(f"temperatura da superfície chegando a {max_temp:.1f} °C")
+        parts.append(
+            f"surface temperature reaching {max_temp:.1f} °C"
+            if lang == "en"
+            else f"temperatura da superfície chegando a {max_temp:.1f} °C"
+        )
     if min_moist is not None:
-        parts.append(f"umidade mínima do solo em {round(min_moist * 100)}%")
+        parts.append(
+            f"minimum soil moisture at {round(min_moist * 100)}%"
+            if lang == "en"
+            else f"umidade mínima do solo em {round(min_moist * 100)}%"
+        )
     z_scores = detalhes_clima.get("z_scores")
     if isinstance(z_scores, dict):
-        for label, key in (
-            ("chuva", "precipitation_mm"),
-            ("temperatura", "surface_temp_c"),
-            ("umidade", "soil_moisture"),
-        ):
+        labels = (
+            (("rainfall", "precipitation_mm"), ("temperature", "surface_temp_c"), ("soil moisture", "soil_moisture"))
+            if lang == "en"
+            else (("chuva", "precipitation_mm"), ("temperatura", "surface_temp_c"), ("umidade", "soil_moisture"))
+        )
+        for label, key in labels:
             zv = _to_float(z_scores.get(key))
             if zv is not None and abs(zv) >= 1.5:
-                parts.append(f"desvio histórico de {label} (z={zv:+.2f})")
-    return "; ".join(parts) if parts else "Dados climáticos de monitoramento do terreno."
+                parts.append(
+                    f"historical {label} deviation (z={zv:+.2f})"
+                    if lang == "en"
+                    else f"desvio histórico de {label} (z={zv:+.2f})"
+                )
+    if parts:
+        return "; ".join(parts)
+    return (
+        "Field climate monitoring data."
+        if lang == "en"
+        else "Dados climáticos de monitoramento do terreno."
+    )
+
+
+_EVENT_LABELS_EN = {
+    "chuva_intensa": "heavy rain",
+    "tempestade": "storm",
+    "heavy_rain": "heavy rain",
+    "seca": "dry spell / drought",
+    "drought": "drought",
+    "onda_de_calor": "heatwave",
+    "heatwave": "heatwave",
+    "geada": "frost",
+    "vendaval": "strong winds",
+    "praga": "pest occurrence",
+}
+
+_ALERT_ACTIONS_EN = {
+    "chuva_intensa": (
+        "Check field drainage channels, avoid fertilizing or spraying right before rain, "
+        "and protect newly planted beds or exposed soil."
+    ),
+    "seca": (
+        "Prioritize irrigation during cooler hours (early morning or late afternoon) "
+        "and reinforce soil mulch to retain moisture."
+    ),
+    "onda_de_calor": (
+        "Irrigate during cooler hours, avoid foliar applications under strong sun, "
+        "and monitor young plants for wilting."
+    ),
+    "praga": (
+        "Inspect young leaves and plant bases, remove early outbreaks manually when possible, "
+        "and prioritize biological or integrated pest management."
+    ),
+}
 
 
 def _build_alert_fallback(
@@ -877,17 +942,41 @@ def _build_alert_fallback(
     cultura: str | None,
     resumo_adaptacao: str | None,
     detalhes_clima: dict[str, Any] | None,
+    idioma: str = "pt",
 ) -> str:
     """Explicação acessível e prática para alertas climáticos [M5] em modo offline."""
+    lang = _normalize_lang(idioma)
     evento_key = str(tipo_evento or "").strip().lower()
+    if lang == "en":
+        evento_label = _EVENT_LABELS_EN.get(
+            evento_key, str(tipo_evento or "weather alert").replace("_", " ")
+        )
+        sev_label = _translate_risk(severidade, idioma="en")
+        cultura_txt = f" for your {cultura.strip()} crop" if cultura and cultura.strip() else ""
+        parts = [
+            f"Heads up: we identified a {sev_label}-severity alert for {evento_label}{cultura_txt}."
+        ]
+        climate_txt = _format_alert_climate_details(detalhes_clima, idioma="en")
+        if isinstance(detalhes_clima, dict) and detalhes_clima:
+            parts.append(f"Observed field signals: {climate_txt}.")
+        action_txt = _ALERT_ACTIONS_EN.get(
+            evento_key,
+            "Monitor the field closely over the next few days, protect soil cover, "
+            "and adjust fertilization or field operations according to local conditions.",
+        )
+        parts.append(f"What to do in the field: {action_txt}")
+        if resumo_adaptacao and str(resumo_adaptacao).strip():
+            parts.append(f"Suggested schedule adjustment: {str(resumo_adaptacao).strip()}.")
+        return " ".join(parts)
+
     evento_label = _EVENT_LABELS.get(evento_key, str(tipo_evento or "alerta climático").replace("_", " "))
-    sev_label = _translate_risk(severidade)
+    sev_label = _translate_risk(severidade, idioma="pt")
     cultura_txt = f" para a lavoura de {cultura.strip()}" if cultura and cultura.strip() else ""
 
     parts = [
         f"Atenção: identificamos um alerta de severidade {sev_label} para {evento_label}{cultura_txt}."
     ]
-    climate_txt = _format_alert_climate_details(detalhes_clima)
+    climate_txt = _format_alert_climate_details(detalhes_clima, idioma="pt")
     if isinstance(detalhes_clima, dict) and detalhes_clima:
         parts.append(f"Sinais observados no terreno: {climate_txt}.")
 
@@ -1011,6 +1100,52 @@ def _build_report_fallback(
     return " ".join(sections)
 
 
+_CROP_NAMES_EN: dict[str, str] = {
+    "feijão-caupi": "Cowpea",
+    "feijao-caupi": "Cowpea",
+    "feijão-de-corda": "Cowpea",
+    "feijão-carioca": "Pinto bean",
+    "feijao-carioca": "Pinto bean",
+    "feijão-de-porco": "Jack bean",
+    "feijão-guandu": "Pigeon pea",
+    "batata-doce": "Sweet potato",
+    "sorgo": "Sorghum",
+    "milheto": "Pearl millet",
+    "amendoim": "Peanut",
+    "mandioca": "Cassava",
+    "crotalária": "Sunn hemp",
+    "crotalaria": "Sunn hemp",
+    "milho": "Corn",
+    "soja": "Soybean",
+    "braquiária": "Brachiaria",
+    "braquiaria": "Brachiaria",
+    "gergelim": "Sesame",
+    "girassol": "Sunflower",
+    "algodão": "Cotton",
+    "algodao": "Cotton",
+    "arroz": "Rice",
+    "mucuna": "Velvet bean",
+    "guandu": "Pigeon pea",
+    "feijão": "Beans",
+    "descanso": "Rest",
+    "(atual)": "(Current)",
+}
+
+_CROP_EN_PATTERN = re.compile(
+    "|".join(re.escape(k) for k in sorted(_CROP_NAMES_EN.keys(), key=len, reverse=True)),
+    re.IGNORECASE,
+)
+
+
+def _translate_strategy_name_en(name: str) -> str:
+    if not name:
+        return name
+    return _CROP_EN_PATTERN.sub(
+        lambda m: _CROP_NAMES_EN.get(m.group(0).lower(), m.group(0)),
+        name,
+    )
+
+
 class RotationExplainerAgent:
     """Agente responsável por traduzir simulações agronômicas para linguagem simples."""
 
@@ -1083,7 +1218,8 @@ class RotationExplainerAgent:
                 "Sinais climáticos: {detalhes_clima}\n"
                 "Adaptação sugerida no calendário: {resumo_adaptacao}\n\n"
                 "Explique em linguagem bem simples, calma e direta o que esse alerta significa "
-                "e dê 2 ou 3 orientações práticas do que o agricultor pode fazer já no campo.\n\n"
+                "e dê 2 ou 3 orientações práticas do que o agricultor pode fazer já no campo. "
+                "Responda estritamente no idioma indicado nas instruções de resumo/sinais quando solicitado.\n\n"
                 "MANDATÓRIO: Conclua lembrando que a ferramenta apoia a decisão, mas a decisão final "
                 "é sempre do produtor."
             ),
@@ -1096,7 +1232,8 @@ class RotationExplainerAgent:
                 "Sinais climáticos: {detalhes_clima}\n"
                 "Adaptação sugerida no calendário: {resumo_adaptacao}\n\n"
                 "Explique em linguagem simples e calma o alerta em `diagnostico_simples` e liste 2 ou 3 "
-                "ações práticas imediatas em `acoes_imediatas`, usando apenas os dados informados."
+                "ações práticas imediatas em `acoes_imediatas`, usando apenas os dados informados. "
+                "Responda estritamente no idioma indicado nas instruções de resumo/sinais quando solicitado."
             ),
         )
         self.report_prompt = PromptTemplate(
@@ -1178,13 +1315,14 @@ class RotationExplainerAgent:
         self._sync_chains()
         if isinstance(self.llm, FakeListLLM) and lang == "en":
             return _ensure_disclaimer(_DEFAULT_MOCK_RESPONSE_EN, "en")
+        crop_prompt = _translate_strategy_name_en(crop) if lang == "en" else crop
         benefits_prompt = (
             f"{benefits}\n[IMPORTANT: Respond strictly in English in simple, clear language.]"
             if lang == "en"
             else benefits
         )
         response = self.chain.invoke(
-            {"crop": crop, "benefits": benefits_prompt, "risks": risks}
+            {"crop": crop_prompt, "benefits": benefits_prompt, "risks": risks}
         )
         return _ensure_disclaimer(_extract_text(response), lang)
 
@@ -1237,6 +1375,9 @@ class RotationExplainerAgent:
 
         lang = _normalize_lang(idioma)
         normalized = [_normalize_strategy(s) for s in strategies]
+        if lang == "en":
+            for item in normalized:
+                item["strategy"] = _translate_strategy_name_en(item["strategy"])
         strategies_block = _format_strategies_block(
             normalized, field_metrics=field_metrics, farmer_priorities=farmer_priorities
         )
@@ -1275,7 +1416,12 @@ class RotationExplainerAgent:
                 blocks = _split_strategy_blocks(raw_text, len(normalized))
 
         current_item = next(
-            (s for s in normalized if "(atual)" in s["strategy"].lower()),
+            (
+                s
+                for s in normalized
+                if "(atual)" in s["strategy"].lower()
+                or "(current)" in s["strategy"].lower()
+            ),
             None,
         )
         current_name = current_item["strategy"] if current_item else None
@@ -1328,12 +1474,15 @@ class RotationExplainerAgent:
             for strategy, texto in zip(strategies, texts)
         ]
 
-    def _try_structured_alert(self, payload: dict[str, str]) -> str:
+    def _try_structured_alert(
+        self, payload: dict[str, str], idioma: str = "pt"
+    ) -> str:
         if (
             self.structured_alert_chain is None
             or self.alert_chain is not self._default_alert_chain
         ):
             return ""
+        lang = _normalize_lang(idioma)
         try:
             parsed = self.structured_alert_chain.invoke(payload)
             data = _to_dict(parsed)
@@ -1346,7 +1495,12 @@ class RotationExplainerAgent:
             if not diag:
                 return ""
             if acoes:
-                return f"{diag} O que fazer na prática no campo: {'; '.join(acoes)}."
+                prefix = (
+                    "What to do in the field"
+                    if lang == "en"
+                    else "O que fazer na prática no campo"
+                )
+                return f"{diag} {prefix}: {'; '.join(acoes)}."
             return diag
         except Exception:
             return ""
@@ -1358,21 +1512,32 @@ class RotationExplainerAgent:
         cultura: str | None = None,
         resumo_adaptacao: str | None = None,
         detalhes_clima: dict[str, Any] | None = None,
+        idioma: str = "pt",
     ) -> str:
         """Traduz alertas climáticos [M5] em orientações práticas de manejo com disclaimer e cache."""
         self._sync_chains()
+        lang = _normalize_lang(idioma)
+        climate_details = _format_alert_climate_details(detalhes_clima, idioma=lang)
+        if lang == "en":
+            climate_details = (
+                f"{climate_details} | Language requirement: write your entire response in English."
+            )
         payload = {
-            "tipo_evento": str(tipo_evento or "alerta_climatico"),
-            "severidade": str(severidade or "alta"),
-            "cultura": str(cultura or "cultura monitorada"),
-            "resumo_adaptacao": str(resumo_adaptacao or "Reavaliar agenda de campo"),
-            "detalhes_clima": _format_alert_climate_details(detalhes_clima),
+            "tipo_evento": str(tipo_evento or ("weather_alert" if lang == "en" else "alerta_climatico")),
+            "severidade": _translate_risk(severidade, idioma=lang) if lang == "en" else str(severidade or "alta"),
+            "cultura": str(cultura or ("monitored crop" if lang == "en" else "cultura monitorada")),
+            "resumo_adaptacao": str(
+                resumo_adaptacao
+                or ("Reassess field schedule" if lang == "en" else "Reavaliar agenda de campo")
+            ),
+            "detalhes_clima": climate_details,
         }
         cache_key = self._make_cache_key(
             "alert",
             {
                 "payload": payload,
                 "detalhes_raw": detalhes_clima,
+                "idioma": lang,
                 "llm_id": id(self.llm),
                 "chain_id": id(self.alert_chain),
             },
@@ -1381,7 +1546,7 @@ class RotationExplainerAgent:
         if isinstance(cached, str) and cached:
             return cached
 
-        raw_text = self._try_structured_alert(payload)
+        raw_text = self._try_structured_alert(payload, idioma=lang)
         if not raw_text:
             try:
                 response = self.alert_chain.invoke(payload)
@@ -1389,16 +1554,17 @@ class RotationExplainerAgent:
             except Exception:
                 raw_text = ""
 
-        if not raw_text or raw_text.strip() == _DEFAULT_MOCK_RESPONSE:
+        if not raw_text or raw_text.strip() in (_DEFAULT_MOCK_RESPONSE, _DEFAULT_MOCK_RESPONSE_EN):
             raw_text = _build_alert_fallback(
                 tipo_evento=tipo_evento,
                 severidade=severidade,
                 cultura=cultura,
                 resumo_adaptacao=resumo_adaptacao,
                 detalhes_clima=detalhes_clima,
+                idioma=lang,
             )
 
-        final_text = _ensure_disclaimer(raw_text)
+        final_text = _ensure_disclaimer(raw_text, idioma=lang)
         self._cache_set(cache_key, final_text)
         return final_text
 

@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from sqlalchemy import insert
 from sqlalchemy.orm import Session
 
 from backend.db import models
@@ -15,7 +16,8 @@ logger = logging.getLogger(__name__)
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_PROCESSED_DIR = ROOT_DIR / "data" / "processed"
-_BATCH_SIZE = 1000
+_BATCH_SIZE = 500
+_SQLITE_BATCH_SIZE = 50
 
 
 def _to_float(value: Optional[str]) -> Optional[float]:
@@ -39,8 +41,14 @@ def _to_str(value: Optional[str]) -> Optional[str]:
 def _insert_in_batches(
     db: Session, model: type, rows: List[Dict[str, Any]], batch_size: int = _BATCH_SIZE
 ) -> None:
-    for start in range(0, len(rows), batch_size):
-        db.bulk_insert_mappings(model, rows[start : start + batch_size])
+    if not rows:
+        return
+    bind = db.get_bind()
+    is_sqlite = bind is not None and bind.dialect.name == "sqlite"
+    effective_batch = min(batch_size, _SQLITE_BATCH_SIZE) if is_sqlite else batch_size
+    stmt = insert(model)
+    for start in range(0, len(rows), effective_batch):
+        db.execute(stmt.values(rows[start : start + effective_batch]))
 
 
 def _load_synonyms_csv(csv_path: Path) -> List[Dict[str, Any]]:

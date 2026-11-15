@@ -275,15 +275,16 @@ def _load_agrofit_weeds() -> Set[str]:
 
 
 def _garantir_catalogo_ecocrop_agrofit(db: Session) -> None:
-    if db.query(models.CulturaLimite).count() == 0:
+    if db.query(models.CulturaLimite.scientific_name).first() is None:
         seed_ecocrop(db=db)
-    if db.query(models.CulturaPraga).count() == 0 or (
-        db.query(models.CulturaPraga)
+    if (
+        db.query(models.CulturaPraga.id).first() is None
+        or db.query(models.CulturaPraga.id)
         .filter(models.CulturaPraga.praga_nome_cientifico == "Cenchrus echinatus")
         .first()
         is None
     ):
-        seed_agrofit(db=db, replace=True)
+        seed_agrofit(db=db, reset=True)
 
 
 def _limpar_nomes_populares_praga(raw: Optional[str]) -> List[str]:

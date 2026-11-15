@@ -35,8 +35,14 @@ import {
   PopoverTrigger,
 } from "../../../components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "../../../components/ui/radio-group";
-import { formatPopularNames } from "../../../data/cropsDictionary";
-import type { PestOption } from "../../../data/pestsDictionary";
+import {
+  CROPS_DICTIONARY,
+  formatPopularNames,
+} from "../../../data/cropsDictionary";
+import {
+  PESTS_DICTIONARY,
+  type PestOption,
+} from "../../../data/pestsDictionary";
 import { useCatalogSearch } from "../../../hooks/useCatalogSearch";
 import { cn } from "../../../lib/utils";
 import {
@@ -542,13 +548,10 @@ export interface PrioritiesStepProps {
  * Tela de Onboarding — Passo 4: Prioridades.
  * Permite selecionar o objetivo principal e buscar uma cultura específica via Combobox fuzzy quando aplicável.
  */
-const EMPTY_CROPS: CropOption[] = [];
-const EMPTY_PESTS: PestOption[] = [];
-
 export function PrioritiesStep({
   options = PRIORITY_OPTIONS,
-  crops = EMPTY_CROPS,
-  pests = EMPTY_PESTS,
+  crops = CROPS_DICTIONARY,
+  pests = PESTS_DICTIONARY,
   initialValue = null,
   initialTargetCrop = null,
   initialTargetPest = null,

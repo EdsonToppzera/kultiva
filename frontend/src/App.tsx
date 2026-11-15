@@ -329,7 +329,7 @@ export function App() {
           setSimulationError(
             error instanceof Error
               ? error.message
-              : "Não foi possível gerar recomendações na API."
+              : t("simulation.apiError")
           );
         }
       } finally {
@@ -365,14 +365,16 @@ export function App() {
         resolvedTerreno?.nome_propriedade ??
         draftTerrain?.nome_propriedade ??
         selectedArea?.name ??
-        "Área simulada";
+        t("simulation.simulatedArea");
 
+      const isEnglish = (i18n.language || "").toLowerCase().startsWith("en");
       setSimulatedDashboard(
         buildSimulatedDashboardAndCalendar(
           scenario,
           lastSimulacaoResponse,
           simulatedAreaName,
-          cropHistory
+          cropHistory,
+          isEnglish
         )
       );
 
@@ -940,8 +942,8 @@ export function App() {
           fullscreen
           label={
             isGeneratingSchedule
-              ? "Gerando cronograma..."
-              : "Carregando..."
+              ? t("simulation.generatingSchedule")
+              : t("common.loading")
           }
           onClosePreview={
             showLoaderPreview && !isSimulating && !isGeneratingSchedule

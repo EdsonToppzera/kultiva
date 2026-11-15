@@ -129,17 +129,32 @@ def disparar_alerta_climatico(
             alerta=_serializar_alerta(alerta_existente),
         )
 
+    idioma = (
+        "en"
+        if str(getattr(payload, "idioma", "pt") or "pt").strip().lower().startswith("en")
+        else "pt"
+    )
     dados_gatilho = _executar_detector_anomalias(payload.serie_temporal_clima) or {}
+    dados_gatilho["idioma"] = idioma
     dados_gatilho["orientacao_pratica"] = gerar_orientacao_alerta(
         tipo_evento=payload.tipo_evento,
         severidade=payload.severidade,
+        idioma=idioma,
     )
-    titulo = payload.titulo or f"Alerta climático: {payload.tipo_evento.replace('_', ' ')}"
-    mensagem = payload.mensagem or (
-        f"Detectado evento '{payload.tipo_evento}' com severidade '{payload.severidade}' "
-        f"previsto para {payload.data_evento.isoformat()}. "
-        "O calendário de atividades será ajustado automaticamente."
-    )
+    if idioma == "en":
+        titulo = payload.titulo or f"Weather alert: {payload.tipo_evento.replace('_', ' ')}"
+        mensagem = payload.mensagem or (
+            f"Detected '{payload.tipo_evento}' event with '{payload.severidade}' severity "
+            f"expected for {payload.data_evento.isoformat()}. "
+            "The activity schedule will be adjusted automatically."
+        )
+    else:
+        titulo = payload.titulo or f"Alerta climático: {payload.tipo_evento.replace('_', ' ')}"
+        mensagem = payload.mensagem or (
+            f"Detectado evento '{payload.tipo_evento}' com severidade '{payload.severidade}' "
+            f"previsto para {payload.data_evento.isoformat()}. "
+            "O calendário de atividades será ajustado automaticamente."
+        )
 
     db_alerta = models.AlertaClimatico(
         terreno_id=payload.terreno_id,

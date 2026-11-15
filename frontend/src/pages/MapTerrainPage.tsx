@@ -194,7 +194,7 @@ export function MapTerrainPage({
     setGpsError(null);
 
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setGpsError("Geolocalização não suportada neste dispositivo.");
+      setGpsError(t("map.geolocationUnsupported"));
       return;
     }
 
@@ -207,9 +207,7 @@ export function MapTerrainPage({
         setIsLocating(false);
       },
       () => {
-        setGpsError(
-          "Não foi possível obter sua localização atual. Verifique as permissões de GPS."
-        );
+        setGpsError(t("map.geolocationError"));
         setIsLocating(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -257,7 +255,8 @@ export function MapTerrainPage({
     setSaveError(null);
     setIsSaving(true);
 
-    const resolvedName = nomePropriedade.trim() || "Novo Terreno";
+    const resolvedName =
+      nomePropriedade.trim() || t("map.defaultTerrainName");
     const areaPayload =
       areaHectares > 0 ? Number(areaHectares.toFixed(4)) : 0;
 

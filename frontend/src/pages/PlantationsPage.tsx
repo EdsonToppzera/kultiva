@@ -77,7 +77,7 @@ export function PlantationsPage({
       setApiError(
         error instanceof Error
           ? error.message
-          : "Não foi possível carregar as áreas cadastradas no servidor."
+          : t("plantations.loadError")
       );
     } finally {
       setIsLoading(false);
@@ -111,7 +111,7 @@ export function PlantationsPage({
         setApiError(
           error instanceof Error
             ? error.message
-            : "Não foi possível excluir a área no servidor."
+            : t("plantations.deleteError")
         );
         setIsDeleting(false);
         return;
