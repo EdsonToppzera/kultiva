@@ -381,3 +381,71 @@ def test_b7_demo_seed_idempotente_reset_e_integracao_relatorio(monkeypatch):
         simulacao_api._SERVICE_CACHE.clear()
         app.dependency_overrides.clear()
         Base.metadata.drop_all(bind=engine)
+
+
+def test_sessao_dispositivo_isola_terrenos_e_api_health(monkeypatch):
+    engine, _ = _criar_banco_sqlite(monkeypatch)
+    try:
+        with TestClient(app) as client:
+            resp_health = client.get("/api/v1/health")
+            assert resp_health.status_code == 200
+            assert resp_health.json()["status"] == "ok"
+
+            s1 = client.post(
+                "/api/v1/usuarios/sessao",
+                json={"device_id": "device-alpha-123456"},
+            )
+            s1_again = client.post(
+                "/api/v1/usuarios/sessao",
+                json={"device_id": "DEVICE-ALPHA-123456"},
+            )
+            s2 = client.post(
+                "/api/v1/usuarios/sessao",
+                json={"device_id": "device-beta-987654"},
+            )
+            assert s1.status_code == 200
+            assert s1_again.status_code == 200
+            assert s2.status_code == 200
+            u1 = s1.json()["id"]
+            u2 = s2.json()["id"]
+            assert s1_again.json()["id"] == u1
+            assert u1 != u2
+
+            poligono = [
+                {"lat": -7.23, "lng": -35.88},
+                {"lat": -7.24, "lng": -35.88},
+                {"lat": -7.24, "lng": -35.87},
+            ]
+            t1 = client.post(
+                "/api/v1/terrenos/",
+                json={
+                    "nome_propriedade": "Roçado Alpha",
+                    "usuario_id": u1,
+                    "coordenadas_poligono": poligono,
+                },
+            )
+            t2 = client.post(
+                "/api/v1/terrenos/",
+                json={
+                    "nome_propriedade": "Roçado Beta",
+                    "usuario_id": u2,
+                    "coordenadas_poligono": poligono,
+                },
+            )
+            assert t1.status_code == 200
+            assert t2.status_code == 200
+
+            lista_u1 = client.get("/api/v1/terrenos/", params={"usuario_id": u1}).json()
+            lista_u2 = client.get("/api/v1/terrenos/", params={"usuario_id": u2}).json()
+            assert [item["nome_propriedade"] for item in lista_u1] == ["Roçado Alpha"]
+            assert [item["nome_propriedade"] for item in lista_u2] == ["Roçado Beta"]
+            assert (
+                client.get(
+                    f"/api/v1/terrenos/{t2.json()['id']}",
+                    params={"usuario_id": u1},
+                ).status_code
+                == 404
+            )
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(bind=engine)

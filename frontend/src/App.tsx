@@ -65,13 +65,14 @@ import {
   type TerrenoResponse,
   DEFAULT_USUARIO_ID,
   converterHistoricoParaLista,
-  criarTerreno,
+  criarTerrenoParaDispositivo,
   extrairMetodoIrrigacao,
   extrairPrioridadeDoTerreno,
   extrairTipoSolo,
   formatarAreaHectares,
   gerarCronogramaDeSimulacao,
   mapearPrioridadesIrrigacao,
+  obterOuCriarUsuarioDispositivo,
   restaurarHistoricoDoTerreno,
   simularRotacao,
 } from "./services/api";
@@ -199,6 +200,12 @@ export function App() {
   const isOnline = useNetworkStatus();
 
   const networkStatus: NetworkSyncStatus = isOnline ? "salvo" : "offline";
+
+  React.useEffect(() => {
+    void obterOuCriarUsuarioDispositivo().catch(() => {
+      // Sessão será resolvida novamente ao listar ou criar terrenos
+    });
+  }, []);
 
   const handleStartSimulation = React.useCallback(() => {
     setNormalSnapshot({
@@ -399,9 +406,8 @@ export function App() {
           soilType,
           priority
         );
-        resolvedTerreno = await criarTerreno({
+        resolvedTerreno = await criarTerrenoParaDispositivo({
           nome_propriedade: draftTerrain.nome_propriedade,
-          usuario_id: DEFAULT_USUARIO_ID,
           coordenadas_poligono: draftTerrain.coordenadas_poligono,
           area_hectares: draftTerrain.area_hectares,
           prioridades: mergedPrioridades,
@@ -746,7 +752,7 @@ export function App() {
             setCurrentTerreno({
               id: area.terrenoId,
               nome_propriedade: area.name,
-              usuario_id: DEFAULT_USUARIO_ID,
+              usuario_id: area.usuarioId ?? DEFAULT_USUARIO_ID,
               coordenadas_poligono: area.coordenadasPoligono ?? [],
               area_hectares: area.areaHectares ?? null,
               prioridades: area.prioridades ?? null,

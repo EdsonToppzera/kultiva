@@ -33,11 +33,15 @@ def _validar_usuario_ou_404(usuario_id: int, db: Session) -> models.Usuario:
     return usuario
 
 
-def _obter_terreno_ou_404(terreno_id: int, db: Session) -> models.Terreno:
+def _obter_terreno_ou_404(
+    terreno_id: int,
+    db: Session,
+    usuario_id: Optional[int] = None,
+) -> models.Terreno:
     terreno = (
         db.query(models.Terreno).filter(models.Terreno.id == terreno_id).first()
     )
-    if not terreno:
+    if not terreno or (usuario_id is not None and terreno.usuario_id != usuario_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Terreno não encontrado",
@@ -105,21 +109,26 @@ def listar_terrenos(
     query = db.query(models.Terreno)
     if usuario_id is not None:
         query = query.filter(models.Terreno.usuario_id == usuario_id)
-    return query.offset(skip).limit(limit).all()
+    return query.order_by(models.Terreno.id.asc()).offset(skip).limit(limit).all()
 
 
 @router.get("/{terreno_id}", response_model=TerrenoResponse)
-def buscar_terreno(terreno_id: int, db: Session = Depends(get_db)):
-    return _obter_terreno_ou_404(terreno_id, db)
+def buscar_terreno(
+    terreno_id: int,
+    usuario_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    return _obter_terreno_ou_404(terreno_id, db, usuario_id=usuario_id)
 
 
 @router.put("/{terreno_id}", response_model=TerrenoResponse)
 def atualizar_terreno(
     terreno_id: int,
     payload: TerrenoUpdate,
+    usuario_id: Optional[int] = None,
     db: Session = Depends(get_db),
 ):
-    db_terreno = _obter_terreno_ou_404(terreno_id, db)
+    db_terreno = _obter_terreno_ou_404(terreno_id, db, usuario_id=usuario_id)
 
     if payload.usuario_id is not None:
         _validar_usuario_ou_404(payload.usuario_id, db)
@@ -186,8 +195,12 @@ def limpar_dependencias_terreno(db: Session, terreno_id: int) -> None:
 
 
 @router.delete("/{terreno_id}", status_code=status.HTTP_204_NO_CONTENT)
-def deletar_terreno(terreno_id: int, db: Session = Depends(get_db)):
-    db_terreno = _obter_terreno_ou_404(terreno_id, db)
+def deletar_terreno(
+    terreno_id: int,
+    usuario_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    db_terreno = _obter_terreno_ou_404(terreno_id, db, usuario_id=usuario_id)
     limpar_dependencias_terreno(db, terreno_id)
     db.delete(db_terreno)
     db.commit()
