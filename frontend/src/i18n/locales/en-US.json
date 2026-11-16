@@ -233,6 +233,7 @@
     "generatingSchedule": "Generating schedule...",
     "apiError": "Could not generate recommendations from the API.",
     "simulatedArea": "Simulated plot",
+    "activeModeLabel": "Simulation mode",
     "drawerTitle": "Rotation Technical Details",
     "drawerSubtitle": "Climate cross-check (NASA) and phytosanitary recommendations (AGROFIT).",
     "estimatedCycle": "Estimated cycle",

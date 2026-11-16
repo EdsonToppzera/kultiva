@@ -20,6 +20,7 @@ import {
   Plus,
   X,
 } from "lucide-react";
+import { SimulationBanner } from "../components/CancelSimulationButton";
 import { KultivaLogo } from "../components/KultivaLogo";
 import { NetworkStatusBadge } from "../components/NetworkStatusBadge";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
@@ -276,6 +277,8 @@ export function MapTerrainPage({
             <KultivaLogo />
             <NetworkStatusBadge />
           </header>
+
+          <SimulationBanner className="mt-4" />
 
           <section className="mt-6">
             <h1 className="text-[30px] font-bold tracking-tight text-[#511D4E] leading-tight">
