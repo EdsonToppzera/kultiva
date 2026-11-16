@@ -1182,6 +1182,17 @@ _CROP_NAMES_EN: dict[str, str] = {
     "mucuna": "Velvet bean",
     "guandu": "Pigeon pea",
     "feijão": "Beans",
+    "castanha-do-pará": "Brazil nut",
+    "castanha-do-para": "Brazil nut",
+    "repolho": "Cabbage",
+    "couve": "Kale",
+    "nabo-forrageiro": "Turnip",
+    "nabo": "Turnip",
+    "tomate": "Tomato",
+    "abóbora": "Pumpkin",
+    "abobora": "Pumpkin",
+    "café": "Coffee",
+    "cafe": "Coffee",
     "descanso": "Rest",
     "(atual)": "(Current)",
 }
@@ -1279,18 +1290,19 @@ class RotationExplainerAgent:
             input_variables=["crop", "benefits", "risks"],
             template=(
                 "Você conversa direto com um pequeno produtor da agricultura familiar.\n"
-                "Cenário avaliado (referência interna — NÃO cite nome de planta nem nome científico na resposta): {crop}.\n"
+                "Contexto avaliado: {crop}.\n"
                 "Benefícios esperados: {benefits}.\n"
                 "Riscos de água e clima: {risks}.\n\n"
                 "REGRAS OBRIGATÓRIAS:\n"
                 "1. Escreva só em texto simples, sem Markdown (NUNCA use #, ###, **, *, _ ou listas com * ou -).\n"
                 "2. NÃO comece com saudações nem frases de apresentação ('Olá', 'Hello', 'As a friend...', 'Aqui está a avaliação', 'Here is the evaluation').\n"
-                "3. NÃO cite nomes científicos em latim nem nomes específicos de plantas; refira-se sempre como 'esta opção de plantio' / 'este plano' "
+                "3. NUNCA escreva títulos de seção ('Por que foi avaliado assim?', 'Why was it evaluated this way?', 'The Good News:', 'The Warning:', 'What to watch for in the field') nem listas numeradas (1. 2. 3. 4.).\n"
+                "4. NÃO cite nomes científicos em latim nem nomes específicos de plantas ou tipos de planta ('árvores', 'trees'); refira-se sempre como 'esta opção de plantio' / 'este plano' "
                 "(ou 'this planting option' / 'this plan' em inglês).\n"
-                "4. Explique em 2 ou 3 parágrafos bem curtos: por que foi avaliada assim, o cuidado com água e chuva, e 1 ou 2 ações práticas no campo. "
+                "5. Escreva em NO MÁXIMO 3 a 4 frases curtas em parágrafo corrido (fácil de ler no celular): diga por que esta opção combina ou pede cuidado com água e dê 1 ação prática no campo. "
                 "Use apenas os dados informados.\n"
-                "5. RESPEITE O IDIOMA: se as instruções pedirem inglês, escreva tudo em inglês simples e cotidiano.\n"
-                "6. Conclua lembrando que esta ferramenta apoia a decisão e não substitui a experiência local, "
+                "6. RESPEITE O IDIOMA: se as instruções pedirem inglês, escreva tudo em inglês simples e cotidiano.\n"
+                "7. Conclua lembrando que esta ferramenta apoia a decisão e não substitui a experiência local, "
                 "e que a decisão final é sempre do produtor."
             ),
         )
@@ -1438,7 +1450,11 @@ class RotationExplainerAgent:
         self._sync_chains()
         if isinstance(self.llm, FakeListLLM) and lang == "en":
             return _ensure_disclaimer(_DEFAULT_MOCK_RESPONSE_EN, "en")
-        crop_prompt = _translate_strategy_name_en(crop) if lang == "en" else crop
+        # Mascara o nome específico da cultura ao chamar o LLM para evitar vazamento de planta/espécie nas explicações.
+        del crop
+        crop_prompt = (
+            "this planting option" if lang == "en" else "esta opção de plantio"
+        )
         benefits_prompt = (
             f"{benefits}\n[IMPORTANT: Respond strictly in English in simple, clear language.]"
             if lang == "en"
