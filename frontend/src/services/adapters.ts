@@ -112,6 +112,8 @@ const EN_CROP_NAMES_BY_KEY: Record<string, string> = {
   couve: "Kale",
   nabo: "Turnip",
   "nabo-forrageiro": "Turnip",
+  "castanha-do-para": "Brazil nut",
+  "castanha-do-pará": "Brazil nut",
 };
 
 function translateCropStepName(name: string, isEnglish: boolean): string {
@@ -172,6 +174,8 @@ function localizeCropNamesInText(text: string, isEnglish: boolean): string {
     ["arroz", "Rice"],
     ["mucuna", "Velvet bean"],
     ["guandu", "Pigeon pea"],
+    ["castanha-do-pará", "Brazil nut"],
+    ["castanha-do-para", "Brazil nut"],
     ["(atual)", "(Current)"],
   ];
   let out = text;
@@ -414,7 +418,7 @@ function stripRawMarkdownAndFluff(
     const escaped = base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     out = out
       .replace(
-        new RegExp(`\\byour\\s+${escaped}(?:\\s+(?:planting|crop))?\\b`, "gi"),
+        new RegExp(`\\byour\\s+${escaped}(?:'s|’s)?(?:\\s+(?:planting|crop))?\\b`, "gi"),
         "your crop"
       )
       .replace(
@@ -422,8 +426,20 @@ function stripRawMarkdownAndFluff(
         "sua lavoura"
       )
       .replace(
-        new RegExp(`(^|[.!?\\n]\\s*)${escaped}(?=\\s+(?:fits|needs|is|combina|precisa|ajuda|é|vai)\\b)`, "gi"),
+        new RegExp(`\\bthe\\s+${escaped}(?:'s|’s)(?=\\s+(?:natural|growing|cycle)\\b)`, "gi"),
+        "this crop's"
+      )
+      .replace(
+        new RegExp(`\\b(?:o|a)\\s+(?:ciclo|tempo)\\s+(?:natural\\s+)?d[eo]\\s+${escaped}\\b`, "gi"),
+        "o ciclo desta opção"
+      )
+      .replace(
+        new RegExp(`(^|[.!?\\n]\\s*)${escaped}(?:'s|’s)?(?=\\s+(?:fits|needs|is|will|combina|precisa|ajuda|é|vai)\\b)`, "gi"),
         `$1${isEnglish ? "This crop" : "Esta planta"}`
+      )
+      .replace(
+        new RegExp(`\\b${escaped}(?:'s|’s)\\b`, "gi"),
+        isEnglish ? "this crop's" : "desta planta"
       );
   }
 
@@ -449,6 +465,56 @@ function stripRawMarkdownAndFluff(
     .replace(/\n[ \t]+/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function formatConciseDashboardNotice(
+  text: string,
+  maxSentences = 2,
+  maxChars = 210
+): string {
+  if (!text) return "";
+  const cleaned = text
+    .replace(
+      /(?:Why was it evaluated this way\?|Por que foi avaliad[ao] assim\?|What to watch for in the field:?|O que observar no campo:?|Since water is the main concern[^:\n]*:|Como (?:a )?água é [^:\n]*:)/gi,
+      " "
+    )
+    .replace(
+      /\b(?:The Good News|The Warning|The Good|The Risk|Boas notícias|O aviso)\s*:\s*/gi,
+      ""
+    )
+    .replace(/(?:^|\n)\s*\d+\.\s+[^:\n]{2,40}:\s*/g, " ")
+    .replace(/\s*\n+\s*/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  if (!cleaned) return "";
+
+  const rawSentences = cleaned.match(/[^.!?]+(?:[.!?]+|$)/g) ?? [cleaned];
+  const picked: string[] = [];
+  let totalLen = 0;
+
+  for (const sentence of rawSentences) {
+    const trimmed = sentence.trim();
+    if (!trimmed) continue;
+    const nextLen =
+      totalLen === 0 ? trimmed.length : totalLen + 1 + trimmed.length;
+    if (
+      picked.length > 0 &&
+      (picked.length >= maxSentences || nextLen > maxChars)
+    ) {
+      break;
+    }
+    picked.push(trimmed);
+    totalLen = nextLen;
+  }
+
+  let result = picked.join(" ").trim();
+  if (result.length > maxChars) {
+    const slice = result.slice(0, maxChars - 3);
+    const lastSpace = slice.lastIndexOf(" ");
+    result = `${(lastSpace > 40 ? slice.slice(0, lastSpace) : slice).trim()}...`;
+  }
+  return result;
 }
 
 function translateKnownBenefit(benefit: string, isEnglish: boolean): string {
@@ -1548,22 +1614,64 @@ export function buildSimulatedDashboardAndCalendar(
     simulacao?.cultura_principal
       ? translateCropStepName(simulacao.cultura_principal, true)
       : "",
+    cropHistory?.ultimoCultivo?.officialName ?? "",
+    cropHistory?.ultimoCultivo?.officialName
+      ? translateCropStepName(cropHistory.ultimoCultivo.officialName, true)
+      : "",
     ...scenario.steps.map((s) => s.name),
     ...COVER_CROP_ALTERNATIVES.map((alt) => alt.name),
   ].filter(Boolean);
+
+  const primaryNoticePart =
+    scenario.variant === "risk" && scenario.cons[0]
+      ? stripRawMarkdownAndFluff(
+          scenario.cons[0],
+          "",
+          isEnglish,
+          simulatedCropMentions
+        )
+      : "";
+  const cleanedJustification = stripRawMarkdownAndFluff(
+    scenario.aiJustification || "",
+    "",
+    isEnglish,
+    simulatedCropMentions
+  );
+  const combinedNoticeSource = [
+    primaryNoticePart
+      ? /[.!?]$/.test(primaryNoticePart)
+        ? primaryNoticePart
+        : `${primaryNoticePart}.`
+      : "",
+    cleanedJustification &&
+    (!primaryNoticePart ||
+      !cleanedJustification
+        .toLowerCase()
+        .includes(primaryNoticePart.toLowerCase().slice(0, 24)))
+      ? cleanedJustification
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const fallbackRiskNotice = simulacao?.riscos_identificados?.[0]
+    ? stripRawMarkdownAndFluff(
+        simulacao.riscos_identificados[0],
+        "",
+        isEnglish,
+        simulatedCropMentions
+      )
+    : "";
 
   const weather: AreaWeatherSummary = {
     headline,
     details: detailsParts.join(" · "),
     weatherNotice:
-      stripRawMarkdownAndFluff(
-        simulacao?.explicacao_textual || "",
-        "",
-        isEnglish,
-        simulatedCropMentions
-      ) ||
-      scenario.technicalDetails.nasaClimateNote ||
-      scenario.aiJustification,
+      formatConciseDashboardNotice(combinedNoticeSource, 2, 210) ||
+      formatConciseDashboardNotice(fallbackRiskNotice, 1, 210) ||
+      (isEnglish
+        ? "Monitor soil moisture and local rain before field tasks."
+        : "Acompanhe a umidade do solo e a chuva da região antes das tarefas."),
   };
 
   return {

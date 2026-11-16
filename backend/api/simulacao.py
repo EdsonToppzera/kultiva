@@ -692,17 +692,13 @@ def _montar_beneficios_e_riscos(
     agua_prioridade = str(prioridades.get("agua", "")).lower()
 
     if lang == "en":
-        from backend.services.llm_agent import _translate_strategy_name_en
-
-        nome_cultura_en = _translate_strategy_name_en(nome_cultura)
-        culturas_rotacao_en = [_translate_strategy_name_en(c) for c in culturas_rotacao]
         beneficios = [
-            f"Fits {nome_cultura_en}'s growing cycle into your planting plan",
+            "Fits well into your property's planting schedule",
             "Uses your area's rain and soil conditions to avoid losing crops",
         ]
-        if culturas_rotacao_en:
+        if culturas_rotacao:
             beneficios.append(
-                f"Alternates plants ({', '.join(culturas_rotacao_en)}) so the soil stays rested and healthy"
+                "Alternates different crops in sequence so the soil stays rested and healthy"
             )
 
         riscos: List[str] = []
@@ -725,12 +721,12 @@ def _montar_beneficios_e_riscos(
         return beneficios, riscos
 
     beneficios = [
-        f"Combina com o tempo de plantio de {nome_cultura} na sua área",
+        "Combina bem com o tempo de plantio da sua área",
         "Usa os dados de chuva e solo da terra para ajudar a não perder a safra",
     ]
     if culturas_rotacao:
         beneficios.append(
-            f"Alterna os cultivos ({', '.join(culturas_rotacao)}) para cansar menos o solo"
+            "Alterna diferentes tipos de plantio para cansar menos o solo"
         )
 
     riscos = []
