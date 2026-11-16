@@ -403,12 +403,14 @@ export function AreaDashboardPage({
             </div>
 
             {effectiveWeather?.weatherNotice && (
-              <div className="mt-4 flex items-center gap-2.5 rounded-2xl bg-white/10 px-3.5 py-2.5 text-xs font-medium text-white/95">
+              <div className="mt-4 flex items-start gap-2.5 rounded-2xl bg-white/10 px-3.5 py-2.5 text-xs font-medium leading-relaxed text-white/95">
                 <Info
-                  className="h-4 w-4 shrink-0 text-[#FCF59B]"
+                  className="mt-0.5 h-4 w-4 shrink-0 text-[#FCF59B]"
                   aria-hidden="true"
                 />
-                <span>{effectiveWeather.weatherNotice}</span>
+                <span className="whitespace-pre-line">
+                  {effectiveWeather.weatherNotice}
+                </span>
               </div>
             )}
           </section>

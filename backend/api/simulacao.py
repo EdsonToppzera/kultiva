@@ -796,7 +796,7 @@ def _gerar_explicacao_ia(
     if lang == "en":
         risco_label = risco_en.get(str(water_risk or "").lower(), water_risk)
         return (
-            f"For {nome_cultura}, the estimated chance of doing well is {viability_score:.0%} "
+            f"For this planting option, the estimated chance of doing well is {viability_score:.0%} "
             f"with {risco_label} water-shortage risk. "
             f"Strong points: {beneficios_txt}. "
             f"Watch out for: {riscos_txt}. "
@@ -806,7 +806,7 @@ def _gerar_explicacao_ia(
 
     risco_label = risco_pt.get(str(water_risk or "").lower(), water_risk)
     return (
-        f"Para {nome_cultura}, a chance estimada de ir bem é de {viability_score:.0%}, "
+        f"Para esta opção de plantio, a chance estimada de ir bem é de {viability_score:.0%}, "
         f"com risco {risco_label} de faltar água. "
         f"Pontos positivos: {beneficios_txt}. "
         f"Pontos de atenção: {riscos_txt}. "
