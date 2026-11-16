@@ -2,14 +2,15 @@ import * as React from "react";
 import { API_BASE_URL } from "../services/api";
 
 const PROBE_INTERVAL_MS = 15_000;
-const PROBE_TIMEOUT_MS = 4_000;
-const EXTERNAL_PROBE_URL = "https://www.gstatic.com/generate_204";
+const PROBE_TIMEOUT_MS = 12_000;
+const API_RECENT_GRACE_MS = 20_000;
 
 type Listener = () => void;
 
 const listeners = new Set<Listener>();
 let currentOnline: boolean =
   typeof navigator !== "undefined" ? navigator.onLine : true;
+let lastApiSuccessAt = 0;
 let inFlightProbe: Promise<boolean> | null = null;
 let intervalId: number | null = null;
 let listenersAttached = false;
@@ -24,25 +25,60 @@ function setOnlineState(next: boolean) {
   notifyListeners();
 }
 
-function resolveProbeTarget(): { url: string; mode: RequestMode } {
+/**
+ * Sinaliza ao monitor que uma chamada real à API acabou de responder,
+ * evitando falso estado "Offline" enquanto o sistema opera normalmente.
+ */
+export function notifyNetworkReachable() {
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    return;
+  }
+  lastApiSuccessAt = Date.now();
+  setOnlineState(true);
+}
+
+function resolveProbeUrls(): string[] {
   if (typeof window === "undefined") {
-    return { url: EXTERNAL_PROBE_URL, mode: "no-cors" };
+    return [];
   }
 
   try {
     const apiUrl = new URL(API_BASE_URL, window.location.origin);
-    const isLocalHost =
-      apiUrl.hostname === "localhost" ||
-      apiUrl.hostname === "127.0.0.1" ||
-      apiUrl.hostname === "::1";
-
-    if (isLocalHost) {
-      return { url: EXTERNAL_PROBE_URL, mode: "no-cors" };
-    }
-
-    return { url: `${apiUrl.origin}/health`, mode: "cors" };
+    const normalizedBase = apiUrl.href.replace(/\/+$/, "");
+    return Array.from(
+      new Set([`${normalizedBase}/health`, `${apiUrl.origin}/health`])
+    );
   } catch {
-    return { url: EXTERNAL_PROBE_URL, mode: "no-cors" };
+    return [];
+  }
+}
+
+async function probeUrl(url: string, signal: AbortSignal): Promise<boolean> {
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      mode: "cors",
+      cache: "no-store",
+      signal,
+    });
+    return response.ok;
+  } catch (error) {
+    if (signal.aborted || (error instanceof DOMException && error.name === "AbortError")) {
+      return false;
+    }
+    // Se CORS de um proxy intermediário bloquear /health mas o servidor responder HTTP,
+    // no-cors confirma conectividade real (enquanto erro de DNS/TCP continua lançando TypeError).
+    try {
+      const opaqueResponse = await fetch(url, {
+        method: "GET",
+        mode: "no-cors",
+        cache: "no-store",
+        signal,
+      });
+      return opaqueResponse.type === "opaque" || opaqueResponse.ok;
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -52,8 +88,17 @@ function resolveProbeTarget(): { url: string; mode: RequestMode } {
  */
 export async function checkNetworkConnectivity(): Promise<boolean> {
   if (typeof navigator !== "undefined" && !navigator.onLine) {
+    lastApiSuccessAt = 0;
     setOnlineState(false);
     return false;
+  }
+
+  if (
+    lastApiSuccessAt > 0 &&
+    Date.now() - lastApiSuccessAt < API_RECENT_GRACE_MS
+  ) {
+    setOnlineState(true);
+    return true;
   }
 
   if (typeof fetch === "undefined") {
@@ -64,34 +109,36 @@ export async function checkNetworkConnectivity(): Promise<boolean> {
     return inFlightProbe;
   }
 
-  const { url, mode } = resolveProbeTarget();
+  const probeUrls = resolveProbeUrls();
+  if (probeUrls.length === 0) {
+    return currentOnline;
+  }
+
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
 
-  inFlightProbe = fetch(url, {
-    method: "GET",
-    mode,
-    cache: "no-store",
-    signal: controller.signal,
-  })
-    .then((response) => {
-      const reachable = response.type === "opaque" || response.ok;
-      setOnlineState(reachable);
-      return reachable;
-    })
-    .catch(() => {
-      setOnlineState(false);
-      return false;
-    })
-    .finally(() => {
-      window.clearTimeout(timeoutId);
-      inFlightProbe = null;
-    });
+  inFlightProbe = (async () => {
+    for (const url of probeUrls) {
+      if (controller.signal.aborted) break;
+      const ok = await probeUrl(url, controller.signal);
+      if (ok) {
+        lastApiSuccessAt = Date.now();
+        setOnlineState(true);
+        return true;
+      }
+    }
+    setOnlineState(false);
+    return false;
+  })().finally(() => {
+    window.clearTimeout(timeoutId);
+    inFlightProbe = null;
+  });
 
   return inFlightProbe;
 }
 
 const handleBrowserOffline = () => {
+  lastApiSuccessAt = 0;
   setOnlineState(false);
 };
 
@@ -107,6 +154,10 @@ const handleVisibilityOrFocus = () => {
   void checkNetworkConnectivity();
 };
 
+const handleApiReachable = () => {
+  notifyNetworkReachable();
+};
+
 function startMonitoring() {
   if (typeof window === "undefined" || listenersAttached) return;
 
@@ -116,6 +167,7 @@ function startMonitoring() {
   window.addEventListener("online", handleBrowserOnline);
   window.addEventListener("offline", handleBrowserOffline);
   window.addEventListener("focus", handleVisibilityOrFocus);
+  window.addEventListener("kultiva-api-reachable", handleApiReachable);
   document.addEventListener("visibilitychange", handleVisibilityOrFocus);
 
   intervalId = window.setInterval(() => {
@@ -133,6 +185,7 @@ function stopMonitoring() {
   window.removeEventListener("online", handleBrowserOnline);
   window.removeEventListener("offline", handleBrowserOffline);
   window.removeEventListener("focus", handleVisibilityOrFocus);
+  window.removeEventListener("kultiva-api-reachable", handleApiReachable);
   document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
 
   if (intervalId !== null) {

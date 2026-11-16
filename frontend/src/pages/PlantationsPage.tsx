@@ -21,6 +21,7 @@ import {
   excluirTerreno,
   formatarAreaHectares,
   listarTerrenos,
+  obterOuCriarUsuarioDispositivo,
 } from "../services/api";
 
 export interface PlantationArea {
@@ -28,6 +29,7 @@ export interface PlantationArea {
   name: string;
   sizeLabel: string;
   terrenoId?: number;
+  usuarioId?: number;
   areaHectares?: number | null;
   coordenadasPoligono?: CoordenadaApi[];
   prioridades?: Record<string, unknown> | null;
@@ -37,6 +39,7 @@ function mapTerrenoToArea(terreno: TerrenoResponse): PlantationArea {
   return {
     id: String(terreno.id),
     terrenoId: terreno.id,
+    usuarioId: terreno.usuario_id,
     name: terreno.nome_propriedade,
     sizeLabel: formatarAreaHectares(terreno.area_hectares),
     areaHectares: terreno.area_hectares ?? null,
@@ -71,7 +74,8 @@ export function PlantationsPage({
     setIsLoading(true);
     setApiError(null);
     try {
-      const terrenos = await listarTerrenos();
+      const usuarioId = await obterOuCriarUsuarioDispositivo();
+      const terrenos = await listarTerrenos(usuarioId);
       setAreas(terrenos.map(mapTerrenoToArea));
     } catch (error) {
       setAreas([]);
@@ -107,7 +111,7 @@ export function PlantationsPage({
     if (areaToDelete.terrenoId !== undefined) {
       setIsDeleting(true);
       try {
-        await excluirTerreno(areaToDelete.terrenoId);
+        await excluirTerreno(areaToDelete.terrenoId, areaToDelete.usuarioId);
       } catch (error) {
         setApiError(
           error instanceof Error

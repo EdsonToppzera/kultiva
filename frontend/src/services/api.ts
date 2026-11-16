@@ -327,15 +327,26 @@ export class ApiError extends Error {
 
 const COLD_START_STATUSES = new Set([502, 503, 504]);
 
+function markApiReachable(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("kultiva-api-reachable"));
+  }
+}
+
 async function fetchWithColdStartRetry(
   url: string,
-  init?: RequestInit
+  init?: RequestInit,
+  allowPostColdStartRetry = false
 ): Promise<Response> {
   const method = (init?.method ?? "GET").toUpperCase();
-  const maxRetries = method === "GET" ? 2 : 0;
+  const maxRetries =
+    method === "GET" || (allowPostColdStartRetry && method === "POST") ? 2 : 0;
 
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
     const response = await fetch(url, init);
+    if (response.status < 500) {
+      markApiReachable();
+    }
     if (!COLD_START_STATUSES.has(response.status) || attempt === maxRetries) {
       return response;
     }
@@ -349,15 +360,23 @@ async function fetchWithColdStartRetry(
   return fetch(url, init);
 }
 
-async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+async function requestJson<T>(
+  path: string,
+  init?: RequestInit,
+  retryOnColdStart = false
+): Promise<T> {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  const response = await fetchWithColdStartRetry(`${API_BASE_URL}${normalizedPath}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
+  const response = await fetchWithColdStartRetry(
+    `${API_BASE_URL}${normalizedPath}`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+      ...init,
     },
-    ...init,
-  });
+    retryOnColdStart
+  );
 
   if (!response.ok) {
     let detail: string | undefined;
@@ -388,14 +407,149 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   return JSON.parse(text) as T;
 }
 
+const DEVICE_ID_STORAGE_KEY = "kultiva_device_id";
+const DEVICE_USER_STORAGE_KEY = "kultiva_device_user";
+
+interface StoredDeviceUser {
+  deviceId: string;
+  apiBaseUrl: string;
+  usuarioId: number;
+}
+
+let resolvedSessionUsuarioId: number | null = null;
+let inFlightUsuarioSession: Promise<number> | null = null;
+
+function readStorageItem(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeStorageItem(key: string, value: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Ignora falha de armazenamento em modo privado/quota
+  }
+}
+
+export function getOrCreateDeviceId(): string {
+  const existing = readStorageItem(DEVICE_ID_STORAGE_KEY);
+  if (existing && /^[a-z0-9_-]{8,128}$/i.test(existing.trim())) {
+    return existing.trim().toLowerCase();
+  }
+
+  const generated =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID().toLowerCase()
+      : `dev-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+
+  writeStorageItem(DEVICE_ID_STORAGE_KEY, generated);
+  return generated;
+}
+
+function readCachedDeviceUsuarioId(deviceId: string): number | null {
+  const raw = readStorageItem(DEVICE_USER_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<StoredDeviceUser>;
+    if (
+      parsed.deviceId === deviceId &&
+      parsed.apiBaseUrl === API_BASE_URL &&
+      typeof parsed.usuarioId === "number" &&
+      Number.isInteger(parsed.usuarioId) &&
+      parsed.usuarioId > 0
+    ) {
+      return parsed.usuarioId;
+    }
+  } catch {
+    // Cache inválido ignorado
+  }
+  return null;
+}
+
+export function limparCacheUsuarioDispositivo(): void {
+  resolvedSessionUsuarioId = null;
+  inFlightUsuarioSession = null;
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem(DEVICE_USER_STORAGE_KEY);
+    } catch {
+      // Ignora falha de armazenamento
+    }
+  }
+}
+
+export async function obterOuCriarUsuarioDispositivo(
+  forceRefresh = false
+): Promise<number> {
+  if (!forceRefresh && resolvedSessionUsuarioId !== null) {
+    return resolvedSessionUsuarioId;
+  }
+
+  if (!forceRefresh && inFlightUsuarioSession) {
+    return inFlightUsuarioSession;
+  }
+
+  const deviceId = getOrCreateDeviceId();
+  inFlightUsuarioSession = requestJson<{
+    id: number;
+    nome: string;
+    device_id: string;
+  }>(
+    "/usuarios/sessao",
+    {
+      method: "POST",
+      body: JSON.stringify({ device_id: deviceId }),
+    },
+    true
+  )
+    .then((session) => {
+      resolvedSessionUsuarioId = session.id;
+      writeStorageItem(
+        DEVICE_USER_STORAGE_KEY,
+        JSON.stringify({
+          deviceId,
+          apiBaseUrl: API_BASE_URL,
+          usuarioId: session.id,
+        } satisfies StoredDeviceUser)
+      );
+      return session.id;
+    })
+    .catch((err) => {
+      if (!forceRefresh && !(err instanceof ApiError)) {
+        const cached = readCachedDeviceUsuarioId(deviceId);
+        if (cached !== null) {
+          resolvedSessionUsuarioId = cached;
+          return cached;
+        }
+      }
+      throw err;
+    })
+    .finally(() => {
+      inFlightUsuarioSession = null;
+    });
+
+  return inFlightUsuarioSession;
+}
+
 export function listarTerrenos(usuarioId?: number): Promise<TerrenoResponse[]> {
   const query =
     usuarioId !== undefined ? `?usuario_id=${encodeURIComponent(usuarioId)}` : "";
   return requestJson<TerrenoResponse[]>(`/terrenos/${query}`);
 }
 
-export function buscarTerreno(terrenoId: number): Promise<TerrenoResponse> {
-  return requestJson<TerrenoResponse>(`/terrenos/${terrenoId}`);
+export function buscarTerreno(
+  terrenoId: number,
+  usuarioId?: number
+): Promise<TerrenoResponse> {
+  const query =
+    usuarioId !== undefined ? `?usuario_id=${encodeURIComponent(usuarioId)}` : "";
+  return requestJson<TerrenoResponse>(`/terrenos/${terrenoId}${query}`);
 }
 
 export function criarTerreno(
@@ -407,18 +561,42 @@ export function criarTerreno(
   });
 }
 
+export async function criarTerrenoParaDispositivo(
+  payload: Omit<TerrenoCreatePayload, "usuario_id">
+): Promise<TerrenoResponse> {
+  const usuarioId = await obterOuCriarUsuarioDispositivo();
+  try {
+    return await criarTerreno({ ...payload, usuario_id: usuarioId });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      limparCacheUsuarioDispositivo();
+      const freshUsuarioId = await obterOuCriarUsuarioDispositivo(true);
+      return criarTerreno({ ...payload, usuario_id: freshUsuarioId });
+    }
+    throw err;
+  }
+}
+
 export function atualizarTerreno(
   terrenoId: number,
-  payload: TerrenoUpdatePayload
+  payload: TerrenoUpdatePayload,
+  usuarioId?: number
 ): Promise<TerrenoResponse> {
-  return requestJson<TerrenoResponse>(`/terrenos/${terrenoId}`, {
+  const query =
+    usuarioId !== undefined ? `?usuario_id=${encodeURIComponent(usuarioId)}` : "";
+  return requestJson<TerrenoResponse>(`/terrenos/${terrenoId}${query}`, {
     method: "PUT",
     body: JSON.stringify(payload),
   });
 }
 
-export function excluirTerreno(terrenoId: number): Promise<void> {
-  return requestJson<void>(`/terrenos/${terrenoId}`, {
+export function excluirTerreno(
+  terrenoId: number,
+  usuarioId?: number
+): Promise<void> {
+  const query =
+    usuarioId !== undefined ? `?usuario_id=${encodeURIComponent(usuarioId)}` : "";
+  return requestJson<void>(`/terrenos/${terrenoId}${query}`, {
     method: "DELETE",
   });
 }
@@ -853,6 +1031,7 @@ export async function buscarCulturasCatalogo(
     if (!response.ok) {
       return [];
     }
+    markApiReachable();
     const data = (await response.json()) as CulturaCatalogoApiItem[];
     if (!Array.isArray(data) || data.length === 0) {
       return [];
@@ -895,6 +1074,7 @@ export async function buscarPragasCatalogo(
     if (!response.ok) {
       return [];
     }
+    markApiReachable();
     const data = (await response.json()) as PragaCatalogoApiItem[];
     if (!Array.isArray(data) || data.length === 0) {
       return [];
