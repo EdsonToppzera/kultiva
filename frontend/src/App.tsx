@@ -6,10 +6,12 @@ import {
   Pencil,
   RotateCcw,
 } from "lucide-react";
+import { SimulationBanner } from "./components/CancelSimulationButton";
 import { KultivaLoader } from "./components/KultivaLoader";
 import { KultivaLogo } from "./components/KultivaLogo";
 import { NetworkStatusBadge } from "./components/NetworkStatusBadge";
 import { Button } from "./components/ui/button";
+import { SimulationProvider } from "./contexts/SimulationContext";
 import { useNetworkStatus } from "./hooks/useNetworkStatus";
 import type {
   CropHistoryData,
@@ -525,6 +527,8 @@ export function App() {
               </div>
             </header>
 
+            <SimulationBanner className="mt-4" />
+
             <main className="mt-8">
               <h1 className="text-[26px] font-bold leading-tight tracking-tight text-[#511D4E] sm:text-[28px]">
                 {t("review.title")}
@@ -723,6 +727,7 @@ export function App() {
   if (step === "plantations") {
     return (
       <PlantationsPage
+        simulationBanner={isSimulationMode ? <SimulationBanner /> : undefined}
         onCreateArea={() => {
           setCurrentTerreno(null);
           setDraftTerrain(null);
@@ -904,7 +909,10 @@ export function App() {
   const isGlobalLoading = isSimulating || isGeneratingSchedule || showLoaderPreview;
 
   return (
-    <>
+    <SimulationProvider
+      isSimulationMode={isSimulationMode}
+      onCancelSimulation={handleFinishSimulation}
+    >
       <React.Suspense
         fallback={<KultivaLoader fullscreen label={t("common.loading")} />}
       >
@@ -925,7 +933,7 @@ export function App() {
           }
         />
       )}
-    </>
+    </SimulationProvider>
   );
 }
 

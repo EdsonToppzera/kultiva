@@ -234,6 +234,7 @@
     "generatingSchedule": "Gerando cronograma...",
     "apiError": "Não foi possível gerar recomendações na API.",
     "simulatedArea": "Área simulada",
+    "activeModeLabel": "Modo simulação",
     "drawerTitle": "Detalhes Técnicos da Rotação",
     "drawerSubtitle": "Cruzamento de clima (NASA) e recomendações fitossanitárias (AGROFIT).",
     "estimatedCycle": "Ciclo estimado",

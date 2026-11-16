@@ -19,6 +19,7 @@ import {
   Sunset,
   X,
 } from "lucide-react";
+import { CancelSimulationButton } from "../components/CancelSimulationButton";
 import { KultivaLogo } from "../components/KultivaLogo";
 import { NetworkStatusBadge } from "../components/NetworkStatusBadge";
 import { Button } from "../components/ui/button";
@@ -345,19 +346,9 @@ export function AreaDashboardPage({
             </div>
 
             {isSimulationMode
-              ? onFinishSimulation && (
-                  <button
-                    type="button"
-                    onClick={onFinishSimulation}
-                    className="inline-flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full border border-[#E6E4DA] bg-white px-2.5 py-1 text-xs font-semibold text-[#511D4E] shadow-2xs transition-colors hover:border-[#511D4E]/50 hover:bg-[#F7F6F0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#511D4E]"
-                  >
-                    <X
-                      className="h-3.5 w-3.5 text-[#511D4E]"
-                      aria-hidden="true"
-                    />
-                    <span>{t("dashboard.cancelSimulation")}</span>
-                  </button>
-                )
+              ? (onFinishSimulation && (
+                  <CancelSimulationButton onClick={onFinishSimulation} />
+                ))
               : onStartSimulation && (
                   <button
                     type="button"

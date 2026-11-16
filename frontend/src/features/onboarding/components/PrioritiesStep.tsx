@@ -14,6 +14,7 @@ import {
   Target,
   TrendingUp,
 } from "lucide-react";
+import { SimulationBanner } from "../../../components/CancelSimulationButton";
 import { KultivaLoader } from "../../../components/KultivaLoader";
 import { KultivaLogo } from "../../../components/KultivaLogo";
 import { NetworkStatusBadge } from "../../../components/NetworkStatusBadge";
@@ -656,6 +657,8 @@ export function PrioritiesStep({
               <NetworkStatusBadge status={networkStatus} isSyncing={isSaving} />
             </div>
           </header>
+
+          <SimulationBanner className="mt-4" />
 
           {/* Indicador de Progresso */}
           <section aria-label={t("onboarding.yourArea")} className="mt-6">

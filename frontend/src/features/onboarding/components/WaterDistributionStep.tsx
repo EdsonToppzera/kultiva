@@ -11,6 +11,7 @@ import {
   Truck,
   Waves,
 } from "lucide-react";
+import { SimulationBanner } from "../../../components/CancelSimulationButton";
 import { KultivaLogo } from "../../../components/KultivaLogo";
 import { NetworkStatusBadge } from "../../../components/NetworkStatusBadge";
 import { Button } from "../../../components/ui/button";
@@ -156,6 +157,8 @@ export function WaterDistributionStep({
               <NetworkStatusBadge status={networkStatus} isSyncing={isBusy} />
             </div>
           </header>
+
+          <SimulationBanner className="mt-4" />
 
           {/* Indicador de Progresso */}
           <section aria-label={t("onboarding.yourArea")} className="mt-6">

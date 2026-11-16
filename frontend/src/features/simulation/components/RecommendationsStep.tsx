@@ -10,6 +10,7 @@ import {
   RefreshCw,
   ShieldAlert,
 } from "lucide-react";
+import { CancelSimulationButton } from "../../../components/CancelSimulationButton";
 import { KultivaLogo } from "../../../components/KultivaLogo";
 import { KultivaLoader } from "../../../components/KultivaLoader";
 import { NetworkStatusBadge } from "../../../components/NetworkStatusBadge";
@@ -122,9 +123,13 @@ export function RecommendationsStep({
           </header>
 
           {/* Localização da propriedade */}
-          <div className="mt-3 flex items-center gap-1.5 text-xs font-medium text-[#6D6960] sm:text-sm">
-            <MapPin className="h-4 w-4 shrink-0 text-[#511D4E]" aria-hidden="true" />
-            <span>{propertyLocation}</span>
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-[#6D6960] sm:text-sm">
+              <MapPin className="h-4 w-4 shrink-0 text-[#511D4E]" aria-hidden="true" />
+              <span className="truncate">{propertyLocation}</span>
+            </div>
+
+            <CancelSimulationButton />
           </div>
 
           {/* Títulos */}

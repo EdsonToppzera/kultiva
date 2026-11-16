@@ -11,6 +11,7 @@ import {
   Pause,
   Sun,
 } from "lucide-react";
+import { CancelSimulationButton } from "../components/CancelSimulationButton";
 import { KultivaLogo } from "../components/KultivaLogo";
 import { NetworkStatusBadge } from "../components/NetworkStatusBadge";
 import { Button } from "../components/ui/button";
@@ -339,9 +340,13 @@ export function AreaCalendarPage({
           </header>
 
           {/* Localização */}
-          <div className="mt-4 flex items-center gap-1.5 text-xs font-medium text-[#6D6960]">
-            <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            <span>{areaLocation}</span>
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-[#6D6960]">
+              <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="truncate">{areaLocation}</span>
+            </div>
+
+            <CancelSimulationButton />
           </div>
 
           <p className="mt-4 text-[11px] font-bold tracking-[0.08em] text-[#6D6960] uppercase">
