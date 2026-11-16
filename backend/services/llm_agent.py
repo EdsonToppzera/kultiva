@@ -23,7 +23,7 @@ class StrategyExplanationItem(BaseModel):
     resumo: str = Field(
         description=(
             "1 ou 2 frases bem curtas e simples para pequeno agricultor familiar "
-            "(palavras do dia a dia, sem siglas, sem jargões técnicos, sem saudações e sem Markdown)"
+            "(sem nomes de plantas, sem siglas, sem jargões técnicos, sem saudações e sem Markdown)"
         )
     )
     acao_pratica: str = Field(
@@ -159,7 +159,8 @@ def _ensure_disclaimer(text: str, idioma: str = "pt") -> str:
 
 _GREETING_PREFIX_RE = re.compile(
     r"^(?:(?:ol[aá]|oi|bom dia|boa tarde|boa noite|hello|hi)\b[^.!?\n]*[.!?]\s*)"
-    r"(?:(?:que bom|vamos dar uma olhada|confira abaixo|aqui est[aã]o|let's look|here are)[^.!?\n]*[.!?]\s*)*",
+    r"(?:(?:que bom|vamos dar uma olhada|confira abaixo|aqui est[aã]o|as a friend|como amigo|i am here to help|estou aqui para ajudar|let's look|here are)(?:[^.!?\n]|\.(?=\s*[a-z]))*[.!?]\s*)*"
+    r"|(?:^(?:here is (?:the |an )?evaluation[^:\n]{0,120}:|aqui est[aá] a avalia[cç][aã]o[^:\n]{0,120}:)\s*)",
     flags=re.IGNORECASE,
 )
 _STRATEGY_LABEL_RE = re.compile(
@@ -170,15 +171,23 @@ _STRATEGY_LABEL_RE = re.compile(
 
 def _clean_farmer_text(text: str, strategy_name: str = "") -> str:
     """Remove Markdown bruto, saudações longas e rótulos repetitivos do texto do card."""
-    cleaned = str(text or "").strip()
+    cleaned = re.sub(r"\r\n?", "\n", str(text or "")).strip()
     if not cleaned:
         return ""
 
     cleaned = re.sub(r"\*\*(.+?)\*\*", r"\1", cleaned, flags=re.DOTALL)
     cleaned = re.sub(r"__(.+?)__", r"\1", cleaned, flags=re.DOTALL)
     cleaned = re.sub(r"`([^`]+)`", r"\1", cleaned)
-    cleaned = re.sub(r"(?m)^\s{0,3}#{1,6}\s+", "", cleaned)
+    cleaned = re.sub(r"(?<!\w)\*([^*\n]+?)\*(?!\w)", r"\1", cleaned)
+    cleaned = re.sub(r"(?<!\w)_([^_\n]+?)_(?!\w)", r"\1", cleaned)
+    cleaned = re.sub(r"(?m)^\s*[-*_]{3,}\s*$", "", cleaned)
+    cleaned = re.sub(r"\s*\*{3,}\s*", "\n\n", cleaned)
+    cleaned = re.sub(r"(?:^|\s)#{1,6}\s+", "\n\n", cleaned)
+    cleaned = re.sub(r"(?m)^\s*[-*•]\s+", "", cleaned)
+    cleaned = re.sub(r"([.?!:])\s+\*\s+", r"\1\n", cleaned)
+    cleaned = re.sub(r"([.?!:])\s+(\d+\.\s+)", r"\1\n\2", cleaned)
     cleaned = re.sub(r"\*{2,}", "", cleaned)
+    cleaned = re.sub(r"(?<!\d)\*(?!\d)", "", cleaned)
 
     without_greeting = _GREETING_PREFIX_RE.sub("", cleaned).strip()
     if without_greeting and len(without_greeting) >= 25:
@@ -195,6 +204,7 @@ def _clean_farmer_text(text: str, strategy_name: str = "") -> str:
                     cleaned = rest
 
     cleaned = re.sub(r"[ \t]{2,}", " ", cleaned)
+    cleaned = re.sub(r"\n[ \t]+", "\n", cleaned)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     return cleaned.strip()
 
@@ -1268,15 +1278,20 @@ class RotationExplainerAgent:
         self.prompt = PromptTemplate(
             input_variables=["crop", "benefits", "risks"],
             template=(
-                "Você é um assistente amigo do pequeno produtor rural e da agricultura familiar.\n"
-                "O sistema avaliou a estratégia: {crop}.\n"
+                "Você conversa direto com um pequeno produtor da agricultura familiar.\n"
+                "Cenário avaliado (referência interna — NÃO cite nome de planta nem nome científico na resposta): {crop}.\n"
                 "Benefícios esperados: {benefits}.\n"
                 "Riscos de água e clima: {risks}.\n\n"
-                "Explique de forma simples, direta e sem palavras técnicas difíceis por que essa "
-                "opção foi avaliada assim e o que observar na prática no campo. Use apenas os dados informados.\n\n"
-                "MANDATÓRIO: Conclua a resposta lembrando que esta ferramenta serve para apoiar a "
-                "decisão e identificar possibilidades, mas não substitui a experiência local e que "
-                "a decisão final é sempre do produtor."
+                "REGRAS OBRIGATÓRIAS:\n"
+                "1. Escreva só em texto simples, sem Markdown (NUNCA use #, ###, **, *, _ ou listas com * ou -).\n"
+                "2. NÃO comece com saudações nem frases de apresentação ('Olá', 'Hello', 'As a friend...', 'Aqui está a avaliação', 'Here is the evaluation').\n"
+                "3. NÃO cite nomes científicos em latim nem nomes específicos de plantas; refira-se sempre como 'esta opção de plantio' / 'este plano' "
+                "(ou 'this planting option' / 'this plan' em inglês).\n"
+                "4. Explique em 2 ou 3 parágrafos bem curtos: por que foi avaliada assim, o cuidado com água e chuva, e 1 ou 2 ações práticas no campo. "
+                "Use apenas os dados informados.\n"
+                "5. RESPEITE O IDIOMA: se as instruções pedirem inglês, escreva tudo em inglês simples e cotidiano.\n"
+                "6. Conclua lembrando que esta ferramenta apoia a decisão e não substitui a experiência local, "
+                "e que a decisão final é sempre do produtor."
             ),
         )
         self.strategies_prompt = PromptTemplate(
@@ -1294,7 +1309,8 @@ class RotationExplainerAgent:
                 "2. NÃO escreva saudação ('Olá, amigo produtor', 'Que bom...') nem texto antes da primeira opção.\n"
                 "3. NÃO use Markdown (nunca use **, *, # ou traços de lista). Escreva só texto simples.\n"
                 "4. Use NO MÁXIMO 2 a 3 frases curtas por opção (fácil de ler no celular): "
-                "diga com o nome das plantas por que ela ajuda (ou pede cuidado com água) no objetivo do produtor "
+                "NÃO cite nomes específicos de plantas no texto (chame de 'esta opção' ou 'este plano', ou 'this option'/'this plan' em inglês); "
+                "diga por que ela ajuda (ou pede cuidado com água) no objetivo do produtor "
                 "e dê 1 dica prática de campo. Traduza números e siglas em palavras simples "
                 "(nunca cite GAEZ, ECOCROP, CMIP6, AGROFIT, LRLM, z-score ou 'fixação biológica').\n"
                 "5. Termine CADA bloco lembrando que a decisão final é do produtor ('A decisão final é sempre sua.' "
@@ -1311,7 +1327,7 @@ class RotationExplainerAgent:
                 "Opções avaliadas (mantenha exatamente esta ordem):\n"
                 "{strategies}\n\n"
                 "Para cada opção, escreva em palavras bem simples da roça (sem saudações, sem Markdown ** ou *, "
-                "e sem siglas técnicas como GAEZ, ECOCROP, CMIP6, AGROFIT ou LRLM):\n"
+                "sem nomes de plantas — use 'esta opção' ou 'this option' — e sem siglas técnicas como GAEZ, ECOCROP, CMIP6, AGROFIT ou LRLM):\n"
                 "- `resumo`: 1 ou 2 frases curtas dizendo o que esperar dela e do risco de faltar água.\n"
                 "- `acao_pratica`: 1 dica curta e direta do que fazer no campo.\n"
                 "Se o contexto indicar 'Respond strictly in English', escreva tudo em inglês simples e cotidiano."
@@ -1431,7 +1447,8 @@ class RotationExplainerAgent:
         response = self.chain.invoke(
             {"crop": crop_prompt, "benefits": benefits_prompt, "risks": risks}
         )
-        return _ensure_disclaimer(_extract_text(response), lang)
+        cleaned = _clean_farmer_text(_extract_text(response))
+        return _ensure_disclaimer(cleaned, lang)
 
     def _try_structured_strategies(
         self,
@@ -1671,7 +1688,7 @@ class RotationExplainerAgent:
                 idioma=lang,
             )
 
-        final_text = _ensure_disclaimer(raw_text, idioma=lang)
+        final_text = _ensure_disclaimer(_clean_farmer_text(raw_text), idioma=lang)
         self._cache_set(cache_key, final_text)
         return final_text
 

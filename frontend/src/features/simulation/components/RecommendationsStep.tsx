@@ -283,7 +283,9 @@ export function RecommendationsStep({
                   )}
                   <span>{t("simulation.nasaAnalysis")}</span>
                 </div>
-                <p>{activeScenario.technicalDetails.nasaClimateNote}</p>
+                <p className="whitespace-pre-line">
+                  {activeScenario.technicalDetails.nasaClimateNote}
+                </p>
               </div>
 
               {/* Tabela NPK */}

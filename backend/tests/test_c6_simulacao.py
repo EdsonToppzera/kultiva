@@ -204,3 +204,35 @@ def test_c6_linguagem_simples_remove_markdown_saudacoes_e_traduz_risco():
     finally:
         app.dependency_overrides.clear()
         Base.metadata.drop_all(bind=engine)
+
+
+def test_c6_generate_explanation_limpa_markdown_e_saudacoes():
+    from langchain_core.runnables import RunnableLambda
+
+    from backend.services.llm_agent import RotationExplainerAgent, _clean_farmer_text
+
+    resposta_suja = (
+        "Hello! As a friend of the small farmer, I am here to help you understand "
+        "this evaluation for your *Brassica rapa var. rapifera* (turnip) crop. "
+        "### Why was it evaluated this way? * **The Good News:** Fits your calendar. "
+        "* **The Warning:** Water needs attention. "
+        "### What to watch for in the field: 1. **Check water:** Keep soil covered. "
+        "*** *Remember: This tool supports your decision. The final decision is always yours.*"
+    )
+    cleaned_direct = _clean_farmer_text(resposta_suja)
+    assert "###" not in cleaned_direct
+    assert "*" not in cleaned_direct
+    assert "as a friend" not in cleaned_direct.lower()
+    assert "brassica rapa" not in cleaned_direct.lower()
+    assert "The Good News:" in cleaned_direct
+
+    agent = RotationExplainerAgent(llm=RunnableLambda(lambda _: resposta_suja))
+    out = agent.generate_explanation(
+        crop="Nabo", benefits="Bom solo", risks="Água", idioma="en"
+    )
+    assert "###" not in out
+    assert "*" not in out
+    assert "as a friend" not in out.lower()
+    assert "brassica rapa" not in out.lower()
+    assert "The Good News:" in out
+    assert "final decision" in out.lower()

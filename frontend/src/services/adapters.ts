@@ -108,6 +108,10 @@ const EN_CROP_NAMES_BY_KEY: Record<string, string> = {
   mucuna: "Velvet bean",
   braquiaria: "Brachiaria",
   braquiária: "Brachiaria",
+  repolho: "Cabbage",
+  couve: "Kale",
+  nabo: "Turnip",
+  "nabo-forrageiro": "Turnip",
 };
 
 function translateCropStepName(name: string, isEnglish: boolean): string {
@@ -337,20 +341,38 @@ const EN_BENEFIT_PHRASES: Array<[string, string]> = [
   ],
 ];
 
-function stripRawMarkdownAndFluff(text: string, strategyName = ""): string {
+function stripRawMarkdownAndFluff(
+  text: string,
+  strategyName = "",
+  isEnglish = false,
+  cropNames: string[] = []
+): string {
   if (!text) return "";
   let out = text
+    .replace(/\r\n?/g, "\n")
+    .replace(/^\s*[-*_]{3,}\s*$/gm, "")
+    .replace(/\s*\*{3,}\s*/g, "\n\n")
     .replace(/\*\*(.+?)\*\*/gs, "$1")
     .replace(/__(.+?)__/gs, "$1")
     .replace(/`([^`]+)`/g, "$1")
-    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+    .replace(/(^|[^\w\d])\*([^*\n]+?)\*(?=[^\w\d]|$)/g, "$1$2")
+    .replace(/(^|[^\w])_([^_\n]+?)_(?=[^\w]|$)/g, "$1$2")
+    .replace(/(?:^|\s)#{1,6}\s+/g, "\n\n")
+    .replace(/^\s*[-*•]\s+/gm, "")
+    .replace(/([.?!:])\s+\*\s+/g, "$1\n")
+    .replace(/([.?!:])\s+(\d+\.\s+)/g, "$1\n$2")
     .replace(/\*{2,}/g, "")
+    .replace(/\*/g, "")
     .trim();
 
-  // Remove saudação longa gerada por LLM quando há explicação substantiva após ela
+  // Remove saudação longa ou introdução robótica gerada por LLM quando há explicação útil após ela
   const withoutGreeting = out
     .replace(
-      /^(?:(?:olá|oi|bom dia|boa tarde|boa noite|hello|hi)\b[^.!?\n]*[.!?]\s*)(?:(?:que bom|vamos dar uma olhada|confira abaixo|aqui estão|let's look|here are)[^.!?\n]*[.!?]\s*)*/i,
+      /^(?:(?:ol[aá]|oi|bom dia|boa tarde|boa noite|hello|hi)\b[^.!?\n]*[.!?]\s*)(?:(?:que bom|vamos dar uma olhada|confira abaixo|aqui est[aã]o|as a friend|como amigo|i am here to help|estou aqui para ajudar|let's look|here are)(?:[^.!?\n]|\.(?=\s*[a-z]))*[.!?]\s*)*/i,
+      ""
+    )
+    .replace(
+      /^(?:here is (?:the |an )?evaluation[^:\n]{0,120}:|aqui est[aá] a avalia[cç][aã]o[^:\n]{0,120}:)\s*/i,
       ""
     )
     .trim();
@@ -358,33 +380,75 @@ function stripRawMarkdownAndFluff(text: string, strategyName = ""): string {
     out = withoutGreeting;
   }
 
-  // Remove prefixo literal "Estratégia: ..." sem perder a leitura
-  out = out.replace(/^(?:estratégia|strategy|opção|option)\s*:\s*/i, "").trim();
+  // Remove prefixo literal "Estratégia: ..." ou "<Planta A> -> <Planta B>: ..."
+  out = out.replace(/^(?:estrat[eé]gia|strategy|op[cç][aã]o|option)\s*:\s*/i, "").trim();
+  out = out.replace(/^[^\n:]{2,110}(?:->|→)[^\n:]{1,110}:\s*/, "").trim();
+
   if (strategyName) {
     const lower = out.toLowerCase();
     const targetLower = strategyName.toLowerCase();
     if (lower.startsWith(targetLower)) {
       const rest = out.slice(strategyName.length).replace(/^[\s:—-]+/, "").trim();
-      if (rest && rest.toLowerCase().includes(targetLower)) {
+      if (rest.length >= 20) {
         out = rest;
       }
     }
   }
 
+  // Evita exibir combinação fixa com seta ou nome de cultura em textos quando o usuário troca plantas via Swap
+  out = out.replace(
+    /^[^\n.!?]{2,90}(?:->|→)[^\n.!?]{1,90}(?=\s+(?:stands\s+out|is\b|shows\b|é\b|também\s+é|mostra|sofre))/i,
+    isEnglish ? "This option" : "Esta opção"
+  );
+  out = out.replace(
+    /^(?:For|Para)\s+[^,\n]{2,80},\s+(the estimated chance|a chance estimada)/i,
+    (_, clause) =>
+      clause.toLowerCase().startsWith("the")
+        ? `For this planting option, ${clause}`
+        : `Para esta opção de plantio, ${clause}`
+  );
+
+  for (const rawCrop of cropNames) {
+    const base = rawCrop.replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim();
+    if (base.length < 3) continue;
+    const escaped = base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    out = out
+      .replace(
+        new RegExp(`\\byour\\s+${escaped}(?:\\s+(?:planting|crop))?\\b`, "gi"),
+        "your crop"
+      )
+      .replace(
+        new RegExp(`\\bsua\\s+(?:planta[cç][aã]o|lavoura|cultura)\\s+de\\s+${escaped}\\b`, "gi"),
+        "sua lavoura"
+      )
+      .replace(
+        new RegExp(`(^|[.!?\\n]\\s*)${escaped}(?=\\s+(?:fits|needs|is|combina|precisa|ajuda|é|vai)\\b)`, "gi"),
+        `$1${isEnglish ? "This crop" : "Esta planta"}`
+      );
+  }
+
   // Remove aviso repetitivo de "decisão final" de dentro de cada card (fica uma única vez no rodapé)
   out = out
     .replace(
-      /\s*(?:Lembre-se(?:\s+que|\s*:)?[^.!?\n]*(?:decisão final[^.!?\n]*[.!?]|experiência local[^.!?\n]*[.!?])\s*(?:A decisão final é sempre sua\.?)?)/gi,
+      /\s*(?:Lembre-se(?:\s+que|\s*:)?[^.!?\n]*(?:decisão final[^.!?\n]*[.!?]|experiência local[^.!?\n]*[.!?])\s*(?:A decisão final é sempre (?:sua|do produtor)[^.!?\n]*[.!?]?)?)/gi,
       ""
     )
-    .replace(/\s*A decisão final é sempre sua\.?\s*/gi, "")
+    .replace(/\s*A decisão final é sempre (?:sua|do produtor)[^.!?\n]*[.!?]?\s*/gi, "")
     .replace(
-      /\s*(?:Remember(?:\s*:)?[^.!?\n]*(?:final decision[^.!?\n]*[.!?]|local experience[^.!?\n]*[.!?])\s*(?:The final decision is always yours\.?)?)/gi,
+      /\s*(?:Remember(?:\s*:)?[^.!?\n]*(?:final decision[^.!?\n]*[.!?]|local experience[^.!?\n]*[.!?])\s*(?:The final decision is always yours[^.!?\n]*[.!?]?)?)/gi,
       ""
     )
-    .replace(/\s*The final decision is always yours\.?\s*/gi, "");
+    .replace(/\s*The final decision is always yours[^.!?\n]*[.!?]?\s*/gi, "")
+    .replace(
+      /\s*(Why was it evaluated this way\?|Por que foi avaliad[ao] assim\?|What to watch for in the field:|O que observar no campo:)/gi,
+      "\n\n$1"
+    );
 
-  return out.replace(/[ \t]{2,}/g, " ").trim();
+  return out
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function translateKnownBenefit(benefit: string, isEnglish: boolean): string {
@@ -715,6 +779,19 @@ export function adaptSimulacaoToScenarios(
         ? Math.round(response.consumo_agua_mm)
         : Math.max(220, Math.round(response.consumo_agua_mm || 350));
 
+    const cardCropMentions = [
+      response.cultura_principal,
+      translateCropStepName(response.cultura_principal, true),
+      ...steps.map((s) => s.name),
+      ...COVER_CROP_ALTERNATIVES.map((alt) => alt.name),
+    ].filter(Boolean);
+    const cleanedClimateNote = stripRawMarkdownAndFluff(
+      response.explicacao_textual || "",
+      "",
+      isEnglish,
+      cardCropMentions
+    );
+
     return {
       id: `sim-scenario-${idx + 1}`,
       optionBadge: i18n.t(`simulation.optionBadges.${idx + 1}`, {
@@ -723,20 +800,27 @@ export function adaptSimulacaoToScenarios(
       focusTag: mapFocusTag(onboarding.priority, idx),
       variant,
       steps,
-      aiJustification: translateKnownBenefit(
-        localizeCropNamesInText(
-          stripRawMarkdownAndFluff(
-            item.explicacao ||
-              response.explicacao_ia ||
-              response.explicacao_textual ||
-              (isEnglish
-                ? "Suggested based on what you planted before and local weather."
-                : "Sugestão feita pelo que você plantou antes e pelo tempo da região."),
-            item.strategy
+      aiJustification: stripRawMarkdownAndFluff(
+        translateKnownBenefit(
+          localizeCropNamesInText(
+            stripRawMarkdownAndFluff(
+              item.explicacao ||
+                response.explicacao_ia ||
+                response.explicacao_textual ||
+                (isEnglish
+                  ? "Suggested based on what you planted before and local weather."
+                  : "Sugestão feita pelo que você plantou antes e pelo tempo da região."),
+              item.strategy,
+              isEnglish,
+              cardCropMentions
+            ),
+            isEnglish
           ),
           isEnglish
         ),
-        isEnglish
+        item.strategy,
+        isEnglish,
+        cardCropMentions
       ),
       pros,
       cons,
@@ -748,7 +832,7 @@ export function adaptSimulacaoToScenarios(
         cycleDurationDays: i18n.t("simulation.days", { count: cycleDays }),
         waterDemandMm: `${waterMm} mm (${translateWaterRisk(item.water_risk, isEnglish)})`,
         nasaClimateNote:
-          response.explicacao_textual ||
+          cleanedClimateNote ||
           (isEnglish
             ? `Climate analysis (${response.origem}) with ${translateWaterRisk(item.water_risk, true)} water risk.`
             : `Análise climática (${response.origem}) com risco hídrico ${translateWaterRisk(item.water_risk, false)}.`),
@@ -965,13 +1049,18 @@ export function adaptRelatorioAndAlertasToWeather(
   return {
     headline,
     details: `${tempStr} · ${rainStr}`,
-    weatherNotice: localizeAlertText(
-      latestAlert?.orientacao_pratica ||
-        latestAlert?.resumo_adaptacao ||
-        relatorio?.recomendacoes_manejo[0] ||
+    weatherNotice:
+      stripRawMarkdownAndFluff(
+        localizeAlertText(
+          latestAlert?.orientacao_pratica ||
+            latestAlert?.resumo_adaptacao ||
+            relatorio?.recomendacoes_manejo[0] ||
+            "",
+          isEnglish
+        ),
         "",
-      isEnglish
-    ) || undefined,
+        isEnglish
+      ) || undefined,
     sourceLabel: relatorio?.origem_dados
       ? `${isEnglish ? "Source" : "Fonte"}: ${relatorio.origem_dados}`
       : undefined,
@@ -1454,15 +1543,25 @@ export function buildSimulatedDashboardAndCalendar(
     `${isEnglish ? "Cycle" : "Ciclo"}: ${scenario.technicalDetails.cycleDurationDays}`,
     `${isEnglish ? "Water" : "Água"}: ${scenario.technicalDetails.waterDemandMm}`,
   ];
-  if (simulacao?.consumo_agua_mm) {
-    detailsParts.push(`${Math.round(simulacao.consumo_agua_mm)} mm`);
-  }
+  const simulatedCropMentions = [
+    simulacao?.cultura_principal ?? "",
+    simulacao?.cultura_principal
+      ? translateCropStepName(simulacao.cultura_principal, true)
+      : "",
+    ...scenario.steps.map((s) => s.name),
+    ...COVER_CROP_ALTERNATIVES.map((alt) => alt.name),
+  ].filter(Boolean);
 
   const weather: AreaWeatherSummary = {
     headline,
     details: detailsParts.join(" · "),
     weatherNotice:
-      simulacao?.explicacao_textual?.trim() ||
+      stripRawMarkdownAndFluff(
+        simulacao?.explicacao_textual || "",
+        "",
+        isEnglish,
+        simulatedCropMentions
+      ) ||
       scenario.technicalDetails.nasaClimateNote ||
       scenario.aiJustification,
   };
